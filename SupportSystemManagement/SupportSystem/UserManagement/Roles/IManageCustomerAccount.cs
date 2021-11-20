@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UserManagement.User;
+using UserManagement.UserTypes.Customer;
 
 namespace UserManagement.Roles
 {

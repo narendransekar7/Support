@@ -5,11 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TicketManagement\TicketManagement.csproj" />
+    <Folder Include="Product\" />
+    <Folder Include="Ticket\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="UserValidation\" />
+    <ProjectReference Include="..\UserManagement\UserManagement.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using TicketManagement;
+using TicketManagement.Creation.Model;
+using TicketManagement.Updation.Model;
 
 namespace UserManagement.Roles
 {
