@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace TicketManagement
+namespace TicketManagement.Updation.Model
 {
     public interface ITicketUpdateModel
     {

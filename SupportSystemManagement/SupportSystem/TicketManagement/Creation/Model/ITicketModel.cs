@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using TicketManagement.Updation.Assignment;
 
-namespace TicketManagement
+namespace TicketManagement.Creation.Model
 {
     public interface ITicketModel
     {
