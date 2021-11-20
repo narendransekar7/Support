@@ -4,4 +4,13 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TicketManagement\TicketManagement.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Factory\" />
+    <Folder Include="UserValidation\" />
+  </ItemGroup>
+
 </Project>

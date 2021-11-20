@@ -1,19 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.31829.152
+VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem", "SupportSystem\SupportSystem.csproj", "{98FEBE65-9C74-4478-BF04-417A7CAD9090}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserManagement", "UserManagement\UserManagement.csproj", "{381997C5-57C2-4EA1-B9A3-BC06B8F1E957}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserManagement", "UserManagement\UserManagement.csproj", "{381997C5-57C2-4EA1-B9A3-BC06B8F1E957}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProductManagement", "ProductManagement\ProductManagement.csproj", "{8CF8C600-3766-4241-BCAF-081F0CF48A26}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProductManagement", "ProductManagement\ProductManagement.csproj", "{8CF8C600-3766-4241-BCAF-081F0CF48A26}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketManagement", "TicketManagement\TicketManagement.csproj", "{0A3E848D-DDEA-45E7-A291-B338EE373480}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PaymentManagement", "PaymentManagement\PaymentManagement.csproj", "{54573D95-CD79-48B1-B7E0-B94A7F937AFC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaymentManagement", "PaymentManagement\PaymentManagement.csproj", "{54573D95-CD79-48B1-B7E0-B94A7F937AFC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeploymentManagement", "DeploymentManagement\DeploymentManagement.csproj", "{03B2CB0F-6572-4601-BDEF-F054407E4F5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeploymentManagement", "DeploymentManagement\DeploymentManagement.csproj", "{03B2CB0F-6572-4601-BDEF-F054407E4F5A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicketManagement", "TicketManagement\TicketManagement.csproj", "{600702E6-9206-4B79-A26F-33B203050382}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExceptionLogger", "ExceptionLogger\ExceptionLogger.csproj", "{55EC304C-A6B3-4617-855E-9904C4B4FD61}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,10 +35,6 @@ Global
 		{8CF8C600-3766-4241-BCAF-081F0CF48A26}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8CF8C600-3766-4241-BCAF-081F0CF48A26}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8CF8C600-3766-4241-BCAF-081F0CF48A26}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0A3E848D-DDEA-45E7-A291-B338EE373480}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0A3E848D-DDEA-45E7-A291-B338EE373480}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0A3E848D-DDEA-45E7-A291-B338EE373480}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0A3E848D-DDEA-45E7-A291-B338EE373480}.Release|Any CPU.Build.0 = Release|Any CPU
 		{54573D95-CD79-48B1-B7E0-B94A7F937AFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{54573D95-CD79-48B1-B7E0-B94A7F937AFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54573D95-CD79-48B1-B7E0-B94A7F937AFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,6 +43,14 @@ Global
 		{03B2CB0F-6572-4601-BDEF-F054407E4F5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03B2CB0F-6572-4601-BDEF-F054407E4F5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03B2CB0F-6572-4601-BDEF-F054407E4F5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{600702E6-9206-4B79-A26F-33B203050382}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{600702E6-9206-4B79-A26F-33B203050382}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{600702E6-9206-4B79-A26F-33B203050382}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{600702E6-9206-4B79-A26F-33B203050382}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55EC304C-A6B3-4617-855E-9904C4B4FD61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55EC304C-A6B3-4617-855E-9904C4B4FD61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55EC304C-A6B3-4617-855E-9904C4B4FD61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55EC304C-A6B3-4617-855E-9904C4B4FD61}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
