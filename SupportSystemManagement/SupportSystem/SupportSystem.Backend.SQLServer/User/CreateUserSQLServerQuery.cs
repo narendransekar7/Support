@@ -1,4 +1,4 @@
-﻿using SupportSystem.Backend.Interface.User.QueryBuilder;
+﻿using SupportSystem.Backend.Interface.User;
 using System;
 using System.Collections.Generic;
 using System.Text;

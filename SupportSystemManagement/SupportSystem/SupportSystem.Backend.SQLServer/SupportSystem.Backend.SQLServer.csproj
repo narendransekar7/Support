@@ -5,8 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Deployment\" />
     <Folder Include="Ticket\" />
     <Folder Include="Product\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
   </ItemGroup>
 
   <ItemGroup>
