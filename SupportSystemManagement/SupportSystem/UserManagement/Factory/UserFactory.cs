@@ -1,12 +1,10 @@
-﻿using System;
+﻿using SupportSystem.User.Creation;
+using SupportSystem.User.Model;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using UserManagement.User;
-using UserManagement.User.Creation;
-using UserManagement.UserTypes.Agent;
-using UserManagement.UserTypes.Customer;
 
-namespace UserManagement.Factory
+namespace SupportSystem.User.Factory
 {
     public static class UserFactory
     {

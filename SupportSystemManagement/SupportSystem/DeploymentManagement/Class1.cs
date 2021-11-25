@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DeploymentManagement
+namespace SupportSystem.Deployment
 {
     public class Class1
     {

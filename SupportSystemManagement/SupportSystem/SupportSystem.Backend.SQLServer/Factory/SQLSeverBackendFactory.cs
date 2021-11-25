@@ -1,5 +1,5 @@
-﻿using SupportSystem.Backend.Interface.User.QueryBuilder;
-using SupportSystem.Backend.SQLServer.User.QueryBuilder;
+﻿using SupportSystem.Backend.Interface.User;
+using SupportSystem.Backend.SQLServer.User;
 using System;
 using System.Collections.Generic;
 using System.Text;

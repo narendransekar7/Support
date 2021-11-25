@@ -1,10 +1,10 @@
 ﻿using SupportSystem.Backend.Interface.User;
+using SupportSystem.User.Model;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using UserManagement.User;
 
-namespace SupportSystem.Backend.SQLServer.User.QueryBuilder
+namespace SupportSystem.Backend.SQLServer.User
 {
     public class CreateUserSQLServerQuery : ICreateUserQuery
     {

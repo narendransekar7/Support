@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ProductManagement
+namespace SupportSystem.Product
 {
     public class Class1
     {

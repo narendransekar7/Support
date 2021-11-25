@@ -1,9 +1,9 @@
-﻿using System;
-using UserManagement.Factory;
-using UserManagement.User;
-using UserManagement.User.Creation;
+﻿using SupportSystem.User.Creation;
+using SupportSystem.User.Factory;
+using SupportSystem.User.Model;
+using System;
 
-namespace SupportSystemConsole
+namespace SupportSystem.ConsoleInput
 {
     class Program
     {
@@ -41,7 +41,7 @@ namespace SupportSystemConsole
                     }
 
 
-                     User.CreateUser(person);
+                    User.CreateUser(person);
 
                     break;
 
