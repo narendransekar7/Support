@@ -8,9 +8,10 @@ namespace SupportSystem.User.Model
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string EmailId { get; set; }
+       
         public string Country { get; set; }
         public string Gender { get; set; }
-
+        public string PrimaryNumber { get; set; }
+        public string PrimaryEmail { get; set; }
     }
 }

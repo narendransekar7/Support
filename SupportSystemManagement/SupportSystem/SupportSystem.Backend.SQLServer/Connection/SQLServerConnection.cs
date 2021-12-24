@@ -3,12 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Data.SqlClient;
+using SupportSystem.Backend.SQLServer.Factory;
 
 namespace SupportSystem.Backend.SQLServer.Connection
 {
-    public class SQLServerConnection : ISQLServerConnection, IConnection
+    public class SQLServerConnection : ISQLServerConnection
     {
-        IParameterModel _parameters;
+        IParameterModel _parameters = SQLSeverBackendFactory.CreateParameterModel();
 
 
         public SQLServerConnection(IParameterModel parameters)
@@ -20,7 +21,7 @@ namespace SupportSystem.Backend.SQLServer.Connection
         }
 
 
-        public SqlConnection GetConnection()
+        public SqlConnection CreateConnection()
         {
             SqlConnection connection = new SqlConnection(@"Data Source=" + _parameters.Server + ";Initial Catalog= " + _parameters.Database + ";Persist Security Info=True;User ID=" + _parameters.User_Id + ";Password=" + _parameters.Password);
                 try

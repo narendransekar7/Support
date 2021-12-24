@@ -10,8 +10,4 @@
     <Folder Include="Ticket\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SupportSystem.User\SupportSystem.User.csproj" />
-  </ItemGroup>
-
 </Project>

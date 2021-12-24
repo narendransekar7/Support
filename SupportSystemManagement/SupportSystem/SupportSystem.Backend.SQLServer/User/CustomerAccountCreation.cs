@@ -6,11 +6,19 @@ using System.Text;
 
 namespace SupportSystem.Backend.SQLServer.User
 {
-    public class CreateUserSQLServerQuery : ICreateUserQuery
+    public class CustomerAccountCreation : IAccountCreation
     {
-        public bool ExecuteUserAddQuery(IPersonModel person)
+
+        public CustomerAccountCreation(IPersonModel person)
         {
-            return true;
+
+
+        }
+
+
+        public bool CreateAccount()
+        {
+            throw new NotImplementedException();
         }
     }
 }

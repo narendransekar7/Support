@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SupportSystem.Backend.Interface\SupportSystem.Backend.Interface.csproj" />
     <ProjectReference Include="..\SupportSystem.Ticket\SupportSystem.Ticket.csproj" />
   </ItemGroup>
 

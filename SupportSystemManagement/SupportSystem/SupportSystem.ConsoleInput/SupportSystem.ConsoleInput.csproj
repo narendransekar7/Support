@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SupportSystem.Backend.SQLServer\SupportSystem.Backend.SQLServer.csproj" />
     <ProjectReference Include="..\SupportSystem.User\SupportSystem.User.csproj" />
   </ItemGroup>
 
