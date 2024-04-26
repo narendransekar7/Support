@@ -25,7 +25,7 @@ namespace SupportSystem.ConsoleInput
             string input = Console.ReadLine();
 
             //Consider it as stored in some JSON or XML in the application.
-            string Server = ".";
+            string Server = @"DESKTOP-JIV0A8R\SQLEXPRESS";
             string Database = "SupportSystem";
             string User_Id = "SupportAdmin";
             string Passowrd = "NarenSql@123";

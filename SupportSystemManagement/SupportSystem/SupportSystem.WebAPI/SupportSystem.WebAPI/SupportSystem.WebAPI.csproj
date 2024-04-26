@@ -7,7 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="HttpClientFactory" Version="1.0.5" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.11.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\SupportSystem.Backend.SQLServer\SupportSystem.Backend.SQLServer.csproj" />
+    <ProjectReference Include="..\..\SupportSystem.User\SupportSystem.User.csproj" />
   </ItemGroup>
 
 

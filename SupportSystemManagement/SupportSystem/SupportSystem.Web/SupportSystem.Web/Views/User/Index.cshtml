@@ -1,0 +1,39 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<form method="post" action="/User/GetDetails">
+    <div>
+        <label for="FirstName">First Name:</label>
+        <input type="text" id="FirstName" name="FirstName" required>
+    </div>
+
+    <div>
+        <label for="LastName">Last Name:</label>
+        <input type="text" id="LastName" name="LastName" required>
+    </div>
+
+    <div>
+        <label for="LastName">Country:</label>
+        <input type="text" id="Country" name="Country" required>
+    </div>
+
+    <div>
+        <label for="Gender">Gender:</label>
+        <input type="text" id="Gender" name="Gender" required>
+    </div>
+
+    <div>
+        <label for="PrimaryEmail">PrimaryEmail:</label>
+        <input type="text" id="PrimaryEmail" name="PrimaryEmail" required>
+    </div>
+
+    <div>
+        <label for="LastName">PrimaryNumber:</label>
+        <input type="text" id="PrimaryNumber" name="PrimaryNumber" required>
+    </div>
+    <!-- Add other input fields for the remaining properties -->
+
+    <button type="submit">Submit</button>
+</form>
