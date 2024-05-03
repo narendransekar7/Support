@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.Backend.SQLSe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.User", "..\SupportSystem.User\SupportSystem.User.csproj", "{10F7E560-A47B-4690-ADD1-35120AE53745}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.Logger", "..\SupportSystem.Logger\SupportSystem.Logger.csproj", "{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{10F7E560-A47B-4690-ADD1-35120AE53745}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10F7E560-A47B-4690-ADD1-35120AE53745}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{10F7E560-A47B-4690-ADD1-35120AE53745}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

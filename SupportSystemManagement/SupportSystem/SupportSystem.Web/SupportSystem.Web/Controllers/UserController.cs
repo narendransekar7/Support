@@ -76,7 +76,7 @@ namespace SupportSystem.Web.Controllers
             try
             {
                 // Make GET request to your Web API endpoint
-                HttpResponseMessage response = await _httpClient.GetAsync("weatherforecast");
+                HttpResponseMessage response = await _httpClient.GetAsync("user");
 
                 // Check if the request was successful
                 if (response.IsSuccessStatusCode)
