@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.User", "..\Su
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.Logger", "..\SupportSystem.Logger\SupportSystem.Logger.csproj", "{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.Ticket", "..\SupportSystem.Ticket\SupportSystem.Ticket.csproj", "{47303994-D03D-4E0A-9FEA-C3B865E7E66E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.Backend.Interface", "..\SupportSystem.Backend.Interface\SupportSystem.Backend.Interface.csproj", "{DD2A2DB5-5325-48C8-B487-4D239475DBB8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C942ECD-3DDE-4F8E-BDAF-117CC0539499}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47303994-D03D-4E0A-9FEA-C3B865E7E66E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47303994-D03D-4E0A-9FEA-C3B865E7E66E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47303994-D03D-4E0A-9FEA-C3B865E7E66E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47303994-D03D-4E0A-9FEA-C3B865E7E66E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD2A2DB5-5325-48C8-B487-4D239475DBB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD2A2DB5-5325-48C8-B487-4D239475DBB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD2A2DB5-5325-48C8-B487-4D239475DBB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD2A2DB5-5325-48C8-B487-4D239475DBB8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
