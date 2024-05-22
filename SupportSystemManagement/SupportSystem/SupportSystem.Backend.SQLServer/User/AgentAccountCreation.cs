@@ -41,7 +41,9 @@ namespace SupportSystem.Backend.SQLServer.User
 
                 SqlCommand command = new SqlCommand(insertUserQuery, _sqlConnection);
                 command.ExecuteNonQuery();
+                Console.WriteLine("Agent added successfully and start of logger");
                 logger.Log("Agent added successfully ");
+                Console.WriteLine("Agent added successfully and end of logger");
                 return true;
                
             }

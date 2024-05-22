@@ -13,12 +13,22 @@ namespace SupportSystem.Logger
 
             try
             {
-                Console.WriteLine($"create code folder starting" + logFilePath);
+                Console.WriteLine("create code folder starting" + logFilePath);
+
+
+               
                 // Ensure the log directory exists; create it if it doesn't
                 if (!Directory.Exists(Path.GetDirectoryName(logFilePath)))
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(logFilePath));
-                    Console.WriteLine($"create code folder reached" + logFilePath);
+                    Console.WriteLine("create code folder reached" + logFilePath);
+                    Log("create code folder reached - " + Path.GetDirectoryName(logFilePath));
+                }
+                else
+                {
+
+
+                    Log("Folder exist - " + Path.GetDirectoryName(logFilePath));
                 }
 
 
@@ -42,7 +52,9 @@ namespace SupportSystem.Logger
                 using (StreamWriter writer = File.AppendText(logFilePath))
                 {
                     // Write the current date/time and the message to the file
+                    Console.WriteLine("logger log method start before write file");
                     writer.WriteLine($"[{DateTime.Now}] {message}");
+                    Console.WriteLine("logger log method end after write file");
                 }
             }
             catch (Exception ex)

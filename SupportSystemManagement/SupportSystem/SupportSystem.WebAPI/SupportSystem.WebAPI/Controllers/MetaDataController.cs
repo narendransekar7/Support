@@ -38,7 +38,7 @@ namespace SupportSystem.WebAPI.Controllers
 
                     //connectionString = "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;";
                     // Code to connect to SQL Server
-                    break;
+                    
 
 
                 case DatabaseType.PostgreSQL:
