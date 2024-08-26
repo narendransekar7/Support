@@ -32,6 +32,23 @@ namespace SupportSystem.Web.Controllers
         }
 
 
+        [HttpPost]
+        public async Task<IActionResult> CreateMetaDatabase(ServerDetailModel serverInput)
+        {
+
+            HttpClient httpClient = new HttpClient();
+            string webAPIURL = (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("webapiurl"))) ? "http://" + Environment.GetEnvironmentVariable("webapiurl") + "/metadata/createmetadata" : "https://localhost:44384/metadata/createmetadata";
+            // Serialize the data to JSON format
+            var json = JsonConvert.SerializeObject(serverInput);
+            await PostDataAsync(webAPIURL, json);
+            // Create the request body from the serialized JSON data
+            var requestBody = new StringContent(json, Encoding.UTF8, "application/json");
+
+            return View();
+        }
+
+        
+
         public static async Task PostDataAsync(string url, string jsonData)
         {
             try
@@ -109,5 +126,16 @@ namespace SupportSystem.Web.Controllers
         public string Gender { get; set; }
         public string PrimaryNumber { get; set; }
         public string PrimaryEmail { get; set; }
+    }
+
+    public class ServerDetailModel
+    {
+        public string Server { get; set; }
+
+        public string User_Id { get; set; }
+
+        public string Password { get; set; }
+
+        public string Database { get; set; }
     }
 }
