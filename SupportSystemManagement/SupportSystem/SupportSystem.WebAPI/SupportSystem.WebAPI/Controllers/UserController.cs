@@ -79,7 +79,7 @@ namespace SupportSystem.WebAPI.Controllers
 
 
         [HttpGet]
-        public IActionResult GetUsers()
+        public IActionResult GetUsers(string userid)
         {
             string Server = Environment.GetEnvironmentVariable("server");
             string Database = Environment.GetEnvironmentVariable("database");
@@ -92,16 +92,25 @@ namespace SupportSystem.WebAPI.Controllers
                 Database = "SupportSystem";
                 User_Id = "SupportAdmin";
                 Passowrd = "NarenSql@123";
+                
+            }
+            if (string.IsNullOrEmpty(Server) || string.IsNullOrEmpty(Database) || string.IsNullOrEmpty(User_Id) || string.IsNullOrEmpty(Passowrd))
+            {
+                userid = "";
+            }
+            else
+            {
+
+                userid = " where FirstName = '" + userid+"'";
             }
 
-
-            try
+                try
             {
                 // List to store query results
                 var result = new List<object>();
 
                 // SQL query to select data
-                string sqlQuery = "SELECT [UserName],[FirstName],[LastName],[DisplayName],[PrimaryEmail],[PrimaryPhoneNumber],[Gender],[Company] ,[CreatedDate] FROM SS_User";
+                string sqlQuery = "SELECT [UserName],[FirstName],[LastName],[DisplayName],[PrimaryEmail],[PrimaryPhoneNumber],[Gender],[Company] ,[CreatedDate] FROM SS_User"+ userid;
                 string _connectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";User Id=" + User_Id + "; Password=" + Passowrd + ";";
                 // Establish a connection to the SQL Server database
                 using (SqlConnection connection = new SqlConnection(_connectionString))
@@ -120,9 +129,10 @@ namespace SupportSystem.WebAPI.Controllers
                             {
                                 var row = new
                                 {
-                                    FirstName = reader.GetString(0), // Assuming Id is the first column
+                                   // FullName = reader.GetString(0), // Assuming Id is the first column
                                                                      // Add other properties as needed
-                                    LastName = reader.GetString(1)
+                                    Name = reader.GetString(1),
+                                    FullName = reader.GetString(0)
                                 };
                                 result.Add(row);
                             }
