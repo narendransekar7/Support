@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Define environment variables for Docker Hub credentials
-        DOCKER_CREDENTIALS_ID = 'github' // Jenkins credentials ID
+        DOCKER_CREDENTIALS_ID = 'dockerhub' // Jenkins credentials ID
         DOCKER_IMAGE_NAME = 'narendransekar/supportjenkins'
         DOCKER_TAG = 'latest' // or any specific tag
     }
