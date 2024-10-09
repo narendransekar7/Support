@@ -8,6 +8,7 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
 COPY . ./
+RUN pwd
 WORKDIR /src/SupportSystem.WebAPI/SupportSystem.WebAPI
 
 RUN pwd
