@@ -1,65 +1,43 @@
 pipeline {
     agent { label 'Jenkins-Agent' }
-    tools {
-        jdk 'Java17'
-        maven 'Maven3'
-    }
+
     environment {
-	    APP_NAME = "register-app-pipeline"
-            RELEASE = "1.0.0"
-            DOCKER_USER = "narendransekar7"
-            DOCKER_PASS = 'dockerhub'
-            IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
-            IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
+        // Define environment variables for Docker Hub credentials
+        DOCKER_CREDENTIALS_ID = 'github' // Jenkins credentials ID
+        DOCKER_IMAGE_NAME = 'narendransekar/supportjenkins'
+        DOCKER_TAG = 'latest' // or any specific tag
     }
-    stages{
-        stage("Cleanup Workspace"){
-                steps {
-                cleanWs()
-                }
-        }
 
-        stage("Checkout from SCM"){
-                steps {
-                    git branch: 'master', credentialsId: 'github', url: 'https://github.com/narendransekar7/Support.git'
-                }
-        }
-
-        stage("Build Application"){
+    stages {
+        stage('Clone Repository') {
             steps {
-                sh "mvn clean package"
+                // Clone your .NET Core project repository
+                git 'https://github.com/narendransekar7/Support.git'
             }
+        }
 
-       }
-
-
-        stage("Build & Push Docker Image") {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('',DOCKER_PASS) {
-                        docker_image = docker.build "${IMAGE_NAME}"
-                    }
-
-                    docker.withRegistry('',DOCKER_PASS) {
-                        docker_image.push("${IMAGE_TAG}")
-                        docker_image.push('latest')
-                    }
+                    // Build the Docker image
+                    sh 'docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} .'
                 }
             }
+        }
 
-       }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Login to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                    }
 
-   
-       stage ('Cleanup Artifacts') {
-           steps {
-               script {
-                    sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                    sh "docker rmi ${IMAGE_NAME}:latest"
-               }
-          }
-       }
-
-   
+                    // Push the Docker image to Docker Hub
+                    sh 'docker push ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}'
+                }
+            }
+        }
     }
 
 
