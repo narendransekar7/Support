@@ -10,6 +10,7 @@ WORKDIR /src
 COPY . ./
 WORKDIR /src/SupportSystem.WebAPI/SupportSystem.WebAPI
 
+RUN pwd
 RUN dotnet restore "SupportSystem.WebAPI.csproj"
 
 
