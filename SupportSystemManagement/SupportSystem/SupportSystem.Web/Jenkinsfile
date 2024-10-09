@@ -20,7 +20,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image
-                    sh 'docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} -f SupportSystemManagement/SupportSystem/SupportSystem.Web/Dockerfile .'
+                    sh 'docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} -f SupportSystemManagement/SupportSystem/SupportSystem.Web/SupportSystem.Web/Dockerfile .'
                 }
             }
         }
