@@ -10,7 +10,7 @@ WORKDIR /src
 COPY . ./
 WORKDIR /src/SupportSystem.WebAPI/SupportSystem.WebAPI
 
-RUN dotnet restore
+RUN dotnet restore "SupportSystem.WebAPI.csproj"
 
 
 RUN dotnet build "SupportSystem.WebAPI.csproj" -c Release -o /app/build
