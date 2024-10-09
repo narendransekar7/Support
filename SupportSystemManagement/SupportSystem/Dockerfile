@@ -9,6 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
 COPY . ./
 RUN pwd
+RUN ls
 WORKDIR /src/SupportSystem.WebAPI/SupportSystem.WebAPI
 
 RUN pwd
