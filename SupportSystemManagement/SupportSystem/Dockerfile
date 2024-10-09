@@ -10,7 +10,7 @@ WORKDIR /src
 COPY . ./
 RUN pwd
 RUN ls
-WORKDIR /src/SupportSystem.WebAPI/SupportSystem.WebAPI
+WORKDIR /src/SupportSystemManagement/SupportSystem/SupportSystem.WebAPI/SupportSystem.WebAPI
 
 RUN pwd
 RUN ls
