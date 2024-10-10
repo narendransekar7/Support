@@ -12,6 +12,7 @@ RUN pwd
 RUN ls
 WORKDIR /src/SupportSystemManagement/SupportSystem/SupportSystem.WebAPI/SupportSystem.WebAPI
 
+
 RUN pwd
 RUN ls
 RUN dotnet restore "SupportSystem.WebAPI.csproj"
