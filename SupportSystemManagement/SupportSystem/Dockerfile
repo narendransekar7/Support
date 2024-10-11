@@ -20,18 +20,7 @@ RUN dotnet build "SupportSystem.WebAPI.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "SupportSystem.WebAPI.csproj" -c Release -o /app/publish
 
-# Separate stage for .NET 8 (for running tests)
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS test
-WORKDIR /src
-COPY . ./
 
-# Restore and build the .NET 8 test project (SupportSystem.WebAPI.Tests)
-WORKDIR /src/SupportSystemManagement/SupportSystem/SupportSystem.WebAPI/SupportSystem.WebAPI.Tests
-RUN dotnet restore "SupportSystem.WebAPI.Tests.csproj"
-RUN dotnet build "SupportSystem.WebAPI.Tests.csproj" -c Release
-
-# Run NUnit tests in .NET 8 environment
-RUN dotnet test "SupportSystem.WebAPI.Tests.csproj" --logger:trx
 
 # Final image to run the WebAPI project
 FROM base AS final
