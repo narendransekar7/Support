@@ -1,4 +1,6 @@
 namespace SupportSystem.WebAPI.Tests;
+{
+    
 using System;
 using NUnit.Framework;
 using SupportSystem.WebAPI.Controllers;
@@ -61,3 +63,4 @@ using Microsoft.AspNetCore.Mvc;
 
 
     }
+}
