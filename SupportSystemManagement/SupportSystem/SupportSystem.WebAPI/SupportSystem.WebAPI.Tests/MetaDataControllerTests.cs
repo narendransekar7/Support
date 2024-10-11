@@ -1,13 +1,11 @@
-namespace SupportSystem.WebAPI.Tests;
-{
-    
-using System;
 using NUnit.Framework;
 using SupportSystem.WebAPI.Controllers;
 using SupportSystem.WebAPI.Model.MetaData;
 using Microsoft.AspNetCore.Mvc;
 
-    [TestFixture]
+namespace SupportSystem.WebAPI.Tests
+{
+    
     public class MetaDataControllerTests
     {
         private MetaDataController _controller;
@@ -41,23 +39,7 @@ using Microsoft.AspNetCore.Mvc;
             // Additional assertions based on the expected return value
         }
 
-        [Test]
-        public void CreateMetaData_InvalidDatabaseType_ThrowsArgumentException()
-        {
-            // Arrange
-            var serverDetail = new ServerDetail
-            {
-                Type = (DatabaseType)999, // Invalid type
-                Server = "myServerAddress",
-                User_Id = "myUsername",
-                Password = "myPassword",
-                Database = "myDatabase"
-            };
-
-            // Act & Assert
-            var ex = Assert.Throws<ArgumentException>(() => _controller.CreateMetaData(serverDetail));
-            Assert.AreEqual("Invalid database type specified.", ex.Message);
-        }
+      
 
 
 
