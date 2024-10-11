@@ -25,6 +25,26 @@ pipeline {
             }
         }
 
+        stage('Run NUnit Tests') {
+            steps {
+                script {
+                    // Run the container to execute tests
+                    // Mount the workspace to access files if needed
+                    sh 'docker run --rm ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} dotnet test /src/SupportSystemManagement/SupportSystem/SupportSystem.WebAPI/SupportSystem.WebAPI.Tests/SupportSystem.WebAPI.Tests.csproj --logger:trx --results-directory /src/TestResults'
+
+                    // Copy test results back to the workspace for Jenkins to read
+                    sh 'docker cp $(docker create ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}):/src/TestResults .'
+                }
+            }
+
+            post {
+                always {
+                    // Publish test results to Jenkins using MSTest plugin
+                    mstest testResultsFile: '**/TestResults/*.trx'
+                }
+            }
+        }
+
         stage('Push Docker Image') {
             steps {
                 script {
