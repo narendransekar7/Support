@@ -39,7 +39,7 @@ pipeline {
             post {
                 always {
                     // Publish test results to Jenkins using MSTest plugin
-                    mstest testResultsFile: '**/TestResults/*.trx'
+                    mstest testResultsFile: '/*.trx'
                 }
             }
         }
