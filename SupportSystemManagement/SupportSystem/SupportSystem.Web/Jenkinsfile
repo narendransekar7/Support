@@ -31,9 +31,9 @@ pipeline {
                 script {
                     // Run the container to execute tests
                     // Mount the workspace to access files if needed
-                    sh 'docker run -d --rm ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} dotnet test /src/SupportSystemManagement/SupportSystem/SupportSystem.WebAPI/SupportSystem.WebAPI.Tests/SupportSystem.WebAPI.Tests.csproj --logger:trx --results-directory /src/TestResults'
+                    sh 'docker run -d --rm ${DOCKER_IMAGE_NAME}:${DOCKER_TAG} dotnet test /src/SupportSystemManagement/SupportSystem/SupportSystem.WebAPI/SupportSystem.WebAPI.Tests/SupportSystem.WebAPI.Tests.csproj --logger:trx --results-directory /src'
                     // Copy test results back to the workspace for Jenkins to read
-                    sh 'docker cp $(docker create ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}):/src/TestResults .'
+                    sh 'docker cp $(docker create ${DOCKER_IMAGE_NAME}:${DOCKER_TAG}):/src .'
                 }
             }
             post {
@@ -67,6 +67,15 @@ pipeline {
             }
         }
     }
+        post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+        failure {
+            // Do something when build fails
+            echo "Build or tests failed!"
+        }
 
 
 }
