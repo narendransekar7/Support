@@ -67,15 +67,7 @@ pipeline {
             }
         }
     }
-        post {
-        always {
-            // Clean up workspace
-            cleanWs()
-        }
-        failure {
-            // Do something when build fails
-            echo "Build or tests failed!"
-        }
+     
 
 
 }
