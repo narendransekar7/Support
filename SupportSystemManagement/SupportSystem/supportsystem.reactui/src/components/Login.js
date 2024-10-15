@@ -1,0 +1,90 @@
+import React, { useState } from 'react';
+
+function Login() {
+  // State to hold form inputs
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // For now, just log the email and password, you can send these to an API
+    console.log("Email:", email);
+    console.log("Password:", password);
+
+    // Clear the form (optional)
+    setEmail('');
+    setPassword('');
+  };
+
+  return (
+    <div style={styles.container}>
+      <h2>Support System Login</h2>
+      <form onSubmit={handleSubmit} style={styles.form}>
+        <div style={styles.inputContainer}>
+          <label htmlFor="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={styles.input}
+          />
+        </div>
+        <div style={styles.inputContainer}>
+          <label htmlFor="password">Password:</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={styles.input}
+          />
+        </div>
+        <button type="submit" style={styles.button}>Login</button>
+      </form>
+    </div>
+  );
+}
+
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    backgroundColor: '#f0f0f0',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '300px',
+    padding: '20px',
+    backgroundColor: '#fff',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    borderRadius: '8px',
+  },
+  inputContainer: {
+    marginBottom: '15px',
+  },
+  input: {
+    width: '100%',
+    padding: '10px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
+  },
+  button: {
+    padding: '10px',
+    backgroundColor: '#007bff',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+};
+
+export default Login;
