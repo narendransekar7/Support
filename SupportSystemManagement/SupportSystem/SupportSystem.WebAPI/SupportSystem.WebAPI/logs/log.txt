@@ -1,0 +1,101 @@
+[10/4/2024 10:49:22 AM] create code folder reached - logs
+[10/4/2024 10:49:23 AM] Folder exist - logs
+[10/4/2024 10:49:23 AM] Database created successfully.
+[10/4/2024 10:49:23 AM] Folder exist - logs
+[10/4/2024 10:49:23 AM] updateconnection success
+[10/4/2024 10:49:23 AM] Folder exist - logs
+[10/4/2024 10:49:23 AM] Table Reached
+[10/4/2024 10:55:03 AM] Folder exist - logs
+[10/4/2024 10:55:03 AM] Folder exist - logs
+[10/4/2024 10:55:04 AM] Database created successfully.
+[10/4/2024 10:55:04 AM] Folder exist - logs
+[10/4/2024 10:55:04 AM] updateconnection success
+[10/4/2024 10:55:04 AM] Folder exist - logs
+[10/4/2024 10:55:04 AM] Table Reached
+[10/4/2024 11:18:26 AM] Folder exist - logs
+[10/4/2024 11:18:26 AM] Error: A connection was successfully established with the server, but then an error occurred during the login process. (provider: Shared Memory Provider, error: 0 - No process is on the other end of the pipe.)
+[10/4/2024 11:18:26 AM] Folder exist - logs
+[10/4/2024 11:18:26 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:18:26 AM] updateconnection failed
+[10/4/2024 11:18:26 AM] Folder exist - logs
+[10/4/2024 11:18:26 AM] Agent failed to add
+[10/4/2024 11:18:26 AM] Error: ExecuteNonQuery requires an open and available Connection. The connection's current state is closed.
+[10/4/2024 11:30:33 AM] Folder exist - logs
+[10/4/2024 11:30:33 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:30:33 AM] Folder exist - logs
+[10/4/2024 11:30:33 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:30:33 AM] updateconnection failed
+[10/4/2024 11:30:33 AM] Folder exist - logs
+[10/4/2024 11:31:33 AM] Agent failed to add
+[10/4/2024 11:31:33 AM] Error: ExecuteNonQuery requires an open and available Connection. The connection's current state is closed.
+[10/4/2024 11:31:52 AM] Folder exist - logs
+[10/4/2024 11:31:52 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:31:52 AM] Folder exist - logs
+[10/4/2024 11:31:52 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:31:52 AM] updateconnection failed
+[10/4/2024 11:31:52 AM] Folder exist - logs
+[10/4/2024 11:33:01 AM] Agent failed to add
+[10/4/2024 11:33:01 AM] Error: ExecuteNonQuery requires an open and available Connection. The connection's current state is closed.
+[10/4/2024 11:33:16 AM] Folder exist - logs
+[10/4/2024 11:33:16 AM] Error: A connection was successfully established with the server, but then an error occurred during the login process. (provider: Shared Memory Provider, error: 0 - No process is on the other end of the pipe.)
+[10/4/2024 11:33:16 AM] Folder exist - logs
+[10/4/2024 11:33:16 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:33:16 AM] updateconnection failed
+[10/4/2024 11:33:16 AM] Folder exist - logs
+[10/4/2024 11:33:16 AM] Agent failed to add
+[10/4/2024 11:33:16 AM] Error: ExecuteNonQuery requires an open and available Connection. The connection's current state is closed.
+[10/4/2024 11:34:10 AM] Folder exist - logs
+[10/4/2024 11:34:10 AM] Error: A connection was successfully established with the server, but then an error occurred during the login process. (provider: Shared Memory Provider, error: 0 - No process is on the other end of the pipe.)
+[10/4/2024 11:34:10 AM] Folder exist - logs
+[10/4/2024 11:34:10 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:34:10 AM] updateconnection failed
+[10/4/2024 11:34:10 AM] Folder exist - logs
+[10/4/2024 11:53:55 AM] Folder exist - logs
+[10/4/2024 11:53:56 AM] Error: A connection was successfully established with the server, but then an error occurred during the login process. (provider: Shared Memory Provider, error: 0 - No process is on the other end of the pipe.)
+[10/4/2024 11:53:56 AM] Folder exist - logs
+[10/4/2024 11:53:56 AM] Error: Login failed for user 'testuser'.
+[10/4/2024 11:53:56 AM] updateconnection failed
+[10/4/2024 11:53:56 AM] Folder exist - logs
+[10/4/2024 11:56:58 AM] Agent failed to add
+[10/4/2024 11:56:58 AM] Error: ExecuteNonQuery requires an open and available Connection. The connection's current state is closed.
+[10/4/2024 11:57:13 AM] Folder exist - logs
+[10/4/2024 12:03:30 PM] Folder exist - logs
+[10/4/2024 12:03:32 PM] Folder exist - logs
+[10/4/2024 12:03:40 PM] updateconnection success
+[10/4/2024 12:03:40 PM] Folder exist - logs
+[10/4/2024 12:03:44 PM] Agent added successfully 
+[10/15/2024 1:12:14 PM] Folder exist - logs
+[10/15/2024 1:12:14 PM] Folder exist - logs
+[10/15/2024 1:12:14 PM] updateconnection success
+[10/15/2024 1:12:14 PM] Folder exist - logs
+[10/15/2024 1:12:14 PM] Agent added successfully 
+[10/15/2024 6:09:14 PM] Folder exist - logs
+[10/15/2024 6:09:17 PM] Folder exist - logs
+[10/15/2024 6:09:19 PM] updateconnection success
+[10/15/2024 6:09:19 PM] Folder exist - logs
+[10/15/2024 6:09:23 PM] Agent added successfully 
+[10/15/2024 6:10:31 PM] Folder exist - logs
+[10/15/2024 6:10:32 PM] Folder exist - logs
+[10/15/2024 6:10:32 PM] updateconnection success
+[10/15/2024 6:10:32 PM] Folder exist - logs
+[10/15/2024 6:10:32 PM] Agent added successfully 
+[10/15/2024 6:10:41 PM] Folder exist - logs
+[10/15/2024 6:10:41 PM] Folder exist - logs
+[10/15/2024 6:10:41 PM] updateconnection success
+[10/15/2024 6:10:41 PM] Folder exist - logs
+[10/15/2024 6:10:41 PM] Agent added successfully 
+[10/15/2024 6:12:04 PM] Folder exist - logs
+[10/15/2024 6:12:05 PM] Folder exist - logs
+[10/15/2024 6:12:06 PM] updateconnection success
+[10/15/2024 6:12:06 PM] Folder exist - logs
+[10/15/2024 6:12:08 PM] Agent added successfully 
+[10/15/2024 6:13:18 PM] Folder exist - logs
+[10/15/2024 6:13:19 PM] Folder exist - logs
+[10/15/2024 6:13:20 PM] updateconnection success
+[10/15/2024 6:13:20 PM] Folder exist - logs
+[10/15/2024 6:13:22 PM] Agent added successfully 
+[10/15/2024 6:14:55 PM] Folder exist - logs
+[10/15/2024 6:14:56 PM] Folder exist - logs
+[10/15/2024 6:14:56 PM] updateconnection success
+[10/15/2024 6:14:56 PM] Folder exist - logs
+[10/15/2024 6:14:57 PM] Agent added successfully 

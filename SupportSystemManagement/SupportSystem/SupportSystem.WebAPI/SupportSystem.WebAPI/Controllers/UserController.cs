@@ -32,10 +32,10 @@ namespace SupportSystem.WebAPI.Controllers
             // below local manchine valsues should be taken from app settings.json
             if (string.IsNullOrEmpty(Server) || string.IsNullOrEmpty(Database) || string.IsNullOrEmpty(User_Id) || string.IsNullOrEmpty(Passowrd))
             { 
-                 Server = @"DESKTOP-JIV0A8R\SQLEXPRESS";
-                 Database = "SupportSystem";
-                 User_Id = "SupportAdmin";
-                 Passowrd = "NarenSql@123";
+                Server = @".";
+                Database = "SupportSystem";
+                User_Id = "testnaren";
+                Passowrd = "Naren@123";
             }
             
             //Common parameter creation.
@@ -76,10 +76,8 @@ namespace SupportSystem.WebAPI.Controllers
             }
         }
 
-
-
-        [HttpGet]
-        public IActionResult GetUsers(string userid)
+        [HttpGet("GetUser")]
+        public IActionResult GetUser(string userid)
         {
             string Server = Environment.GetEnvironmentVariable("server");
             string Database = Environment.GetEnvironmentVariable("database");
@@ -88,30 +86,28 @@ namespace SupportSystem.WebAPI.Controllers
 
             if (string.IsNullOrEmpty(Server) || string.IsNullOrEmpty(Database) || string.IsNullOrEmpty(User_Id) || string.IsNullOrEmpty(Passowrd))
             {
-                Server = @"DESKTOP-JIV0A8R\SQLEXPRESS";
+                Server = @".";
                 Database = "SupportSystem";
-                User_Id = "SupportAdmin";
-                Passowrd = "NarenSql@123";
+                User_Id = "testnaren";
+                Passowrd = "Naren@123";
                 
             }
-            if (string.IsNullOrEmpty(Server) || string.IsNullOrEmpty(Database) || string.IsNullOrEmpty(User_Id) || string.IsNullOrEmpty(Passowrd))
-            {
-                userid = "";
-            }
-            else
-            {
 
-                userid = " where FirstName = '" + userid+"'";
-            }
+           
+            
+       
 
-                try
+            try
             {
                 // List to store query results
                 var result = new List<object>();
 
                 // SQL query to select data
-                string sqlQuery = "SELECT [UserName],[FirstName],[LastName],[DisplayName],[PrimaryEmail],[PrimaryPhoneNumber],[Gender],[Company] ,[CreatedDate] FROM SS_User"+ userid;
-                string _connectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";User Id=" + User_Id + "; Password=" + Passowrd + ";";
+                string sqlQuery =
+                    "SELECT [UserName],[FirstName],[LastName],[DisplayName],[PrimaryEmail],[PrimaryPhoneNumber],[Gender],[Company] ,[CreatedDate] FROM SS_User" +
+                    " where UserId = '" + userid+"'";
+                string _connectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";User Id=" +
+                                           User_Id + "; Password=" + Passowrd + ";";
                 // Establish a connection to the SQL Server database
                 using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
@@ -129,10 +125,111 @@ namespace SupportSystem.WebAPI.Controllers
                             {
                                 var row = new
                                 {
-                                   // FullName = reader.GetString(0), // Assuming Id is the first column
-                                                                     // Add other properties as needed
-                                    Name = reader.GetString(1),
-                                    FullName = reader.GetString(0)
+                                    // FullName = reader.GetString(0), // Assuming Id is the first column
+                                    // Add other properties as needed
+                                    
+                                    UserName = reader.GetString(0),
+
+                                    FirstName = reader.GetString(1),
+
+                                    LastName  = reader.GetString(2),
+
+                                    DisplayName = reader.GetString(3),
+
+                                    PrimaryEmail = reader.GetString(4),
+
+                                    PrimaryPhoneNumber = reader.GetString(5),
+
+                                    Gender = reader.GetString(6),
+
+                                    Company = reader.GetString(7),
+                                    //CreatedDate = reader.GetString(8)
+                                    //Name = reader.GetString(1),
+                                   // FullName = reader.GetString(0)
+                                };
+                                result.Add(row);
+                            }
+                        }
+                    }
+                }
+
+                // Return the query result
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+
+        [HttpGet]
+        public IActionResult GetAllUsers()
+        {
+            string Server = Environment.GetEnvironmentVariable("server");
+            string Database = Environment.GetEnvironmentVariable("database");
+            string User_Id = Environment.GetEnvironmentVariable("userid");
+            string Passowrd = Environment.GetEnvironmentVariable("password");
+
+            if (string.IsNullOrEmpty(Server) || string.IsNullOrEmpty(Database) || string.IsNullOrEmpty(User_Id) || string.IsNullOrEmpty(Passowrd))
+            {
+                Server = @".";
+                Database = "SupportSystem";
+                User_Id = "testnaren";
+                Passowrd = "Naren@123";
+                
+            }
+            
+            try
+            {
+                // List to store query results
+                var result = new List<object>();
+
+                // SQL query to select data
+                string sqlQuery =
+                    "SELECT [UserName],[FirstName],[LastName],[DisplayName],[PrimaryEmail],[PrimaryPhoneNumber],[Gender],[Company] ,[CreatedDate] FROM SS_User";
+                    
+                string _connectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";User Id=" +
+                                           User_Id + "; Password=" + Passowrd + ";";
+                // Establish a connection to the SQL Server database
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    // Open the connection
+                    connection.Open();
+
+                    // Create a command object with the SQL command and connection
+                    using (SqlCommand command = new SqlCommand(sqlQuery, connection))
+                    {
+                        // Execute the SQL command and read the data
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            // Iterate through the result set and add each row to the list
+                            while (reader.Read())
+                            {
+                                var row = new
+                                {
+                                    // FullName = reader.GetString(0), // Assuming Id is the first column
+                                    // Add other properties as needed
+                                    
+                                    UserName = reader.GetString(0),
+
+                                    FirstName = reader.GetString(1),
+
+                                    LastName  = reader.GetString(2),
+
+                                    DisplayName = reader.GetString(3),
+
+                                    PrimaryEmail = reader.GetString(4),
+
+                                    PrimaryPhoneNumber = reader.GetString(5),
+
+                                    Gender = reader.GetString(6),
+
+                                    Company = reader.GetString(7),
+                                    //CreatedDate = reader.GetString(8)
+                                    //Name = reader.GetString(1),
+                                   // FullName = reader.GetString(0)
                                 };
                                 result.Add(row);
                             }
