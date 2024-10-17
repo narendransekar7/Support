@@ -17,8 +17,7 @@ function User() {
   });
   
   const handleSubmit = async (e) => {
-	  
-	debugger;
+
 	e.preventDefault(); // Prevent the default form submission
 
     // Send POST request to .NET Core Web API using Axios
