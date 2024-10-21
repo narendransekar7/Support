@@ -1,14 +1,10 @@
 ﻿using SupportSystem.User.Model;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace SupportSystem.User.Tasks
+namespace SupportSystem.User.Tasks;
+
+public interface IManageCustomerAccount
 {
-    public interface IManageCustomerAccount
-    {
-        bool CreateCustomerAccount(ICustomerModel person);
+    bool CreateCustomerAccount(ICustomerModel person);
 
-        bool UpdateCustomerAccount(ICustomerModel person);
-    }
+    bool UpdateCustomerAccount(ICustomerModel person);
 }

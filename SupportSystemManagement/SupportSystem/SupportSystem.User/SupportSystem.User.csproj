@@ -1,16 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SupportSystem.Backend.Interface\SupportSystem.Backend.Interface.csproj" />
-    <ProjectReference Include="..\SupportSystem.Ticket\SupportSystem.Ticket.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Validation\" />
-  </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\SupportSystem.Ticket\SupportSystem.Ticket.csproj" />
+      <ProjectReference Include="..\SupportSystem.User.Backend.Interface\SupportSystem.User.Backend.Interface.csproj" />
+    </ItemGroup>
 
 </Project>

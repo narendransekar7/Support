@@ -1,13 +1,7 @@
-﻿using SupportSystem.User.Model;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SupportSystem.User.Creation;
 
-namespace SupportSystem.User.Creation
+public interface IUserCreation
 {
-    public interface IUserCreation
-    {
-        bool CreateUser();
+    bool CreateUser();
 
-    }
 }

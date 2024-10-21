@@ -1,14 +1,9 @@
-﻿using SupportManagement.Ticket.Updation;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using TicketManagement;
+﻿using SupportSystem.Ticket.Updation;
 
-namespace SupportSystem.User.Tasks
+namespace SupportSystem.User.Tasks;
+
+public interface ITicketAssignment
 {
-    public interface ITicketAssignment
-    {
-        bool AssignTicket(Guid TicketId, IAssignee Assignee);
+    bool AssignTicket(Guid TicketId, IAssignee Assignee);
 
-    }
 }

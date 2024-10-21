@@ -1,7 +1,0 @@
-﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=0ad59f3b_002D75c1_002D42d9_002D89e9_002De673b16fabc1/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from &amp;lt;SupportSystem.WebAPI.Tests&amp;gt; #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Project Location="D:\React\error\Support-master (1)\Support-master\SupportSystemManagement\SupportSystem\SupportSystem.WebAPI\SupportSystem.WebAPI.Tests" Presentation="&amp;lt;SupportSystem.WebAPI.Tests&amp;gt;" /&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=c8055e50_002D20a2_002D45cf_002D9dee_002D8b2f30ec208a/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;SupportSystem.WebAPI.Tests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Project Location="D:\React\error\Support-master (1)\Support-master\SupportSystemManagement\SupportSystem\SupportSystem.WebAPI\SupportSystem.WebAPI.Tests" Presentation="&amp;lt;SupportSystem.WebAPI.Tests&amp;gt;" /&gt;&#xD;
-&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

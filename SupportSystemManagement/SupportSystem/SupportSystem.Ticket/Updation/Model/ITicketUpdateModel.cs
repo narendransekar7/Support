@@ -1,23 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SupportSystem.Ticket.Updation.Model;
 
-namespace TicketManagement.Updation.Model
+public interface ITicketUpdateModel
 {
-    public interface ITicketUpdateModel
-    {
     
-        Guid PublishId { get; set; }
+    Guid PublishId { get; set; }
 
-        Guid TicketId { get; set; }
+    Guid TicketId { get; set; }
 
-        Guid UserId { get; set; }
+    Guid UserId { get; set; }
 
-        DateTime UpdatedDate { get; set; }
+    DateTime UpdatedDate { get; set; }
 
-        string OldValue { get; set; }
+    string OldValue { get; set; }
 
-        string NewValue { get; set; }
+    string NewValue { get; set; }
 
-    }
 }

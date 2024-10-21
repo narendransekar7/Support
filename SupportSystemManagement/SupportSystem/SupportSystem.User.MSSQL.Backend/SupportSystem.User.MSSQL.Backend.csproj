@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\SupportSystem.Logger\SupportSystem.Logger.csproj" />
+      <ProjectReference Include="..\SupportSystem.Ticket.MSSQL.Backend\SupportSystem.Ticket.MSSQL.Backend.csproj" />
+      <ProjectReference Include="..\SupportSystem.User.Backend.Interface\SupportSystem.User.Backend.Interface.csproj" />
+      <ProjectReference Include="..\SupportSystem.User\SupportSystem.User.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.0-preview1.24240.8" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.35" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.35" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.35">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+</Project>

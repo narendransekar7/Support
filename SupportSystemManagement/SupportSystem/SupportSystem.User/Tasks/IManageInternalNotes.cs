@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SupportSystem.User.Tasks;
 
-namespace SupportSystem.User.Tasks
+public interface IManageInternalNotes
 {
-    public interface IManageInternalNotes
-    {
-
-
-    }
+    
 }

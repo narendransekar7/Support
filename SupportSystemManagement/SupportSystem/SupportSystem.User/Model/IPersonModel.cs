@@ -1,19 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using TicketManagement;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace SupportSystem.User.Model
+namespace SupportSystem.User.Model;
+
+public interface IPersonModel
 {
-    public interface IPersonModel
-    {
-        string FirstName { get; set; }
-        string LastName { get; set; }
-        string Country { get; set; }
+    Guid UserId { get; set; }
+    string FirstName { get; set; }
+    
+    string LastName { get; set; }
 
-        string PrimaryNumber { get; set; }
-        string Gender { get; set; }
+    string DisplayName { get; set; }
+    string Country { get; set; }
 
-        string PrimaryEmail { get; set; }
-    }
+    string PrimaryNumber { get; set; }
+    string Gender { get; set; }
+    
+    string PrimaryEmail { get; set; }
 }

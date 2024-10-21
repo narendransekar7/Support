@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SupportSystem.Ticket.Updation;
 
-namespace SupportManagement.Ticket.Updation
+public interface IAssignee
 {
-    public interface IAssignee
-    {
-
-
-    }
+    
 }

@@ -1,0 +1,281 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\migrations\\userdatabasemodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\migrations\\20241021135759_addusertodb.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\deployment\\userdatabase.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9142378F-FE66-477B-99B1-8488F2D0DE78}|SupportSystem.User.API.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9142378F-FE66-477B-99B1-8488F2D0DE78}|SupportSystem.User.API.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9142378F-FE66-477B-99B1-8488F2D0DE78}|SupportSystem.User.API.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{9142378F-FE66-477B-99B1-8488F2D0DE78}|SupportSystem.User.API.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\deployment\\usertable.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\deployment\\database.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F10ED7DE-5042-4793-99EC-25B0D897E488}|..\\SupportSystem.User\\SupportSystem.User.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user\\model\\personmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F10ED7DE-5042-4793-99EC-25B0D897E488}|..\\SupportSystem.User\\SupportSystem.User.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user\\model\\ipersonmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\connection\\iparametermodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F10ED7DE-5042-4793-99EC-25B0D897E488}|..\\SupportSystem.User\\SupportSystem.User.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user\\creation\\iusercreation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\deployment\\metadata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\connection\\sqlserverconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F10ED7DE-5042-4793-99EC-25B0D897E488}|..\\SupportSystem.User\\SupportSystem.User.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user\\model\\iagentmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\supportsystem.user.mssql.backend.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{9142378F-FE66-477B-99B1-8488F2D0DE78}|SupportSystem.User.API.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.api\\controllers\\usercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{9142378F-FE66-477B-99B1-8488F2D0DE78}|SupportSystem.User.API.csproj|solutionrelative:controllers\\usercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}|..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj|d:\\projects\\dotnet6.0 (2)\\dotnet6.0\\supportsystem.user.mssql.backend\\user\\agentaccountcreation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UserDatabaseModelSnapshot.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Migrations\\UserDatabaseModelSnapshot.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Migrations\\UserDatabaseModelSnapshot.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Migrations\\UserDatabaseModelSnapshot.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Migrations\\UserDatabaseModelSnapshot.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T14:42:45.793Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "20241021135759_AddUserToDB.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Migrations\\20241021135759_AddUserToDB.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Migrations\\20241021135759_AddUserToDB.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Migrations\\20241021135759_AddUserToDB.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Migrations\\20241021135759_AddUserToDB.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T14:42:43.781Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T12:07:23.219Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "UserDatabase.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserDatabase.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserDatabase.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserDatabase.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserDatabase.cs",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAxwCAAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:42:34.948Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "IUserCreation.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Creation\\IUserCreation.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User\\Creation\\IUserCreation.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Creation\\IUserCreation.cs",
+              "RelativeToolTip": "..\\SupportSystem.User\\Creation\\IUserCreation.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:47:30.274Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "IParameterModel.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Connection\\IParameterModel.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Connection\\IParameterModel.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Connection\\IParameterModel.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Connection\\IParameterModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:38:14.966Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "IPersonModel.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Model\\IPersonModel.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User\\Model\\IPersonModel.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Model\\IPersonModel.cs",
+              "RelativeToolTip": "..\\SupportSystem.User\\Model\\IPersonModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAsAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T05:52:05.92Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2024-10-21T12:11:06.973Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "MetaData.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\MetaData.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\MetaData.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\MetaData.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\MetaData.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:37:49.014Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "UserTable.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserTable.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserTable.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserTable.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\UserTable.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T05:44:17.074Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Database.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\Database.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\Database.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Deployment\\Database.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Deployment\\Database.cs",
+              "ViewState": "AgIAACcAAAAAAAAAAAAowD8AAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:37:42.659Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "PersonModel.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Model\\PersonModel.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User\\Model\\PersonModel.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Model\\PersonModel.cs",
+              "RelativeToolTip": "..\\SupportSystem.User\\Model\\PersonModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T05:47:07.07Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "SQLServerConnection.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Connection\\SQLServerConnection.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\Connection\\SQLServerConnection.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\Connection\\SQLServerConnection.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\Connection\\SQLServerConnection.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:38:04.255Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "IAgentModel.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Model\\IAgentModel.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User\\Model\\IAgentModel.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User\\Model\\IAgentModel.cs",
+              "RelativeToolTip": "..\\SupportSystem.User\\Model\\IAgentModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T11:47:52.592Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "SupportSystem.User.MSSQL.Backend.csproj",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\SupportSystem.User.MSSQL.Backend.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2024-10-21T11:20:25.958Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "UserController.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\Controllers\\UserController.cs",
+              "RelativeDocumentMoniker": "Controllers\\UserController.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.API\\Controllers\\UserController.cs",
+              "RelativeToolTip": "Controllers\\UserController.cs",
+              "ViewState": "AgIAAI8AAAAAAAAAAAAkwKEAAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-21T05:50:41.376Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "AgentAccountCreation.cs",
+              "DocumentMoniker": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\User\\AgentAccountCreation.cs",
+              "RelativeDocumentMoniker": "..\\SupportSystem.User.MSSQL.Backend\\User\\AgentAccountCreation.cs",
+              "ToolTip": "D:\\Projects\\dotnet6.0 (2)\\dotnet6.0\\SupportSystem.User.MSSQL.Backend\\User\\AgentAccountCreation.cs",
+              "RelativeToolTip": "..\\SupportSystem.User.MSSQL.Backend\\User\\AgentAccountCreation.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAQwB0AAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-18T17:30:17.42Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

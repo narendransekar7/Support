@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SupportSystem.User.Tasks;
 
-namespace SupportSystem.User.Tasks
+public interface ITicketEsclation
 {
-    public interface ITicketEsclation
-    {
-        bool EsclateTicket(Guid TicketId, string Comment);
+    bool EsclateTicket(Guid TicketId, string Comment);
 
-        Guid UserId { get; set; }
+    Guid UserId { get; set; }
 
-        bool RemoveTicketFromEsclation(Guid TicketId, string Reason);
-    }
+    bool RemoveTicketFromEsclation(Guid TicketId, string Reason);
 }
