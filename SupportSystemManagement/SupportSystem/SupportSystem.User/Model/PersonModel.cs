@@ -20,4 +20,7 @@ public class PersonModel : IPersonModel
     public string PrimaryNumber { get; set; }
     [Required]
     public string PrimaryEmail { get; set; }
+    [Required]
+    public string Password { get; set; }
+    
 }

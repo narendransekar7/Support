@@ -1,21 +1,39 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   // State to hold form inputs
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  const navigate = useNavigate();
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
+	   try {
+      const response = await axios.post('https://localhost:7160/api/auth/login', {
+        email,
+        password,
+      });
+
+      // Save JWT token to localStorage or cookies
+      localStorage.setItem('token', response.data.token);
+	  navigate('user/add');
+      //alert('Login Successful');
+    } catch (err) {
+      setError('Invalid Credentials');
+    }
+	
+	
+	
     // For now, just log the email and password, you can send these to an API
-    console.log("Email:", email);
-    console.log("Password:", password);
+    //console.log("Email:", email);
+    //console.log("Password:", password);
 
     // Clear the form (optional)
-    setEmail('');
-    setPassword('');
+    //setEmail('');
+    //setPassword('');
   };
 
   return (

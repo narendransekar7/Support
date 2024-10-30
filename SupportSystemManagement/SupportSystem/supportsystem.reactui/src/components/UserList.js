@@ -11,7 +11,7 @@ const UserList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('https://localhost:4001/user'); // Update with your correct API endpoint
+        const response = await axios.get('https://localhost:7160/api/user/getallusers'); // Update with your correct API endpoint
 		;debugger       
 	   setUsers(response.data); // Set fetched data to state
         setLoading(false);

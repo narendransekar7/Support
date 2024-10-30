@@ -13,6 +13,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.Ticket.MSSQL.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportSystem.User.MSSQL.Backend", "..\SupportSystem.User.MSSQL.Backend\SupportSystem.User.MSSQL.Backend.csproj", "{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SupportSystem.Logger", "..\SupportSystem.Logger\SupportSystem.Logger.csproj", "{C849D08B-9733-469C-BBAF-634C781F233B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SupportSystem.Ticket", "..\SupportSystem.Ticket\SupportSystem.Ticket.csproj", "{4C0577BC-ACFB-4082-8BBE-1915DB0C0686}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3F1F10BE-40A7-4C3B-8F01-3D2A615B14FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C849D08B-9733-469C-BBAF-634C781F233B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C849D08B-9733-469C-BBAF-634C781F233B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C849D08B-9733-469C-BBAF-634C781F233B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C849D08B-9733-469C-BBAF-634C781F233B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C0577BC-ACFB-4082-8BBE-1915DB0C0686}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C0577BC-ACFB-4082-8BBE-1915DB0C0686}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C0577BC-ACFB-4082-8BBE-1915DB0C0686}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C0577BC-ACFB-4082-8BBE-1915DB0C0686}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

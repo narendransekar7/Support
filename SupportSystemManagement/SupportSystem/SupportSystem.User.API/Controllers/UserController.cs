@@ -5,17 +5,91 @@ using SupportSystem.User.Backend.Interface.User;
 using SupportSystem.User.Factory;
 using SupportSystem.User.Model;
 using SupportSystem.User.MSSQL.Backend.Connection;
+using SupportSystem.User.MSSQL.Backend.Deployment;
 using SupportSystem.User.MSSQL.Backend.Factory;
-
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 namespace SupportSystem.User.API.Controllers;
+using Microsoft.AspNetCore.Authorization;
 
-[Route("[controller]")]
+//[Route("[controller]")]
+[Route("api/user")]
 [ApiController]
 public class UserController : ControllerBase
 {
 
+    private readonly UserDatabase _userDatabasecontext;
+    private readonly IPasswordHasher<PersonModel> _passwordHasher;
+    
+    public UserController(UserDatabase userDatabasecontext, IPasswordHasher<PersonModel> passwordHasher)
+    {
+        _userDatabasecontext = userDatabasecontext;
+        _passwordHasher = passwordHasher;
+
+    }
+    
+    // Endpoint to validate credentials
+    //[AllowAnonymous]
+    [HttpPost("validate")]
+    public async Task<IActionResult> ValidateCredentials([FromBody] LoginModel loginDto)
+    {
+        var user = await _userDatabasecontext.SS_User.SingleOrDefaultAsync(u => u.PrimaryEmail == loginDto.Email);
+        if (user == null)
+            return Unauthorized("Invalid credentials.");
+
+        var passwordCheck = _passwordHasher.VerifyHashedPassword(user, user.Password, loginDto.Password);
+        if (passwordCheck == PasswordVerificationResult.Success)
+            return Ok(new { isValid = true });
+        else
+            return Unauthorized("Invalid credentials.");
+    }
+    
     [HttpPost("createagentuser")]
-        public IActionResult CreateAgentUser(PersonModel Person)
+    public IActionResult CreateAgentUser(PersonModel Person)
+    {
+        IAccountCreation accountCreation;
+
+        // IN the below code we should not call the SQL data base directly, which should be cassed depened on bac end database
+
+        try
+        {
+
+            if (_userDatabasecontext.SS_User.Any(u => u.PrimaryEmail == Person.PrimaryEmail))
+                return BadRequest("Email is already in use.");
+            // Hash the password
+            Person.Password = _passwordHasher.HashPassword(Person, Person.Password);
+
+            // Validate request
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            accountCreation = SQLSeverBackendFactory.CreateAgent(_userDatabasecontext, Person);
+
+            UserFactory.CreateAgent(accountCreation);
+
+            // Your logic to create a user
+            // For demonstration purposes, let's just return the received data
+            return Ok("Agent user created sucessfully");
+        }
+        catch (Exception ex)
+        {
+            // Log the exception or handle it accordingly
+            return StatusCode(500, $"An error occurred: {ex.Message}");
+        }
+    }
+
+
+    [HttpGet("getallusers")]
+        public IEnumerable<PersonModel> GetAllUsers()
+        {
+            return _userDatabasecontext.SS_User.ToList();
+        }
+
+
+        [HttpPost("createagentuserold")]
+        public IActionResult CreateAgentUserOld(PersonModel Person)
         {
 
             //PersonModel Person = new PersonModel();
@@ -72,7 +146,6 @@ public class UserController : ControllerBase
                 return StatusCode(500, $"An error occurred: {ex.Message}");
             }
         }
-
 
     [HttpGet("GetUser")]
     public IActionResult GetUser(string userid)
@@ -159,7 +232,7 @@ public class UserController : ControllerBase
 
 
     [HttpGet]
-    public IActionResult GetAllUsers()
+    public IActionResult GetAllUsersOld()
     {
         string Server = Environment.GetEnvironmentVariable("server");
         string Database = Environment.GetEnvironmentVariable("database");
@@ -240,4 +313,9 @@ public class UserController : ControllerBase
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
     }
+}
+public class LoginModel
+{
+    public string Email { get; set; }
+    public string Password { get; set; }
 }

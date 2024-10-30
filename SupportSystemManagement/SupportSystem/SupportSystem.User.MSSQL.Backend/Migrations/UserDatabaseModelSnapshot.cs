@@ -48,6 +48,10 @@ namespace SupportSystem.User.MSSQL.Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("PrimaryEmail")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

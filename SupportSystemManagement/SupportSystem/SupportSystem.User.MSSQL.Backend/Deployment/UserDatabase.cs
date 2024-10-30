@@ -28,10 +28,16 @@ namespace SupportSystem.User.MSSQL.Backend.Deployment
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=DESKTOP-UNRL1OC\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;"
+            optionsBuilder.UseSqlServer(@"Server=.;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;"
                 //,sqlOptions => sqlOptions.MigrationsAssembly("SupportSystem.User.MSSQL.Backend")
                 );
         }
+
+        // Add the below code before you are insert value in to the table as per udemy video.
+        //protected override void OnModelCreating(ModelBuilder modelBuilder)
+        //{
+          //  base.OnModelCreating(modelBuilder);
+        //}
 
     }
 }

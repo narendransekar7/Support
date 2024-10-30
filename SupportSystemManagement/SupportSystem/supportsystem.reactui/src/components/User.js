@@ -12,7 +12,9 @@ function User() {
 	  Country:'India',
 	  Gender:'Male',
 	  PrimaryEmail:'naren@gmail.com',
-	  PrimaryNumber:'1234567890'  
+	  Password:'Naren@123',
+	  PrimaryNumber:'1234567890',
+	  DisplayName:"Narendran S"
 	  
   });
   
@@ -22,9 +24,11 @@ function User() {
 
     // Send POST request to .NET Core Web API using Axios
     try {
-      const response = await axios.post('https://localhost:4001/user/createagentuser', formData, {
+		debugger;
+      const response = await axios.post('https://localhost:7160/api/user/createagentuser', formData, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
+		  ,Authorization: `Bearer ${localStorage.getItem('token')}`
         },
       });
 
@@ -115,6 +119,19 @@ function User() {
           id="PrimaryEmail"
           name="PrimaryEmail"
 		  value={formData.PrimaryEmail}
+		  onChange={handleChange}
+          required
+          style={styles.input}
+        />
+      </div>
+	  
+	  <div style={styles.inputContainer}>
+        <label htmlFor="Password" style={styles.label}>Password:</label>
+        <input
+          type="password"
+          id="Password"
+          name="Password"
+		  value={formData.Password}
 		  onChange={handleChange}
           required
           style={styles.input}

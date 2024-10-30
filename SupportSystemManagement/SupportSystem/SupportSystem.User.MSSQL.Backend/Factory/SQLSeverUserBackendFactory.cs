@@ -52,7 +52,15 @@ public static class SQLSeverBackendFactory
     #endregion
 
 
-    #region User
+    #region User New
+    public static IAccountCreation CreateAgent(UserDatabase userDatabaseContext, PersonModel personModel)
+    {
+        return new AgentCreation(userDatabaseContext, personModel);
+    }
+    #endregion
+    
+    
+    #region User Old
     public static IAccountCreation CreateAgentAccount(SqlConnection sqlConnection, IPersonModel personModel)
     {
         return new AgentAccountCreation(sqlConnection, personModel);
@@ -76,5 +84,7 @@ public static class SQLSeverBackendFactory
         return new CustomerAccountUpdation();
     }
     #endregion
+    
+    
 
 }

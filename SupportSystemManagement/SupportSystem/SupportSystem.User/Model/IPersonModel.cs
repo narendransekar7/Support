@@ -16,4 +16,5 @@ public interface IPersonModel
     string Gender { get; set; }
     
     string PrimaryEmail { get; set; }
+    string Password { get; set; }
 }
