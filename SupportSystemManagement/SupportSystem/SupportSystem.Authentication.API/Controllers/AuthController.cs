@@ -26,6 +26,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginModel model)
     {
         var client = _httpClientFactory.CreateClient("UserAPI");
+        client.DefaultRequestHeaders.Add("X-Api-Key", "1234567890ABCDEF");
         var response = await client.PostAsJsonAsync("/api/user/validate", model);
         
         if (!response.IsSuccessStatusCode)

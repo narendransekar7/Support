@@ -22,7 +22,7 @@ function Login() {
 	  navigate('user/add');
       //alert('Login Successful');
     } catch (err) {
-      setError('Invalid Credentials');
+      //setError('Invalid Credentials');
     }
 	
 	
