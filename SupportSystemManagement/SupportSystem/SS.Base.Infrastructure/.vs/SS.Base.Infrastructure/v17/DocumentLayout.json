@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Infrastructure\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{607ED6A6-73D8-4BA3-BB22-4B5481906BD1}|SS.Base.Infrastructure.csproj|d:\\projects\\dotnet8\\support\\supportsystemmanagement\\supportsystem\\ss.base.infrastructure\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{607ED6A6-73D8-4BA3-BB22-4B5481906BD1}|SS.Base.Infrastructure.csproj|solutionrelative:class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Infrastructure\\Class1.cs",
+              "RelativeDocumentMoniker": "Class1.cs",
+              "ToolTip": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Infrastructure\\Class1.cs",
+              "RelativeToolTip": "Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-21T12:57:06.106Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
