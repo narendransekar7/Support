@@ -1,4 +1,5 @@
-﻿using SS.Base.Domain.Entities.User;
+﻿
+using SS.Base.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;

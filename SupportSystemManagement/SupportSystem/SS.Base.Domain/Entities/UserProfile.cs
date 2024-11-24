@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SS.Base.Domain.Entities.User
+namespace SS.Base.Domain.Entities
 {
     public class UserProfile
     {

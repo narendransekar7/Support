@@ -1,3 +1,6 @@
+using SS.Base.Infrastructure.Persistance.MSSQL;
+using System;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +9,9 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Added the extension method in the infrastructure layer for SQL Server DB context
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
 
