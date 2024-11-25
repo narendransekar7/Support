@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 
@@ -11,9 +12,11 @@ using SS.Base.Infrastructure.Persistance.MSSQL;
 namespace SS.Base.Infrastructure.Migrations
 {
     [DbContext(typeof(MSSQLDbContext))]
-    partial class MSSQLDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241125111717_Modified_Ticket_Status_Type")]
+    partial class Modified_Ticket_Status_Type
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

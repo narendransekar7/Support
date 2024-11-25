@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 
@@ -11,9 +12,11 @@ using SS.Base.Infrastructure.Persistance.MSSQL;
 namespace SS.Base.Infrastructure.Migrations
 {
     [DbContext(typeof(MSSQLDbContext))]
-    partial class MSSQLDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241125100216_UserProfile_To_Accept_NUll_Column")]
+    partial class UserProfile_To_Accept_NUll_Column
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,9 +35,7 @@ namespace SS.Base.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -49,8 +50,9 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<DateTime>("ResponseDueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -58,9 +60,7 @@ namespace SS.Base.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Visibility")
                         .IsRequired()

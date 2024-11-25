@@ -14,9 +14,9 @@ namespace SS.Base.Domain.Entities
         public Guid UserId { get; set; }
         [Required]
         public string Password { get; set; }
-        public string Country { get; set; }
-        public string Gender { get; set; }
-        public string PrimaryNumber { get; set; }
+        public string? Country { get; set; }
+        public string? Gender { get; set; }
+        public string? PrimaryNumber { get; set; }
         [Required]
         // Navigation done through data annotation here. but we can done through Fluent API
         [ForeignKey("UserId")]

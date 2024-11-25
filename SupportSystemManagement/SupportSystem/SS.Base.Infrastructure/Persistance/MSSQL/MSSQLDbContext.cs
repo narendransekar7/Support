@@ -37,6 +37,12 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 entity.Property(u => u.DisplayName).IsRequired().HasMaxLength(100);
                 entity.Property(u => u.PrimaryEmail).IsRequired().HasMaxLength(50);
 
+                // UserProfile Relationship
+                entity.HasOne(u => u.Profile)
+                .WithOne(p => p.User)
+                .HasForeignKey<UserProfile>(p => p.UserId);
+
+                // Ticket Relationship
                 entity.HasMany(u => u.Tickets)
                  .WithOne(t => t.User)
                  .HasForeignKey(t => t.AssignedTo)
@@ -48,6 +54,8 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
             {
                 entity.HasKey(t => t.TicketId);
                 entity.Property(t => t.Title).IsRequired().HasMaxLength(200);
+                entity.Property(t => t.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.Property(t => t.UpdatedAt).HasDefaultValueSql("GETDATE()");
 
                 entity.HasMany(tu => tu.TicketUpdates)
                 .WithOne(t => t.Ticket)

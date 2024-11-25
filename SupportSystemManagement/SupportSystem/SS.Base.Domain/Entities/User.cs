@@ -20,7 +20,7 @@ namespace SS.Base.Domain.Entities
         [Required]
         public string PrimaryEmail { get; set; }
         [Required]
-        public string Role { get; set; }
+        public Role Role { get; set; }
 
         public virtual UserProfile Profile { get; set; }
 

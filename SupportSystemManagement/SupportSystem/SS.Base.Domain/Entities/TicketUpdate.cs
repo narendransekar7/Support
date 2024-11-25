@@ -16,7 +16,7 @@ namespace SS.Base.Domain.Entities
         public DateTime UpdatedAt { get; set; }
 
         // Navigation properties
-        public virtual Ticket Ticket { get; set; } = null!;
+        public virtual Ticket Ticket { get; set; }
         public virtual User UpdatedByUser { get; set; } = null!;
     }
 }

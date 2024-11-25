@@ -1,23 +1,21 @@
-﻿using System;
+﻿using MediatR;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SS.Base.Domain.Entities;
 
-namespace SS.Base.Domain.Interfaces.User
+namespace SS.Base.Application.Commands
 {
-    public interface IUser
+    public class CreateUserCommand : IRequest
     {
-        [Key]
-        public Guid UserId { get; set; }
-        [Required]
         public string FirstName { get; set; }
-        [Required]
         public string LastName { get; set; }
-        public string DisplayName { get; set; }
-        [Required]
         public string PrimaryEmail { get; set; }
+        public string Password { get; set; }
+        public Role Role { get; set; }
 
     }
 }

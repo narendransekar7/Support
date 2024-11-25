@@ -1,3 +1,4 @@
+using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using System;
 
@@ -10,8 +11,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+//Added the extension method in the Application layer for AddMediatR
+builder.Services.AddApplicationServices(builder.Configuration);
+
+
 // Added the extension method in the infrastructure layer for SQL Server DB context
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
+
 
 var app = builder.Build();
 

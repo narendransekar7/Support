@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SS.Base.Domain.Interfaces.Repository;
+using SS.Base.Infrastructure.Persistance.MSSQL.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +19,14 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Add other infrastructure services (e.g., repositories, external integrations)
+
+            // Register Unit of Work for adding DB save logic in Infrastructure layer instead of Application layer.
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            // Register Repositories MSSQLDbContext _context need to be in infrastructure layer instead of Application layer
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ITicketRepository, TicketRepository>();
+            services.AddScoped<ITicketUpdateRepository, TicketUpdateRepository>();
 
             return services;
         }
