@@ -1,6 +1,0 @@
-@SS.Auth.Server.API_HostAddress = http://localhost:5223
-
-//GET {{SS.Auth.Server.API_HostAddress}}/weatherforecast/
-//Accept: application/json
-
-###
