@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Identity;
 using SS.Base.Domain.Entities;
 using SS.Base.Domain.Interfaces.Repository;
 using System;
@@ -13,8 +14,9 @@ namespace SS.Base.Application.Commands
     {
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IPasswordHasher<User> _passwordHasher;
 
-        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork)
+        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher)
         {
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
@@ -31,11 +33,10 @@ namespace SS.Base.Application.Commands
                 DisplayName = request.FirstName +' '+ request.LastName ,
                 PrimaryEmail = request.PrimaryEmail,
             };
-
             var userProfile = new UserProfile
             {
                 UserId = user.UserId,
-                Password = request.Password
+                Password = _passwordHasher.HashPassword(user, request.Password)
             };
 
             // Link User to UserProfile

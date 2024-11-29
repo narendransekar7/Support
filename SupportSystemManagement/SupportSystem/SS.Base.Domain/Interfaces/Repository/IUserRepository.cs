@@ -9,6 +9,7 @@ namespace SS.Base.Domain.Interfaces.Repository
 {
     public interface IUserRepository: IGenericRepository<User>
     {
-        // Add methods specific to Users like UpdatePassowrd. since other methods generic method are available in IGenericRepository and (GenericRepositoryAddAsync,GetByIdAsync,GetAllAsync)  
+        // Add methods specific to Users like UpdatePassowrd,ValidateUser. since other methods generic method are available in IGenericRepository and (GenericRepositoryAddAsync,GetByIdAsync,GetAllAsync)  
+        Task<User> GetUserByEmailAsync(string Email);
     }
 }

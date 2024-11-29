@@ -17,5 +17,11 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
         {
             _context = context;
         }
+
+        public async Task<User> GetUserByEmailAsync(string email)
+        {
+            return await _context.Users.SingleOrDefaultAsync(u => u.PrimaryEmail == email);
+        }
+
     }
 }
