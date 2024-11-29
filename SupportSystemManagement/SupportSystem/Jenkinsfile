@@ -18,38 +18,11 @@ pipeline {
 		
 		stage('Build Docker Images') {
             parallel {
-                stage('Build SS.Auth.Server.API') {
-                    steps {
-					    script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest .'
-                            }
-                        }
-                    }
-				}
-				stage('Build SS.Gateway.API') {
-					steps {
-					    script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Gateway.API') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest .'
-                            }
-                        }
-                    }
-				}
 				stage('Build SupportSystem.ReactUI') {
 					steps {
 					    script {
                             dir('SupportSystemManagement/SupportSystem/supportsystem.reactui') {
                                 sh 'docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest:latest .'
-                            }
-                        }
-                    }
-				}
-				stage('Build SupportSystem.WebAPI') {
-					steps {
-					    script {
-                            dir('SupportSystemManagement/SupportSystem') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest .'
                             }
                         }
                     }
@@ -66,10 +39,7 @@ pipeline {
                     }
 
                     // Push the Docker image to Docker Hub
-                    sh 'docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest'
-					sh 'docker push ${DOCKER_HUB_REPO}/ss-gateway-api:latest'
                     sh 'docker push ${DOCKER_HUB_REPO}/ss-react-ui:latest'
-					sh 'docker push ${DOCKER_HUB_REPO}/ss-web-api:latest'
                 }
             }
         }
