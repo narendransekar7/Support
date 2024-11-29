@@ -26,6 +26,28 @@ pipeline {
                             }
                         }
                     }
+					steps {
+					    script {
+                            dir('SupportSystemManagement/SupportSystem/SS.Gateway.API') {
+                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest .'
+                            }
+                        }
+                    }
+					steps {
+					    script {
+                            dir('SupportSystemManagement/SupportSystem/supportsystem.reactui') {
+                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest:latest .'
+                            }
+                        }
+                    }
+					steps {
+					    script {
+                            dir('SupportSystemManagement/SupportSystem/SS.Web.API') {
+                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest .'
+                            }
+                        }
+                    }
+					
                 }
             }
         }
@@ -40,6 +62,9 @@ pipeline {
 
                     // Push the Docker image to Docker Hub
                     sh 'docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest'
+					sh 'docker push ${DOCKER_HUB_REPO}/ss-gateway-api:latest'
+                    sh 'docker push ${DOCKER_HUB_REPO}/ss-react-ui:latest'
+					sh 'docker push ${DOCKER_HUB_REPO}/ss-web-api:latest'
                 }
             }
         }
