@@ -20,8 +20,10 @@ pipeline {
             parallel {
                 stage('Build SS.Auth.Server.API') {
                     steps {
-                        script {
-							  sh 'docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest -f SupportSystemManagement/SupportSystem/SS.Auth.Server.API/Dockerfile .'
+					    script {
+                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API/Dockerfile') {
+                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest .'
+                            }
                         }
                     }
                 }
