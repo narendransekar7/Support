@@ -17,15 +17,13 @@ COPY . .
 # Build the React app for production
 RUN npm run build
 
+
 # Step 2: Serve the app with Nginx
 # Use an official nginx image as the base image for the final step
-FROM nginx:stable-alpine
 
-# Copy the built React files from the previous stage to Nginx's default HTML directory
+FROM nginx:1.26.2
 COPY --from=build /app/build /usr/share/nginx/html
-
-# Copy a custom Nginx configuration file if needed (optional)
-# COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80 to the outside world
 EXPOSE 80
