@@ -26,6 +26,8 @@ pipeline {
                             }
                         }
                     }
+				}
+				stage('Build SS.Gateway.API') {
 					steps {
 					    script {
                             dir('SupportSystemManagement/SupportSystem/SS.Gateway.API') {
@@ -33,6 +35,8 @@ pipeline {
                             }
                         }
                     }
+				}
+				stage('Build SupportSystem.ReactUI') {
 					steps {
 					    script {
                             dir('SupportSystemManagement/SupportSystem/supportsystem.reactui') {
@@ -40,6 +44,8 @@ pipeline {
                             }
                         }
                     }
+				}
+				stage('Build SupportSystem.WebAPI') {
 					steps {
 					    script {
                             dir('SupportSystemManagement/SupportSystem/SS.Web.API') {
@@ -47,8 +53,7 @@ pipeline {
                             }
                         }
                     }
-					
-                }
+				}
             }
         }
 		
