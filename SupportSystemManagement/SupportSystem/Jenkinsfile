@@ -21,7 +21,7 @@ pipeline {
                 stage('Build SS.Auth.Server.API') {
                     steps {
 					    script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API/Dockerfile') {
+                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API') {
                                 sh 'docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest .'
                             }
                         }
