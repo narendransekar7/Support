@@ -25,27 +25,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Build SS.Gateway.API') {
-                    steps {
-                        script {
-							sh 'docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest -f SupportSystemManagement/SupportSystem/SS.Gateway.API/Dockerfile .'
-                        }
-                    }
-                }
-                stage('Build SupportSystem.ReactUI') {
-                    steps {
-                        script {
-							sh 'docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest -f SupportSystemManagement/SupportSystem/supportsystem.reactui/Dockerfile .'
-                        }
-                    }
-                }
-				stage('Build SupportSystem.WebAPI') {
-                steps {
-                        script {
-							sh 'docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest -f SupportSystemManagement/SupportSystem/Dockerfile .'
-                        }
-                    }
-                }
             }
         }
 		
@@ -54,9 +33,6 @@ pipeline {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
                         sh "docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest"
-                        sh "docker push ${DOCKER_HUB_REPO}/ss-gateway-api:latest"
-                        sh "docker push ${DOCKER_HUB_REPO}/ss-react-ui:latest"
-						sh "docker push ${DOCKER_HUB_REPO}/ss-web-api:latest"
                     }
                 }
             }
