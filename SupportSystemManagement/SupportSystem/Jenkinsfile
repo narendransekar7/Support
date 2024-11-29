@@ -21,36 +21,28 @@ pipeline {
                 stage('Build SS.Auth.Server.API') {
                     steps {
                         script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API') {
-                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest -f DockerFile ."
-                            }
+							  sh 'docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest -f SupportSystemManagement/SupportSystem/SS.Auth.Server.API/Dockerfile .'
                         }
                     }
                 }
                 stage('Build SS.Gateway.API') {
                     steps {
                         script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Gateway.API') {
-                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest -f DockerFile ."
-                            }
+							sh 'docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest -f SupportSystemManagement/SupportSystem/SS.Gateway.API/Dockerfile .'
                         }
                     }
                 }
                 stage('Build SupportSystem.ReactUI') {
                     steps {
                         script {
-                            dir('SupportSystemManagement/SupportSystem/supportsystem.reactui') {
-                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest -f DockerFile ."
-                            }
+							sh 'docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest -f SupportSystemManagement/SupportSystem/supportsystem.reactui/Dockerfile .'
                         }
                     }
                 }
 				stage('Build SupportSystem.WebAPI') {
                 steps {
                         script {
-                            dir('SupportSystemManagement/SupportSystem') {
-                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest -f DockerFile ."
-                            }
+							sh 'docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest -f SupportSystemManagement/SupportSystem/Dockerfile .'
                         }
                     }
                 }
