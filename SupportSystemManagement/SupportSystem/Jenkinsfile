@@ -1,0 +1,77 @@
+pipeline {
+    agent { label 'Jenkins-Agent' }
+
+    environment {
+        DOCKER_HUB_REPO = 'narendransekar'
+        DOCKER_CREDENTIALS_ID  = 'docker-hub-credentials-id' // Jenkins credential ID for Docker Hub
+        AZURE_APP_NAME = 'myjenkinswebapp'
+        AZURE_RG = 'mywebapp'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                // Clone your .NET Core project repository
+                git 'https://github.com/narendransekar7/Support.git'
+            }
+        }
+		
+		stage('Build Docker Images') {
+            parallel {
+                stage('Build SS.Auth.Server.API') {
+                    steps {
+                        script {
+                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API') {
+                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest -f DockerFile ."
+                            }
+                        }
+                    }
+                }
+                stage('Build SS.Gateway.API') {
+                    steps {
+                        script {
+                            dir('SupportSystemManagement/SupportSystem/SS.Gateway.API') {
+                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest -f DockerFile ."
+                            }
+                        }
+                    }
+                }
+                stage('Build SupportSystem.ReactUI') {
+                    steps {
+                        script {
+                            dir('SupportSystemManagement/SupportSystem/supportsystem.reactui') {
+                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest -f DockerFile ."
+                            }
+                        }
+                    }
+                }
+				stage('Build SupportSystem.WebAPI') {
+                steps {
+                        script {
+                            dir('SupportSystemManagement/SupportSystem') {
+                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest -f DockerFile ."
+                            }
+                        }
+                    }
+                }
+            }
+        }
+		
+		stage('Push Docker Images') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
+                        sh "docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest"
+                        sh "docker push ${DOCKER_HUB_REPO}/ss-gateway-api:latest"
+                        sh "docker push ${DOCKER_HUB_REPO}/ss-react-ui:latest"
+						sh "docker push ${DOCKER_HUB_REPO}/ss-web-api:latest"
+                    }
+                }
+            }
+        }
+		
+    }
+     
+
+
+}
