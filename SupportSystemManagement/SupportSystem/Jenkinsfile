@@ -33,9 +33,13 @@ pipeline {
 		stage('Push Docker Images') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                        sh "docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest"
+                    // Login to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                     }
+
+                    // Push the Docker image to Docker Hub
+                    sh 'docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest'
                 }
             }
         }
