@@ -48,7 +48,7 @@ pipeline {
 				stage('Build SupportSystem.WebAPI') {
 					steps {
 					    script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Web.API') {
+                            dir('SupportSystemManagement/SupportSystem') {
                                 sh 'docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest .'
                             }
                         }
