@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  gateway:
+    image: narendransekar/ss-gateway-api:latest
+    container_name: gateway
+    ports:
+      - "3000:80" # Maps port 80 on the host to port 80 on the container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - webapi
+      - authserver
+      - reactui
+    networks:
+      - supportsystem-network
+
+  webapi:
+    image: narendransekar/ss-web-api:latest
+    container_name: webapi
+    ports:
+      - "5001:80" # Maps port 5001 on the host to port 80 on the container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - supportsystem-network
+
+  authserver:
+    image: narendransekar/ss-auth-server-api:latest
+    container_name: authserver
+    ports:
+      - "5002:80" # Maps port 5002 on the host to port 80 on the container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - supportsystem-network
+
+  reactui:
+    image: narendransekar/ss-react-ui:latest
+    container_name: reactui
+    ports:
+      - "80:80" # Maps port 3000 on the host to port 80 on the container
+    networks:
+      - supportsystem-network
+
+networks:
+  supportsystem-network:
+    driver: bridge
