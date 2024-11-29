@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Web.API\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{3F26678B-395F-4E0F-BCBB-EEFED56CC7CD}|SS.Web.API.csproj|d:\\projects\\dotnet8\\support\\supportsystemmanagement\\supportsystem\\ss.web.api\\dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{3F26678B-395F-4E0F-BCBB-EEFED56CC7CD}|SS.Web.API.csproj|solutionrelative:dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Dockerfile",
+              "DocumentMoniker": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Web.API\\Dockerfile",
+              "RelativeDocumentMoniker": "Dockerfile",
+              "ToolTip": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Web.API\\Dockerfile",
+              "RelativeToolTip": "Dockerfile",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-11-21T13:01:24.164Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
