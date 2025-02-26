@@ -7,8 +7,8 @@ const CreateTicketForm = () => {
     Content: "",
     Priority: "Medium",
     Visibility: "Public",
-    CreatedBy: "54FC8C9A-2ED5-4B18-8C3E-E9B401BFF108",
-    AssignedTo: "54FC8C9A-2ED5-4B18-8C3E-E9B401BFF108",
+    CreatedBy: "C7826BAD-4B94-4A03-B068-D92B17234C65",
+    AssignedTo: "C7826BAD-4B94-4A03-B068-D92B17234C65",
   });
 
   const handleChange = (e) => {
@@ -22,9 +22,10 @@ const CreateTicketForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("https://localhost:44335/api/ticket", formData, {
+      const response = await axios.post("http://localhost:5145/api/ticket/create", formData, {
         headers: {
           "Content-Type": "application/json",
+		   Authorization: `Bearer ${localStorage.getItem('token')}`
         },
       });
 

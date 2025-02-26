@@ -20,12 +20,17 @@ namespace SS.Web.API.Controllers
 
         // Endpoint to validate credentials
         //[AllowAnonymous]
-        //[HttpPost("validate")]
+        [HttpPost("validate")]
         public async Task<IActionResult> Validate([FromBody] ValidateUserQuery query)
         {
             // code ned to be improved with invalid user, invalid credtial by returning from the API
-            await _mediator.Send(query);
+            var response =await _mediator.Send(query);
+            if(response)
             return Ok("User validated successfully");
+            else
+            {
+                return Unauthorized("Invalid credentials.");
+            }
             //var user = await _userDatabasecontext.SS_User.SingleOrDefaultAsync(u => u.PrimaryEmail == loginDto.Email);
             //if (user == null)
             //    return Unauthorized("Invalid credentials.");
@@ -36,8 +41,15 @@ namespace SS.Web.API.Controllers
             //else
             //    return Unauthorized("Invalid credentials.");
         }
+        
+        [HttpPost("saverefreshtoken")]
+        public async Task<IActionResult> SaveRefreshToken([FromBody] LoginSuccessCommand query)
+        {
+            await _mediator.Send(query);
+            return Ok("Token saved successfully");
+        }
 
-        [HttpPost]
+        [HttpPost("createuser")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)
         {
             await _mediator.Send(command);

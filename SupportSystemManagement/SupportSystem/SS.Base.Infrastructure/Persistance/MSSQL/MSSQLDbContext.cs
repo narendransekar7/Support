@@ -22,12 +22,42 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<TicketLog> TicketLogs { get; set; }
         public DbSet<TicketUpdate> TicketUpdates { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+        
+        // Seeding method
+        public static void Seed(ModelBuilder modelBuilder)
+        {
+            Guid adminId = Guid.NewGuid();
+            // Add initial data for User table
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    UserId = adminId,
+                    FirstName = "Admin",
+                    LastName = "User",
+                    DisplayName = "Admin User",
+                    PrimaryEmail = "admin@gmail.com",
+                    Role = Role.Admin // Assuming 'Role' is an enum or predefined set
+                }
+            );
 
+            // Add initial data for UserProfile table
+            modelBuilder.Entity<UserProfile>().HasData(
+                new UserProfile
+                {
+                    UserId = adminId,
+                    Password = "Admin@123", // Make sure this is a hashed password in production
+                    Country = "US",
+                    Gender = "Male",
+                    PrimaryNumber = "1234567890"
+                }
+            );
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            MSSQLDbContext.Seed(modelBuilder);
             // Configure User entity
             modelBuilder.Entity<User>(entity =>
             {
@@ -75,7 +105,7 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                       .HasForeignKey(e => e.UpdatedBy)
                       .OnDelete(DeleteBehavior.Restrict);
             });
-
+        
         }
 
         //previous

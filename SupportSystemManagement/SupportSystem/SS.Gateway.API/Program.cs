@@ -10,8 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Load Ocelot configuration from ocelot.json
 
-builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
-builder.Services.AddOcelot();
+// Add configuration from environment variables
+builder.Configuration.AddEnvironmentVariables();
+
+string baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? "http://localhost:5145";
+// Add the resolved BaseUrl to the configuration
+builder.Configuration["BaseUrl"] = baseUrl;
+Console.WriteLine($"Resolved BaseUrl: {baseUrl}");
+
+builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true).AddEnvironmentVariables();
+builder.Services.AddOcelot(builder.Configuration);
 
 // JWT Authentication using key which need to be check and removed in futher to access web api with out using this technique
 var key = Encoding.ASCII.GetBytes("hldiSW6BAHCCzY9Yy1zQLiN+MHYJ0Fm5InfQlPANUyM=");

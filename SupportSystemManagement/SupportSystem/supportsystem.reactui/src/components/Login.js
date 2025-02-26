@@ -7,18 +7,24 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  // const gatewayUrl = process.env.REACT_APP_GATEWAY_URL;
+		  // console.log('Gateway URL:', gatewayUrl);
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
 	   try {
-      const response = await axios.post('https://localhost:7160/api/auth/login', {
+		   
+		  
+      const response = await axios.post('http://localhost:5145/api/auth/login', {
         email,
         password,
       });
-
+debugger;
       // Save JWT token to localStorage or cookies
       localStorage.setItem('token', response.data.token);
+	  localStorage.setItem("refreshToken", response.data.refreshToken);
+      localStorage.setItem("email", email);
 	  navigate('user/add');
       //alert('Login Successful');
     } catch (err) {

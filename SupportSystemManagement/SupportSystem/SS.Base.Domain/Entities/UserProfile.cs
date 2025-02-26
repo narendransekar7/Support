@@ -20,6 +20,6 @@ namespace SS.Base.Domain.Entities
         [Required]
         // Navigation done through data annotation here. but we can done through Fluent API
         [ForeignKey("UserId")]
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
     }
 }

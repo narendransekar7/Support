@@ -25,7 +25,7 @@ namespace SS.Auth.Server.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            var client = _httpClientFactory.CreateClient("UserAPI");
+            var client = _httpClientFactory.CreateClient("WebAPI");
             client.DefaultRequestHeaders.Add("X-Api-Key", "1234567890ABCDEF");
             var response = await client.PostAsJsonAsync("/api/user/validate", model);
 
@@ -35,7 +35,8 @@ namespace SS.Auth.Server.API.Controllers
             //if (model.Email == "user@example.com" && model.Password == "password")
             //{
             var token = GenerateJwtToken(model.Email);
-            return Ok(new { token });
+            var refreshToken = GenerateRefreshToken();
+            return Ok(new { token,refreshToken });
             // }
         }
 
@@ -51,6 +52,11 @@ namespace SS.Auth.Server.API.Controllers
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+        
+        private string GenerateRefreshToken()
+        {
+            return Guid.NewGuid().ToString(); // Use a more secure random generator for production
         }
     }
 

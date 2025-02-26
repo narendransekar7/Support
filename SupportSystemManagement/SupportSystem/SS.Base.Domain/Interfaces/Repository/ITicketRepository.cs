@@ -11,5 +11,6 @@ namespace SS.Base.Domain.Interfaces.Repository
     {
         // Add methods specific to Tickets
         Task<IEnumerable<Ticket>> GetTicketsByUserAsync(Guid userId);
+        Task<Ticket?> GetByIdWithUpdatesAsync(Guid ticketId);
     }
 }

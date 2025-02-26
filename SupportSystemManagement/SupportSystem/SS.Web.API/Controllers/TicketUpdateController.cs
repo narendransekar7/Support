@@ -15,7 +15,7 @@ namespace SS.Web.API.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost]
+        [HttpPost("add")]
         public async Task<IActionResult> Add([FromBody] AddTicketUpdateCommand command)
         {
             await _mediator.Send(command);

@@ -2,87 +2,138 @@
   "Routes": [
     {
       "DownstreamPathTemplate": "/",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 443
+          "Host": "ss-react-ui",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/",
-      "UpstreamHttpMethod": [ "GET", "POST" ]
-    },
-    {
-      "DownstreamPathTemplate": "/user/{everything}",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 443
-        }
-      ],
-      "UpstreamPathTemplate": "/user/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST" ]
+      "UpstreamHttpMethod": ["GET", "POST"]
     },
     {
       "DownstreamPathTemplate": "/static/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 443
+          "Host": "ss-react-ui",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/static/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST" ]
+      "UpstreamHttpMethod": ["GET", "POST"]
+    },
+    {
+      "DownstreamPathTemplate": "/user/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ss-react-ui",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/user/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST"]
+    },
+    {
+      "DownstreamPathTemplate": "/ticket/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ss-react-ui",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/ticket/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST"]
     },
     {
       "DownstreamPathTemplate": "/api/auth/login",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44338
+          "Host": "ss-auth-server-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate":  "/api/auth/login",
-      "UpstreamHttpMethod": [ "GET", "POST" ]
+      "UpstreamPathTemplate": "/api/auth/login",
+      "UpstreamHttpMethod": ["GET", "POST"]
     },
     {
       "DownstreamPathTemplate": "/api/user/validate",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/user/validate",
-      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "UpstreamHttpMethod": ["GET", "POST"]
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/saverefreshtoken",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ss-web-api",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/user/saverefreshtoken",
+      "UpstreamHttpMethod": ["GET", "POST"]
+    },
+    {
+      "DownstreamPathTemplate": "/api/user/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ss-web-api",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/user/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST"],
       "AuthenticationOptions": {
-        "AuthenticationProviderKey": "", // No authentication for this route
+        "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
     },
     {
-      "DownstreamPathTemplate": "/api/user/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamPathTemplate": "/api/ticket/{everything}",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
-      "UpstreamPathTemplate": "/api/user/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "UpstreamPathTemplate": "/api/ticket/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST"],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/api/ticketupdate/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "ss-web-api",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/api/ticketupdate/{everything}",
+      "UpstreamHttpMethod": ["GET", "POST"],
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
     }
-
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://localhost:44345"
+    "BaseUrl": "${BaseUrl}"
   }
 }

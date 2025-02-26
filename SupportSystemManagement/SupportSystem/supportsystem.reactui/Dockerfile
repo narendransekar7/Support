@@ -14,6 +14,10 @@ RUN npm install
 # Copy the rest of the application code to the working directory
 COPY . .
 
+# Accept build-time arguments for React environment variables
+ARG REACT_APP_GATEWAY_URL
+ENV REACT_APP_GATEWAY_URL=${REACT_APP_GATEWAY_URL}
+
 # Build the React app for production
 RUN npm run build
 

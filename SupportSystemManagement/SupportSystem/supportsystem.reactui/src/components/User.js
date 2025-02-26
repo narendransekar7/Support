@@ -14,8 +14,7 @@ function User() {
 	  PrimaryEmail:'naren@gmail.com',
 	  Password:'Naren@123',
 	  PrimaryNumber:'1234567890',
-	  DisplayName:"Narendran S"
-	  
+	  Role:0
   });
   
   const handleSubmit = async (e) => {
@@ -25,7 +24,7 @@ function User() {
     // Send POST request to .NET Core Web API using Axios
     try {
 		debugger;
-      const response = await axios.post('https://localhost:7160/api/user/createagentuser', formData, {
+      const response = await axios.post('http://localhost:5145/api/user/createuser', formData, {
         headers: {
           'Content-Type': 'application/json'
 		  ,Authorization: `Bearer ${localStorage.getItem('token')}`

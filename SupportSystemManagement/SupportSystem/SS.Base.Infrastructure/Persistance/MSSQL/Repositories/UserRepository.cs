@@ -20,7 +20,11 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
 
         public async Task<User> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.SingleOrDefaultAsync(u => u.PrimaryEmail == email);
+            //return await _context.Users.SingleOrDefaultAsync(u => u.PrimaryEmail == email);
+            
+            return await _context.Users
+                .Include(u => u.Profile) // Eagerly load the UserProfile
+                .SingleOrDefaultAsync(u => u.PrimaryEmail == email);
         }
 
     }

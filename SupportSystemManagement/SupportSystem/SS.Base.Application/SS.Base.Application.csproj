@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Commands\User\LoginFailure\" />
+    <Folder Include="Commands\User\LogOut\" />
     <Folder Include="Common\" />
     <Folder Include="Events\" />
     <Folder Include="Handlers\" />

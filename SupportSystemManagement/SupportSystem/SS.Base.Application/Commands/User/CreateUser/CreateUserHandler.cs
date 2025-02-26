@@ -36,7 +36,8 @@ namespace SS.Base.Application.Commands
             var userProfile = new UserProfile
             {
                 UserId = user.UserId,
-                Password = _passwordHasher.HashPassword(user, request.Password)
+                Password = request.Password
+               // Password = _passwordHasher.HashPassword(user, request.Password)
             };
 
             // Link User to UserProfile

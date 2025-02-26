@@ -26,7 +26,7 @@ namespace SS.Base.Domain.Entities
 
 
         // Navigation Property
-        public virtual ICollection<Ticket> Tickets { get; set; }
+        public virtual ICollection<Ticket>? Tickets { get; set; } 
 
 
 

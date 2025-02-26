@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 
@@ -11,9 +12,11 @@ using SS.Base.Infrastructure.Persistance.MSSQL;
 namespace SS.Base.Infrastructure.Migrations
 {
     [DbContext(typeof(MSSQLDbContext))]
-    partial class MSSQLDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241217133700_AddInitialData")]
+    partial class AddInitialData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,27 +24,6 @@ namespace SS.Base.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("SS.Base.Domain.Entities.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Token")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Token");
-
-                    b.ToTable("RefreshTokens");
-                });
 
             modelBuilder.Entity("SS.Base.Domain.Entities.Ticket", b =>
                 {
@@ -193,7 +175,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("c7826bad-4b94-4a03-b068-d92b17234c65"),
+                            UserId = new Guid("45c0aa78-7435-485d-838e-e7a7f66eb7fb"),
                             DisplayName = "Admin User",
                             FirstName = "Admin",
                             LastName = "User",
@@ -227,7 +209,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("c7826bad-4b94-4a03-b068-d92b17234c65"),
+                            UserId = new Guid("45c0aa78-7435-485d-838e-e7a7f66eb7fb"),
                             Country = "US",
                             Gender = "Male",
                             Password = "Admin@123",

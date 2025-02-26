@@ -4,9 +4,6 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 # Set the working directory
 WORKDIR /app
 
-# Expose the port the app runs on (e.g., 80)
-EXPOSE 80
-
 # Copy the .csproj file and restore any dependencies (via `dotnet restore`)
 COPY *.csproj ./
 RUN dotnet restore
@@ -26,7 +23,8 @@ WORKDIR /app
 # Copy the published application from the build stage
 COPY --from=build /app/publish .
 
-
+# Expose the port the app runs on (e.g., 80)
+EXPOSE 80
 
 # Define the entry point to run the application
-ENTRYPOINT ["dotnet", "SS.Gateway.API.dll"]
+ENTRYPOINT ["dotnet", "SS.Web.API.dll"]

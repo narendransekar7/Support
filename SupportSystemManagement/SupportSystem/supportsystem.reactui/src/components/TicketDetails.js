@@ -1,26 +1,28 @@
 import React, { useState } from "react";
+import axios from 'axios';
+import { useLoaderData } from "react-router-dom";
 
 const TicketDetails = () => {
-  // Sample ticket data
+  const data = useLoaderData();
+
   const [ticket, setTicket] = useState({
-    title: "Sample Ticket",
-    priority: "Medium",
-    visibility: "Public",
-    createdBy: "John Doe",
-    assignedTo: "Jane Smith",
-    content: "This is the initial ticket content.",
+    title: data.title,
+    priority: data.priority,
+    visibility: data.visibility,
+    createdBy: data.createdBy,
+    assignedTo: data.assignedTo
   });
 
-  // Sample updates data
-  const [updates, setUpdates] = useState([
-    { user: "John Doe", content: "Initial update.", timestamp: "2024-11-24 10:00 AM" },
-    { user: "Jane Smith", content: "Acknowledged.", timestamp: "2024-11-24 11:00 AM" },
-  ]);
+	const [updates, setUpdates] = useState(
+		data.updates?.map(update => ({
+		user: update.updatedBy,
+		content: update.content,
+		timestamp: update.updatedAt
+	})) || []
+	);
 
-  // State for new update
   const [newUpdate, setNewUpdate] = useState("");
 
-  // Handle dropdown change
   const handleDropdownChange = (field, value) => {
     setTicket((prev) => ({
       ...prev,
@@ -28,24 +30,48 @@ const TicketDetails = () => {
     }));
   };
 
-  // Handle adding a new update
-  const handleAddUpdate = (e) => {
+  const handleAddUpdate = async (e) => {
     e.preventDefault();
     if (newUpdate.trim() === "") return;
 
     const newUpdateEntry = {
-      user: "Current User", // Replace with dynamic user data
+      user: data.createdBy, // need to be replaced with currently logged in user who is updating the ticket.
       content: newUpdate,
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toLocaleString()
     };
 
-    setUpdates([newUpdateEntry, ...updates]);
+	const newUpdateContent = {
+      TicketId: data.ticketId, 
+      Content: newUpdate,
+      UpdatedBy: data.createdBy // need to be replaced with currently logged in user who is updating the ticket.,
+    };
+
+	try {
+		debugger;
+      const response = await axios.post('http://localhost:5145/api/ticketupdate/add', newUpdateContent, {
+        headers: {
+          'Content-Type': 'application/json'
+		  ,Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+
+      if (response.status === 200) {
+        console.log('Ticket updated successfully', response.data);
+        // Handle success, clear form, display message, etc.
+      } else {
+        console.error('Error while submitting', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error occurred during the request:', error.message);
+    }
+
+	setUpdates(updates => [...updates, newUpdateEntry]);
+    //setUpdates([newUpdateEntry, ...updates]);
     setNewUpdate("");
   };
 
   return (
     <div style={styles.container}>
-      {/* Ticket Details */}
       <h2 style={styles.header}>Ticket Details</h2>
       <div style={styles.card}>
         <h3 style={styles.cardHeader}>{ticket.title}</h3>
@@ -89,12 +115,7 @@ const TicketDetails = () => {
         <p style={styles.field}>
           <strong>Created By:</strong> {ticket.createdBy}
         </p>
-        <p style={styles.content}>
-          <strong>Content:</strong> {ticket.content}
-        </p>
       </div>
-
-      {/* Add Update */}
       <h3 style={styles.subHeader}>Add Update</h3>
       <form onSubmit={handleAddUpdate} style={styles.form}>
         <textarea
@@ -110,11 +131,10 @@ const TicketDetails = () => {
         </button>
       </form>
 
-      {/* Previous Updates */}
       <h3 style={styles.subHeader}>Previous Updates</h3>
       <div style={styles.updatesContainer}>
         {updates.length > 0 ? (
-          updates.map((update, index) => (
+          updates.slice().reverse().map((update, index) => (
             <div key={index} style={styles.updateCard}>
               <p style={styles.updateHeader}>
                 <strong>{update.user}</strong>{" "}

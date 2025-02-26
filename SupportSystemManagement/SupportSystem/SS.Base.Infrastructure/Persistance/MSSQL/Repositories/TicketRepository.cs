@@ -22,5 +22,14 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
         {
             return await _context.Tickets.Where(t => t.AssignedTo == userId).ToListAsync();
         }
+        
+        public async Task<Ticket?> GetByIdWithUpdatesAsync(Guid ticketId)
+        {
+            return await _context.Tickets
+                .Include(t => t.TicketUpdates) // Load TicketUpdates
+                .FirstOrDefaultAsync(t => t.TicketId == ticketId);
+             
+            
+        }
     }
 }
