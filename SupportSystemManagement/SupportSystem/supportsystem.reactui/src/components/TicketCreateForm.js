@@ -1,18 +1,25 @@
 import React, { useState } from "react";
 import axios from "axios";
+import {useSelector } from "react-redux";
+
 
 const CreateTicketForm = () => {
+	
+  const auth = useSelector((state) => state.auth);
+	
+	
   const [formData, setFormData] = useState({
     Title: "",
     Content: "",
     Priority: "Medium",
     Visibility: "Public",
-    CreatedBy: "C7826BAD-4B94-4A03-B068-D92B17234C65",
+    CreatedBy: auth.userId,
     AssignedTo: "C7826BAD-4B94-4A03-B068-D92B17234C65",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+	//console.log(auth);
     setFormData({
       ...formData,
       [name]: value,

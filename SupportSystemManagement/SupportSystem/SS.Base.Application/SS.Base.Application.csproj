@@ -10,12 +10,12 @@
     <Folder Include="Commands\User\LoginFailure\" />
     <Folder Include="Commands\User\LogOut\" />
     <Folder Include="Common\" />
-    <Folder Include="Events\" />
     <Folder Include="Handlers\" />
     <Folder Include="Validators\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="8.1.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.0" />

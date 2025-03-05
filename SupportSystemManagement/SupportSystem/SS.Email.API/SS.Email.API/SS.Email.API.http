@@ -1,0 +1,6 @@
+@SS.Email.API_HostAddress = http://localhost:5245
+
+GET {{SS.Email.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -18,7 +18,7 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
             _context = context;
         }
 
-        public async Task<User> GetUserByEmailAsync(string email)
+        public async Task<User> ValidateUserByCredentialAsync(string email)
         {
             //return await _context.Users.SingleOrDefaultAsync(u => u.PrimaryEmail == email);
             
@@ -26,6 +26,10 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
                 .Include(u => u.Profile) // Eagerly load the UserProfile
                 .SingleOrDefaultAsync(u => u.PrimaryEmail == email);
         }
-
+        
+        public async Task<User> GetUserByEmailAsync(string email)
+        {
+            return await _context.Users.SingleOrDefaultAsync(u => u.PrimaryEmail == email);
+        }
     }
 }

@@ -25,7 +25,7 @@ namespace SS.Base.Application.Queries
 
         public async Task<bool> Handle(ValidateUserQuery request, CancellationToken cancellationToken)
         {
-            User user = await _userRepository.GetUserByEmailAsync(request.Email);
+            User user = await _userRepository.ValidateUserByCredentialAsync(request.Email);
             if (user == null) return false;
             if (user.Profile.Password==request.Password)
             //if (_passwordHasher.VerifyHashedPassword(user, user.Profile.Password, request.Password) == PasswordVerificationResult.Success)

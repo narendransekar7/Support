@@ -1,32 +1,46 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+//import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../features/authSlice";
 
 function Login() {
   // State to hold form inputs
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+  
+  const dispatch = useDispatch();
+  const { isLoading, error } = useSelector((state) => state.auth);
+  
+  
+  //const navigate = useNavigate();
   // const gatewayUrl = process.env.REACT_APP_GATEWAY_URL;
 		  // console.log('Gateway URL:', gatewayUrl);
   // Handle form submission
+  
+  
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
 	   try {
+		debugger;   
+		dispatch(loginUser({ email, password }));	   
 		   
-		  
-      const response = await axios.post('http://localhost:5145/api/auth/login', {
-        email,
-        password,
-      });
-debugger;
+      //const response = await axios.post('http://localhost:5145/api/auth/login', {
+      //  email,
+      //  password,
+      //});
+		
+		
+		
       // Save JWT token to localStorage or cookies
-      localStorage.setItem('token', response.data.token);
-	  localStorage.setItem("refreshToken", response.data.refreshToken);
-      localStorage.setItem("email", email);
-	  navigate('user/add');
-      //alert('Login Successful');
+      //localStorage.setItem('token', response.data.token);
+	  //localStorage.setItem("refreshToken", response.data.refreshToken);
+      //localStorage.setItem("email", email);
+	 
+
+
+	 //navigate('user/add');
     } catch (err) {
       //setError('Invalid Credentials');
     }

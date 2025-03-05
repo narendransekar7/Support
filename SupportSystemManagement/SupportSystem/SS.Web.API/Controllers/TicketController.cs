@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SS.Base.Application.Commands;
 using SS.Base.Application.Queries;
 using SS.Base.Domain.Entities;
+using SS.Base.Domain.Dto;
 
 namespace SS.Web.API.Controllers
 {
@@ -31,8 +32,6 @@ namespace SS.Web.API.Controllers
 
             if (ticket == null)
                 return NotFound();
-
-            //return Ok(ticket);
             
             var ticketDto = new TicketDto
             {
@@ -53,31 +52,7 @@ namespace SS.Web.API.Controllers
             };
 
             return Ok(ticketDto);
-           
         }
     }
-    
-       
-    public class TicketDto
-    {
-        public Guid TicketId { get; set; }
-        public string Title { get; set; }
-        public string Status { get; set; }
-        public string Priority { get; set; }
-        public string Visibility { get; set; }
-        public Guid CreatedBy { get; set; }
-        public Guid AssignedTo { get; set; }
-        
-        public List<TicketUpdateDto> Updates { get; set; }
-    }
 
-    public class TicketUpdateDto
-    {
-        public Guid UpdateId { get; set; }
-        public string Content { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        
-        public Guid UpdatedBy { get; set; }
-        
-    }
 }

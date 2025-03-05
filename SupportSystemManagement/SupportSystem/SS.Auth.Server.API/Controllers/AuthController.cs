@@ -36,7 +36,7 @@ namespace SS.Auth.Server.API.Controllers
             //{
             var token = GenerateJwtToken(model.Email);
             var refreshToken = GenerateRefreshToken();
-            return Ok(new { token,refreshToken });
+            return Ok(new { token,refreshToken,});
             // }
         }
 

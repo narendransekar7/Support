@@ -1,7 +1,10 @@
-﻿using MediatR;
+﻿using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SS.Base.Application.Commands;
+using SS.Base.Application.Queries;
+using SS.Base.Domain.Dto;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace SS.Web.API.Controllers
@@ -56,6 +59,24 @@ namespace SS.Web.API.Controllers
             return Ok("User created successfully");
         }
 
+        [HttpGet("fetchuser/{id}")]
+        public async Task<IActionResult> FetchUserByEmail(string id)
+        {
+            
+            //var user = await _mediator.Send(new GetUserByIdQuery(ClaimTypes.Email));
+            //if (user == null)
+          //      return NotFound();
+            
+           var user = await _mediator.Send(new GetUserByEmailQuery(id));
+          
+           var userDto = new UserDto
+           {
+               UserId = user.UserId,
+               Role = user.Role,
+               Name = user.DisplayName
+           };
+            return Ok(userDto);
+        }
         //[HttpGet]
         //public async Task<IActionResult> GetAllUsers()
         //{
@@ -64,4 +85,6 @@ namespace SS.Web.API.Controllers
         //}
 
     }
+    
+
 }

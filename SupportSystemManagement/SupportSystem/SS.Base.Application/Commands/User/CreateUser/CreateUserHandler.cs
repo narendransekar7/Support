@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SS.Base.Application.Events;
+using SS.Base.Domain.Email;
 
 namespace SS.Base.Application.Commands
 {
@@ -15,11 +17,12 @@ namespace SS.Base.Application.Commands
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPasswordHasher<User> _passwordHasher;
-
-        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher)
+        private AzureServiceBusQueueSender _queueSender;
+        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher, AzureServiceBusQueueSender queueSender)
         {
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
+            _queueSender = queueSender;
         }
 
         public async Task<Unit> Handle(CreateUserCommand request, CancellationToken cancellationToken)
@@ -48,7 +51,16 @@ namespace SS.Base.Application.Commands
 
             // Commit changes using Unit of Work
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-
+            
+            // Send message to Azure Service Bus Queue
+            var userCreatedMessage = new UserCreatedMessage
+            {
+                UserId = user.UserId,
+                Email = user.PrimaryEmail,
+                FullName = user.DisplayName
+            };
+            
+            await _queueSender.SendMessageAsync(userCreatedMessage);
             return Unit.Value;
         }
     }
