@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect  } from "react";
 import axios from "axios";
 import {useSelector } from "react-redux";
 
@@ -13,7 +13,7 @@ const CreateTicketForm = () => {
     Content: "",
     Priority: "Medium",
     Visibility: "Public",
-    CreatedBy: auth.userId,
+    CreatedBy: auth.userid,
     AssignedTo: "C7826BAD-4B94-4A03-B068-D92B17234C65",
   });
 
@@ -25,6 +25,16 @@ const CreateTicketForm = () => {
       [name]: value,
     });
   };
+  
+    // Update CreatedBy when auth.userid is available
+  useEffect(() => {
+    if (auth?.userid) {
+      setFormData((prevState) => ({
+        ...prevState,
+        CreatedBy: auth.userid, // Set the userid once it is available
+      }));
+    }
+  }, [auth]);  // This will run when `auth` changes
 
   const handleSubmit = async (e) => {
     e.preventDefault();
