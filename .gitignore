@@ -1,0 +1,9 @@
+﻿# Visual Studio user-specific
+.vs/
+
+# Build output
+bin/
+obj/
+
+# Node Modules
+node_modules
