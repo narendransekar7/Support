@@ -13,7 +13,7 @@ function Login() {
   const { isLoading, error } = useSelector((state) => state.auth);
   
   
-  //const navigate = useNavigate();
+  const navigate = useNavigate();
   // const gatewayUrl = process.env.REACT_APP_GATEWAY_URL;
 		  // console.log('Gateway URL:', gatewayUrl);
   // Handle form submission
@@ -23,7 +23,6 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 	   try {
-		debugger;   
 		dispatch(loginUser({ email, password }));	   
 		   
       //const response = await axios.post('http://localhost:5145/api/auth/login', {
@@ -38,9 +37,7 @@ function Login() {
 	  //localStorage.setItem("refreshToken", response.data.refreshToken);
       //localStorage.setItem("email", email);
 	 
-
-
-	 //navigate('user/add');
+	 navigate('user/add');
     } catch (err) {
       //setError('Invalid Credentials');
     }

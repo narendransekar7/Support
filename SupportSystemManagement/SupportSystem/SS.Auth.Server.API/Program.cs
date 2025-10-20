@@ -10,7 +10,7 @@ builder.Services.AddSwaggerGen();
 // Added to the
 builder.Services.AddHttpClient("WebAPI", client =>
 {
-    client.BaseAddress = new Uri("http://ss-web-api:8080"); // Adjust to the User API's base URL
+    client.BaseAddress = new Uri("https://localhost:44335"); // Adjust to the User API's base URL
 });
 
 

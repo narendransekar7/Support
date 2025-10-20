@@ -16,9 +16,9 @@ namespace SS.Base.Application.Commands
     {
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IPasswordHasher<User> _passwordHasher;
+        private readonly IPasswordHasher<SS.Base.Domain.Entities.User> _passwordHasher;
         private AzureServiceBusQueueSender _queueSender;
-        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<User> passwordHasher, AzureServiceBusQueueSender queueSender)
+        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<SS.Base.Domain.Entities.User> passwordHasher, AzureServiceBusQueueSender queueSender)
         {
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
@@ -27,7 +27,7 @@ namespace SS.Base.Application.Commands
 
         public async Task<Unit> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            var user = new User
+            var user = new SS.Base.Domain.Entities.User
             {
                 UserId = Guid.NewGuid(),
                 FirstName = request.FirstName,
@@ -59,8 +59,8 @@ namespace SS.Base.Application.Commands
                 Email = user.PrimaryEmail,
                 FullName = user.DisplayName
             };
-            
-            await _queueSender.SendMessageAsync(userCreatedMessage);
+            //Hiding the below code as of now to avoid the user creation seding message to azure service bus
+            //await _queueSender.SendMessageAsync(userCreatedMessage);
             return Unit.Value;
         }
     }

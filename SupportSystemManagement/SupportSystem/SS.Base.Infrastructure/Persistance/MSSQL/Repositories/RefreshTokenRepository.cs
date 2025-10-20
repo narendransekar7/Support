@@ -12,4 +12,9 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
     {
         _context = context;
     }
+
+    public async Task<RefreshToken?> GetByIdAsync(Guid id)
+    {
+        return await _context.RefreshTokens.FindAsync(id);
+    }
 }

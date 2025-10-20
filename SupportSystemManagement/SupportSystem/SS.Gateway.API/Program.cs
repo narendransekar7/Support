@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add configuration from environment variables
 builder.Configuration.AddEnvironmentVariables();
 
-string baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? "http://localhost:5145";
+string baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? "https://localhost:44345";
 // Add the resolved BaseUrl to the configuration
 builder.Configuration["BaseUrl"] = baseUrl;
 Console.WriteLine($"Resolved BaseUrl: {baseUrl}");

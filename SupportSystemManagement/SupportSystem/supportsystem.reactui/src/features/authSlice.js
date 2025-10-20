@@ -1,15 +1,13 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+﻿import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 // API Base URL
-const API_URL = "http://localhost:5145/api";
+const API_URL = "https://localhost:44345/api";
 
 // Async thunk for login
 export const loginUser = createAsyncThunk("auth/login", async (credentials, thunkAPI) => {
   try {
-	  debugger;
-	
     const response = await axios.post(`${API_URL}/auth/login`, credentials);
 	const token = response.data.token;
 	if (token) {
@@ -41,11 +39,64 @@ export const fetchUser = createAsyncThunk("auth/fetchUser", async (_, thunkAPI) 
   }
 });
 
-// Logout action
-export const logoutUser = createAsyncThunk("auth/logout", async () => {
-  localStorage.removeItem("token"); // Remove token
-  localStorage.removeItem("refreshToken");
+//// Logout action
+//export const logoutUser = createAsyncThunk("auth/logout", async () => {
+//  localStorage.removeItem("token"); // Remove token
+//  localStorage.removeItem("refreshToken");
+//  localStorage.removeItem("email");
+
+//});
+
+// ✅ Logout thunk that calls backend API
+export const logoutUser = createAsyncThunk("auth/logout", async (_, thunkAPI) => {
+    try {
+        const token = localStorage.getItem("token");
+        const refreshToken = localStorage.getItem("refreshToken");
+        const email = localStorage.getItem("email");
+
+        if (!token || !refreshToken) {
+            // No valid session
+            localStorage.clear();
+            return true;
+        }
+
+        const logoutPayload = {
+            email: email,
+            refreshToken: refreshToken,
+        };
+        
+       
+        const userId = thunkAPI.getState().auth.userid;
+        const response = await axios.post(`${API_URL}/auth/logout`, { userId, refreshToken });
+
+        //const response = await fetch(`${API_URL}/auth/logout`, {
+        //    method: "POST",
+        //    headers: {
+        //        "Content-Type": "application/json",
+        //        Authorization: `Bearer ${token}`, // Optional if your logout requires auth
+        //    },
+        //    body: logoutPayload,
+        //});
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Logout failed:", errorText);
+            return thunkAPI.rejectWithValue(errorText || "Logout failed");
+        }
+
+        // ✅ Clear local storage on success
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("email");
+
+        return true;
+    } catch (error) {
+        console.error("Logout error:", error);
+        return thunkAPI.rejectWithValue(error.message);
+    }
 });
+
+
 
 const authSlice = createSlice({
   name: "auth",

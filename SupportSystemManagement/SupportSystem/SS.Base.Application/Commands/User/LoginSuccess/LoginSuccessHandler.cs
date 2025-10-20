@@ -19,9 +19,9 @@ public class LoginSuccessHandler: IRequestHandler<LoginSuccessCommand>
     {
         var refreshToken = new RefreshToken
         {
-            Token =  Guid.NewGuid(),
+            Token =  request.Token,
             UserId = request.UserId,
-            ExpiryDate = DateTime.Now.AddDays(2),
+            ExpiryDate = DateTime.Now.AddDays(7),
             IsRevoked = false
         };
         // Use the repository to add the user

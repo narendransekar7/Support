@@ -48,7 +48,7 @@ const TicketDetails = () => {
 
 	try {
 		debugger;
-      const response = await axios.post('http://localhost:5145/api/ticketupdate/add', newUpdateContent, {
+      const response = await axios.post('https://localhost:44345/api/ticketupdate/add', newUpdateContent, {
         headers: {
           'Content-Type': 'application/json'
 		  ,Authorization: `Bearer ${localStorage.getItem('token')}`

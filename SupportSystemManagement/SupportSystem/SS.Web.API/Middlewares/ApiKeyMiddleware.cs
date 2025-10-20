@@ -19,7 +19,7 @@ public class ApiKeyMiddleware
         StringValues extractedApiKey = StringValues.Empty;
         bool isKeyAvaiable = context.Request.Headers.TryGetValue(ApiKeyHeaderName, out extractedApiKey);
 
-        if (context.Request.Path.StartsWithSegments("/api/user/validate") || context.Request.Path.StartsWithSegments("/api/user/saverefreshtoken")  )
+        if (context.Request.Path.StartsWithSegments("/api/user/validate") || context.Request.Path.StartsWithSegments("/api/user/saverefreshtoken") || context.Request.Path.StartsWithSegments("/api/user/logout"))
         {
             if (!isKeyAvaiable)
             {

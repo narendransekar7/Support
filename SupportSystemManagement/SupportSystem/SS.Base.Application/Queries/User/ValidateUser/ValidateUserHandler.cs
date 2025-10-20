@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace SS.Base.Application.Queries
 {
-    public class ValidateUserHandler: IRequestHandler<ValidateUserQuery,bool>
+    public class ValidateUserHandler : IRequestHandler<ValidateUserQuery, User?>
     {
 
         private readonly IUserRepository _userRepository;
@@ -23,15 +23,15 @@ namespace SS.Base.Application.Queries
             _passwordHasher = passwordHasher;
         }
 
-        public async Task<bool> Handle(ValidateUserQuery request, CancellationToken cancellationToken)
+        public async Task<User?> Handle(ValidateUserQuery request, CancellationToken cancellationToken)
         {
             User user = await _userRepository.ValidateUserByCredentialAsync(request.Email);
-            if (user == null) return false;
+            if (user == null) return null;
             if (user.Profile.Password==request.Password)
             //if (_passwordHasher.VerifyHashedPassword(user, user.Profile.Password, request.Password) == PasswordVerificationResult.Success)
-                return true;
+                return user;
             else
-                return false;
+                return null;
         }
 
     }

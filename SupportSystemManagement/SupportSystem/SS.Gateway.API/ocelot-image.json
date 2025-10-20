@@ -5,8 +5,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 3000
+          "Host": "ss-react-ui",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/",
@@ -17,8 +17,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 3000
+          "Host": "ss-react-ui",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/static/{everything}",
@@ -29,8 +29,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 3000
+          "Host": "ss-react-ui",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/user/{everything}",
@@ -41,8 +41,8 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 3000
+          "Host": "ss-react-ui",
+          "Port": 80
         }
       ],
       "UpstreamPathTemplate": "/ticket/{everything}",
@@ -50,11 +50,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/auth/login",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44338
+          "Host": "ss-auth-server-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/auth/login",
@@ -62,11 +62,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/auth/logout",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44338
+          "Host": "ss-auth-server-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/auth/logout",
@@ -74,11 +74,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/user/validate",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/user/validate",
@@ -86,11 +86,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/user/saverefreshtoken",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/user/saverefreshtoken",
@@ -98,11 +98,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/user/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/user/{everything}",
@@ -114,11 +114,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/ticket/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/ticket/{everything}",
@@ -130,11 +130,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/ticketupdate/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-          "Host": "localhost",
-          "Port": 44335
+          "Host": "ss-web-api",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/api/ticketupdate/{everything}",

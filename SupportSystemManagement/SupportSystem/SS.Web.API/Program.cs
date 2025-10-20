@@ -18,7 +18,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactUICorsPolicy", policy =>
     {
-        policy.WithOrigins("http://ss-react-ui") // React UI origin
+        policy.WithOrigins("https://localhost:44345") // React UI origin
             .AllowAnyHeader()                      // Allow all headers
             .AllowAnyMethod()                      // Allow all HTTP methods (GET, POST, etc.)
             .AllowCredentials();                   // Allow cookies and credentials

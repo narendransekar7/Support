@@ -11,8 +11,12 @@ const UserList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:5145/api/user/getallusers'); // Update with your correct API endpoint
-		;debugger       
+        const response = await axios.get('https://localhost:44345/api/user/getallusers', {
+			headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${localStorage.getItem('token')}`
+			}
+		}); // Update with your correct API endpoint  
 	   setUsers(response.data); // Set fetched data to state
         setLoading(false);
       } catch (err) {

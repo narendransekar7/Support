@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 
@@ -11,9 +12,11 @@ using SS.Base.Infrastructure.Persistance.MSSQL;
 namespace SS.Base.Infrastructure.Migrations
 {
     [DbContext(typeof(MSSQLDbContext))]
-    partial class MSSQLDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250514135757_AddedRefreshTokenExpiresRelatedProperties")]
+    partial class AddedRefreshTokenExpiresRelatedProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,9 +33,6 @@ namespace SS.Base.Infrastructure.Migrations
 
                     b.Property<DateTime>("ExpiryDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsExpired")
-                        .HasColumnType("bit");
 
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("bit");
@@ -199,7 +199,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("e8157b38-5303-4998-936b-ba0bfdbe055a"),
+                            UserId = new Guid("a62ed1c5-473f-4979-b7cb-4f97bc42fb38"),
                             DisplayName = "Admin User",
                             FirstName = "Admin",
                             LastName = "User",
@@ -233,7 +233,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("e8157b38-5303-4998-936b-ba0bfdbe055a"),
+                            UserId = new Guid("a62ed1c5-473f-4979-b7cb-4f97bc42fb38"),
                             Country = "US",
                             Gender = "Male",
                             Password = "Admin@123",

@@ -39,7 +39,7 @@ const CreateTicketForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5145/api/ticket/create", formData, {
+      const response = await axios.post("https://localhost:44345/api/ticket/create", formData, {
         headers: {
           "Content-Type": "application/json",
 		   Authorization: `Bearer ${localStorage.getItem('token')}`
