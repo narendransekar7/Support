@@ -29,7 +29,7 @@ namespace SS.Base.Application.Commands.User.LogOut
             // Update IsRevoked and IsExpired
             if (refreshTokens != null) {
                 refreshTokens.IsRevoked = true;
-                refreshTokens.IsExpired = true;
+                //refreshTokens.IsExpired = true;
             }
             // Need to check whether it works after clik on the logout option from the react
 

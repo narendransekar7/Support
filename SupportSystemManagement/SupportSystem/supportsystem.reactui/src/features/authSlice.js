@@ -39,13 +39,23 @@ export const fetchUser = createAsyncThunk("auth/fetchUser", async (_, thunkAPI) 
   }
 });
 
-//// Logout action
-//export const logoutUser = createAsyncThunk("auth/logout", async () => {
-//  localStorage.removeItem("token"); // Remove token
-//  localStorage.removeItem("refreshToken");
-//  localStorage.removeItem("email");
+export const refreshAccessToken = createAsyncThunk("auth/refreshToken", async (_, thunkAPI) => {
+    try {
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (!refreshToken) throw new Error("No refresh token found");
 
-//});
+        const response = await axios.post(`${API_URL}/refresh-token`, { refreshToken });
+
+        localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.refreshToken);
+
+        return response.data.accessToken;
+    } catch (error) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        return thunkAPI.rejectWithValue("Session expired, please log in again.");
+    }
+});
 
 // ✅ Logout thunk that calls backend API
 export const logoutUser = createAsyncThunk("auth/logout", async (_, thunkAPI) => {

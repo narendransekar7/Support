@@ -46,6 +46,14 @@ namespace SS.Web.API.Controllers
                 return Unauthorized("Invalid credentials.");
             }
         }
+        
+            //RefreshAccessTokenCommand
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshAccessToken([FromBody] TokenRefreshCommand query)
+        {
+            await _mediator.Send(query);
+            return Ok("Token saved successfully");
+        }
 
         [HttpPost("saverefreshtoken")]
         public async Task<IActionResult> SaveRefreshToken([FromBody] LoginSuccessCommand query)
@@ -53,6 +61,7 @@ namespace SS.Web.API.Controllers
             await _mediator.Send(query);
             return Ok("Token saved successfully");
         }
+
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogOutCommand query)
         {

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 
@@ -83,6 +85,33 @@ namespace SS.Auth.Server.API.Controllers
             return Ok(new { message = "Logout successful." });
         }
 
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] LogoutModel refreshTokenDto)
+        {
+
+            var client = _httpClientFactory.CreateClient("WebAPI");
+            client.DefaultRequestHeaders.Add("X-Api-Key", "1234567890ABCDEF");
+
+            // Call API to refresh access and  refresh token
+            var response = await client.PostAsJsonAsync("/api/user/refresh-token", refreshTokenDto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Forward status + message from invalidate API
+                return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+            }
+
+            return Ok(new { accessToken = "", refreshToken = "" });
+            //return Ok(new { accessToken = newAccessToken, refreshToken = newRefreshToken });
+
+
+
+
+
+           
+        }
+
+
         private string GenerateJwtToken(string email,string userid,string role)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -106,6 +135,8 @@ namespace SS.Auth.Server.API.Controllers
         {
             return Guid.NewGuid().ToString(); // Use a more secure random generator for production
         }
+
+
 
     }
 
