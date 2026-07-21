@@ -22,12 +22,13 @@ API.interceptors.request.use(
 API.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !error.config._retry) {
+            error.config._retry = true;
             try {
-                await store.dispatch(refreshAccessToken());
+                await store.dispatch(refreshAccessToken()).unwrap();
                 const newToken = localStorage.getItem("token");
                 error.config.headers.Authorization = `Bearer ${newToken}`;
-                return axios(error.config); // Retry request with new token
+                return API(error.config); // Retry request with new token
             } catch {
                 store.dispatch({ type: "auth/logout" });
             }

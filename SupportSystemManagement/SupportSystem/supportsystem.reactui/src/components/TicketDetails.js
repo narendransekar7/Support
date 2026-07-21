@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from 'axios';
+import API from '../api/axios';
 import { useLoaderData } from "react-router-dom";
 
 const TicketDetails = () => {
@@ -48,12 +48,7 @@ const TicketDetails = () => {
 
 	try {
 		debugger;
-      const response = await axios.post('https://localhost:44345/api/ticketupdate/add', newUpdateContent, {
-        headers: {
-          'Content-Type': 'application/json'
-		  ,Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-      });
+      const response = await API.post('/ticketupdate/add', newUpdateContent);
 
       if (response.status === 200) {
         console.log('Ticket updated successfully', response.data);

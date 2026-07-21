@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUser } from "./features/authSlice";
+import API from "./api/axios";
 import MasterLayout from "./components/MasterLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from './components/Login';
@@ -32,20 +33,12 @@ const AuthenticatedApp = () => {
   */
   // Loader function to fetch ticket details
 const ticketLoader = async ({ params }) => {
-    const token = localStorage.getItem("token");
-    debugger;
-	const response = await fetch(`https://localhost:44345/api/ticket/${params.id}`, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${token}` // Add Bearer token
-      ,"Content-Type": "application/json"
-    }
-  });
-
-  if (!response.ok) {
+  try {
+    const response = await API.get(`/ticket/${params.id}`);
+    return response.data;
+  } catch (error) {
     throw new Response("Not Found", { status: 404 });
   }
-  return response.json();
 };
   
   

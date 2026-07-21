@@ -101,14 +101,16 @@ namespace SS.Auth.Server.API.Controllers
                 return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
             }
 
-            return Ok(new { accessToken = "", refreshToken = "" });
-            //return Ok(new { accessToken = newAccessToken, refreshToken = newRefreshToken });
+            var result = await response.Content.ReadFromJsonAsync<TokenRefreshResultDto>();
 
+            if (result == null)
+            {
+                return Unauthorized("Invalid or expired refresh token.");
+            }
 
+            var token = GenerateJwtToken(result.Email, result.UserId, result.Role);
 
-
-
-           
+            return Ok(new { token, refreshToken = result.NewRefreshToken });
         }
 
 
@@ -166,5 +168,15 @@ namespace SS.Auth.Server.API.Controllers
     {
         public string UserId { get; set; }
         public string RefreshToken { get; set; }
+    }
+
+    public class TokenRefreshResultDto
+    {
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; }
+        public string UserId { get; set; }
+        public string Email { get; set; }
+        public string Role { get; set; }
+        public Guid NewRefreshToken { get; set; }
     }
 }

@@ -47,12 +47,17 @@ namespace SS.Web.API.Controllers
             }
         }
         
-            //RefreshAccessTokenCommand
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshAccessToken([FromBody] TokenRefreshCommand query)
         {
-            await _mediator.Send(query);
-            return Ok("Token saved successfully");
+            var result = await _mediator.Send(query);
+
+            if (!result.Success)
+            {
+                return Unauthorized(result.ErrorMessage);
+            }
+
+            return Ok(result);
         }
 
         [HttpPost("saverefreshtoken")]
