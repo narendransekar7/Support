@@ -1,5 +1,5 @@
 import React, { useState, useEffect  } from "react";
-import axios from "axios";
+import API from "../api/axios";
 import {useSelector } from "react-redux";
 
 
@@ -39,12 +39,7 @@ const CreateTicketForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("https://localhost:44345/api/ticket/create", formData, {
-        headers: {
-          "Content-Type": "application/json",
-		   Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-      });
+      const response = await API.post("/ticket/create", formData);
 
       if (response.status === 200) {
         console.log("Ticket created successfully:", response.data);

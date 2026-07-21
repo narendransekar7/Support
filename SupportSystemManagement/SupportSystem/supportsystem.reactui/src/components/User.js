@@ -1,5 +1,5 @@
-import { useState, React } from "react"; 
-import axios from 'axios';
+import { useState, React } from "react";
+import API from '../api/axios';
 
 
 function User() {
@@ -24,12 +24,7 @@ function User() {
     // Send POST request to .NET Core Web API using Axios
     try {
 		debugger;
-      const response = await axios.post('https://localhost:44345/api/user/createuser', formData, {
-        headers: {
-          'Content-Type': 'application/json'
-		  ,Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-      });
+      const response = await API.post('/user/createuser', formData);
 
       if (response.status === 200) {
         console.log('User added successfully:', response.data);

@@ -42,14 +42,15 @@ export const fetchUser = createAsyncThunk("auth/fetchUser", async (_, thunkAPI) 
 export const refreshAccessToken = createAsyncThunk("auth/refreshToken", async (_, thunkAPI) => {
     try {
         const refreshToken = localStorage.getItem("refreshToken");
+        const userId = thunkAPI.getState().auth.userid;
         if (!refreshToken) throw new Error("No refresh token found");
 
-        const response = await axios.post(`${API_URL}/refresh-token`, { refreshToken });
+        const response = await axios.post(`${API_URL}/auth/refresh-token`, { userId, refreshToken });
 
-        localStorage.setItem("token", response.data.accessToken);
+        localStorage.setItem("token", response.data.token);
         localStorage.setItem("refreshToken", response.data.refreshToken);
 
-        return response.data.accessToken;
+        return response.data;
     } catch (error) {
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
@@ -135,6 +136,10 @@ const authSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
       })
       .addCase(fetchUser.fulfilled, (state, action) => {
 		  debugger;

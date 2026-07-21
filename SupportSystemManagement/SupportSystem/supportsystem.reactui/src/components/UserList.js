@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import API from '../api/axios';
 
 const UserList = () => {
   // State to store user data
@@ -11,12 +11,7 @@ const UserList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('https://localhost:44345/api/user/getallusers', {
-			headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${localStorage.getItem('token')}`
-			}
-		}); // Update with your correct API endpoint  
+        const response = await API.get('/user/getallusers'); // Update with your correct API endpoint
 	   setUsers(response.data); // Set fetched data to state
         setLoading(false);
       } catch (err) {
