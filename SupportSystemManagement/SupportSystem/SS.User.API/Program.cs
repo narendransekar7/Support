@@ -1,7 +1,7 @@
 using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using System;
-using SS.Web.API.Middlewares;
+using SS.User.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 

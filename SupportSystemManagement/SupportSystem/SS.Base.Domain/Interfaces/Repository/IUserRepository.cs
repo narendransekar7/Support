@@ -12,5 +12,6 @@ namespace SS.Base.Domain.Interfaces.Repository
         // Add methods specific to Users like UpdatePassowrd,ValidateUser. since other methods generic method are available in IGenericRepository and (GenericRepositoryAddAsync,GetByIdAsync,GetAllAsync)  
         Task<User> ValidateUserByCredentialAsync(string Email);
         Task<User?> GetUserByEmailAsync(string email);
+        Task<User?> GetNextAgentForAssignmentAsync();
     }
 }

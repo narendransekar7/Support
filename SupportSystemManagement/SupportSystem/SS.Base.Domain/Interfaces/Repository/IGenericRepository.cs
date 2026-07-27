@@ -11,5 +11,6 @@ namespace SS.Base.Domain.Interfaces.Repository
         Task AddAsync(T entity);
         Task<T?> GetByIdAsync(Guid id);
         Task<IEnumerable<T>> GetAllAsync();
+        Task RemoveAsync(T entity);
     }
 }

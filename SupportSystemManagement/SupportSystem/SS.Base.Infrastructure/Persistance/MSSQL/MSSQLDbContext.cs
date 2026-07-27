@@ -23,11 +23,17 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
         public DbSet<TicketLog> TicketLogs { get; set; }
         public DbSet<TicketUpdate> TicketUpdates { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<RoundRobinCursor> RoundRobinCursors { get; set; }
+        public DbSet<TicketCreationSagaState> TicketCreationSagaStates { get; set; }
         
         // Seeding method
         public static void Seed(ModelBuilder modelBuilder)
         {
-            Guid adminId = Guid.NewGuid();
+            // Fixed (not random) so the EF model is deterministic across builds —
+            // a random value here made every `dotnet ef migrations add` scaffold a
+            // spurious delete+reinsert of the seeded admin user.
+            Guid adminId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f");
             // Add initial data for User table
             modelBuilder.Entity<User>().HasData(
                 new User
@@ -72,10 +78,12 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 .WithOne(p => p.User)
                 .HasForeignKey<UserProfile>(p => p.UserId);
 
-                // Ticket Relationship
+                // Ticket Relationship — a ticket may be unassigned until the
+                // saga's Assign Engineer step runs, so this is optional.
                 entity.HasMany(u => u.Tickets)
                  .WithOne(t => t.User)
                  .HasForeignKey(t => t.AssignedTo)
+                 .IsRequired(false)
                  .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -105,7 +113,35 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                       .HasForeignKey(e => e.UpdatedBy)
                       .OnDelete(DeleteBehavior.Restrict);
             });
-        
+
+            // Configure Notification entity
+            modelBuilder.Entity<Notification>(entity =>
+            {
+                entity.HasKey(n => n.NotificationId);
+                entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
+                entity.Property(n => n.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            // Configure RoundRobinCursor entity (single row, Id always explicitly 1 — not an auto-increment key)
+            modelBuilder.Entity<RoundRobinCursor>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Id).ValueGeneratedNever();
+            });
+
+            // Configure TicketCreationSagaState entity (MassTransit saga persistence)
+            modelBuilder.Entity<TicketCreationSagaState>(entity =>
+            {
+                entity.HasKey(s => s.CorrelationId);
+                entity.Property(s => s.CurrentState).IsRequired().HasMaxLength(64);
+                entity.Property(s => s.Title).HasMaxLength(200);
+                entity.Property(s => s.Priority).HasMaxLength(20);
+                entity.Property(s => s.CreatedByEmail).HasMaxLength(100);
+                entity.Property(s => s.CreatedByName).HasMaxLength(100);
+                entity.Property(s => s.FailureReason).HasMaxLength(500);
+                entity.Property(s => s.RowVersion).IsRowVersion();
+            });
+
         }
 
         //previous

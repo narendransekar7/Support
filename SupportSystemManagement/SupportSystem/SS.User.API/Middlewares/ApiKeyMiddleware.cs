@@ -1,4 +1,4 @@
-﻿namespace SS.Web.API.Middlewares;
+﻿namespace SS.User.API.Middlewares;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;

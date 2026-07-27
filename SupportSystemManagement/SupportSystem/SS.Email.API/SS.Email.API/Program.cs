@@ -1,5 +1,7 @@
 using Azure.Messaging.ServiceBus;
+using MassTransit;
 using SS.Email.API;
+using SS.Email.API.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +55,26 @@ builder.Services.AddSingleton<SS.Email.API.AzureServiceBusQueueReceiver>(sp =>
     string connectionString = builder.Configuration["AzureServiceBus:ConnectionString"];
     string queueName = builder.Configuration["AzureServiceBus:QueueName"];
     return new SS.Email.API.AzureServiceBusQueueReceiver(serviceBusClient,connectionString, queueName, emailService);
+});
+
+// Ticket-creation email consumers (RabbitMQ) — additive alongside the existing
+// Azure Service Bus receiver above, which handles the user-created email flow.
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<TicketCreatedEmailConsumer>();
+    x.AddConsumer<TicketCreationFailedEmailConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
+        cfg.Host(rabbitMqConfig["Host"], rabbitMqConfig["VirtualHost"], h =>
+        {
+            h.Username(rabbitMqConfig["Username"]);
+            h.Password(rabbitMqConfig["Password"]);
+        });
+
+        cfg.ConfigureEndpoints(context);
+    });
 });
 
 var app = builder.Build();

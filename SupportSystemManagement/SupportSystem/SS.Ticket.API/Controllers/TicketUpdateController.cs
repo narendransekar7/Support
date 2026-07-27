@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SS.Base.Application.Commands;
 
-namespace SS.Web.API.Controllers
+namespace SS.Ticket.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

@@ -9,7 +9,7 @@ using SS.Base.Domain.Dto;
 using SS.Base.Domain.Entities;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
-namespace SS.Web.API.Controllers
+namespace SS.User.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

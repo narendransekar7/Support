@@ -8,7 +8,7 @@ public class TicketDto
     public string Priority { get; set; }
     public string Visibility { get; set; }
     public Guid CreatedBy { get; set; }
-    public Guid AssignedTo { get; set; }
+    public Guid? AssignedTo { get; set; }
 
     public List<TicketUpdateDto> Updates { get; set; }
 }
