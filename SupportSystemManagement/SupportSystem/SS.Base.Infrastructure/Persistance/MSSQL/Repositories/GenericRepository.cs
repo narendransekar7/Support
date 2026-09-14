@@ -31,5 +31,11 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
         {
             return await _context.Set<T>().ToListAsync();
         }
+
+        public Task RemoveAsync(T entity)
+        {
+            _context.Set<T>().Remove(entity);
+            return Task.CompletedTask;
+        }
     }
 }

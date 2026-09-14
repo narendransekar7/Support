@@ -14,8 +14,8 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
         public MSSQLDbContext CreateDbContext(string[] args)
         {
          
-            // Relative path to SS.Web.API
-            string relativePath = @"..\SS.Web.API";
+            // Relative path to SS.User.API
+            string relativePath = @"..\SS.User.API";
 
             // Combine base directory with relative path
             string fullPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), relativePath));

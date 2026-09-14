@@ -14,7 +14,6 @@ const CreateTicketForm = () => {
     Priority: "Medium",
     Visibility: "Public",
     CreatedBy: auth.userid,
-    AssignedTo: "C7826BAD-4B94-4A03-B068-D92B17234C65",
   });
 
   const handleChange = (e) => {

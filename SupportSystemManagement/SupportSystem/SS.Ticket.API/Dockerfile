@@ -27,4 +27,4 @@ COPY --from=build /app/publish .
 EXPOSE 80
 
 # Define the entry point to run the application
-ENTRYPOINT ["dotnet", "SS.Web.API.dll"]
+ENTRYPOINT ["dotnet", "SS.Ticket.API.dll"]

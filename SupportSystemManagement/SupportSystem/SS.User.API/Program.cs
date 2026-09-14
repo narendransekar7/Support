@@ -1,7 +1,8 @@
+using MassTransit;
 using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using System;
-using SS.Web.API.Middlewares;
+using SS.User.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +33,24 @@ builder.Services.AddApplicationServices(builder.Configuration);
 // Added the extension method in the infrastructure layer for SQL Server DB context
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
+// Bus-only MassTransit registration (no consumers here) — SS.Base.Application's
+// MediatR handler scan registers CreateTicketHandler in every host that calls
+// AddApplicationServices, and it depends on IPublishEndpoint. This host doesn't
+// consume anything, it just needs the bus present so that dependency resolves.
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
+        cfg.Host(rabbitMqConfig["Host"], rabbitMqConfig["VirtualHost"], h =>
+        {
+            h.Username(rabbitMqConfig["Username"]);
+            h.Password(rabbitMqConfig["Password"]);
+        });
 
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 var app = builder.Build();
 

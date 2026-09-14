@@ -5,7 +5,7 @@ using SS.Base.Application.Queries;
 using SS.Base.Domain.Entities;
 using SS.Base.Domain.Dto;
 
-namespace SS.Web.API.Controllers
+namespace SS.Ticket.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

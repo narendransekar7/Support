@@ -17,10 +17,40 @@ namespace SS.Base.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("SS.Base.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("NotificationId");
+
+                    b.ToTable("Notifications");
+                });
 
             modelBuilder.Entity("SS.Base.Domain.Entities.RefreshToken", b =>
                 {
@@ -49,13 +79,26 @@ namespace SS.Base.Infrastructure.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("SS.Base.Domain.Entities.RoundRobinCursor", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("LastAssignedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RoundRobinCursors");
+                });
+
             modelBuilder.Entity("SS.Base.Domain.Entities.Ticket", b =>
                 {
                     b.Property<Guid>("TicketId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("AssignedTo")
+                    b.Property<Guid?>("AssignedTo")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -70,10 +113,10 @@ namespace SS.Base.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("ResolutionDueDate")
+                    b.Property<DateTime?>("ResolutionDueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("ResponseDueDate")
+                    b.Property<DateTime?>("ResponseDueDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
@@ -98,6 +141,51 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasIndex("AssignedTo");
 
                     b.ToTable("Tickets");
+                });
+
+            modelBuilder.Entity("SS.Base.Domain.Entities.TicketCreationSagaState", b =>
+                {
+                    b.Property<Guid>("CorrelationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedByEmail")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CurrentState")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Priority")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("CorrelationId");
+
+                    b.ToTable("TicketCreationSagaStates");
                 });
 
             modelBuilder.Entity("SS.Base.Domain.Entities.TicketLog", b =>
@@ -199,7 +287,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("e8157b38-5303-4998-936b-ba0bfdbe055a"),
+                            UserId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f"),
                             DisplayName = "Admin User",
                             FirstName = "Admin",
                             LastName = "User",
@@ -233,7 +321,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("e8157b38-5303-4998-936b-ba0bfdbe055a"),
+                            UserId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f"),
                             Country = "US",
                             Gender = "Male",
                             Password = "Admin@123",
@@ -246,8 +334,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasOne("SS.Base.Domain.Entities.User", "User")
                         .WithMany("Tickets")
                         .HasForeignKey("AssignedTo")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });

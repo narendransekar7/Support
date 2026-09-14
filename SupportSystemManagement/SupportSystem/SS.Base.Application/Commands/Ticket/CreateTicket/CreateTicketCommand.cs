@@ -14,8 +14,6 @@ namespace SS.Base.Application.Commands
         public string Visibility { get; set; }
         public Guid CreatedBy { get; set; }
 
-        public Guid AssignedTo { get; set; }
-
         public string Content { get; set; }
     }
 }

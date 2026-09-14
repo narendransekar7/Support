@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SS.Web.API", "SS.Web.API.csproj", "{3F26678B-395F-4E0F-BCBB-EEFED56CC7CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SS.User.API", "SS.User.API.csproj", "{3F26678B-395F-4E0F-BCBB-EEFED56CC7CD}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SS.Base.Domain", "..\SS.Base.Domain\SS.Base.Domain.csproj", "{D2A71A33-D820-4F94-987C-F08822701425}"
 EndProject
