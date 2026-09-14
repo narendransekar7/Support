@@ -3,8 +3,10 @@ import axios from "axios";
 import store from "../app/store";
 import { refreshAccessToken } from "../features/authSlice";
 
+const gatewayUrl = process.env.REACT_APP_GATEWAY_URL || "https://localhost:44345";
+
 const API = axios.create({
-    baseURL: "https://localhost:44345/api",
+    baseURL: `${gatewayUrl}/api`,
 });
 
 API.interceptors.request.use(

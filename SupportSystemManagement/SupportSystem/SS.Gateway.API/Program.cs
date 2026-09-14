@@ -18,7 +18,10 @@ string baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? "https://local
 builder.Configuration["BaseUrl"] = baseUrl;
 Console.WriteLine($"Resolved BaseUrl: {baseUrl}");
 
-builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true).AddEnvironmentVariables();
+// In Docker, downstream services are reached by container name over plain HTTP instead of
+// localhost + dev-cert HTTPS ports, so a separate routing table is used for that environment.
+var ocelotFile = builder.Environment.IsEnvironment("Docker") ? "ocelot.Docker.json" : "ocelot.json";
+builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true).AddEnvironmentVariables();
 builder.Services.AddOcelot(builder.Configuration);
 
 // JWT Authentication using key which need to be check and removed in futher to access web api with out using this technique

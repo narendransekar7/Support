@@ -1,47 +1,106 @@
-version: "3.9"
 services:
-  gateway:
-    image: narendransekar/ss-gateway-api:latest
-    container_name: gateway
+  rabbitmq:
+    image: rabbitmq:3-management  # Includes management UI
+    container_name: rabbitmq
+    hostname: rabbitmq
     ports:
-      - "3000:80" # Maps port 80 on the host to port 80 on the container
+      - "5672:5672"   # RabbitMQ connection port
+      - "15672:15672" # Management UI
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - ss-network
+
+  ss-auth-server-api:
+    build:
+      context: ./SS.Auth.Server.API
+      dockerfile: Dockerfile
+    container_name: ss-auth-server-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - UserApi__BaseUrl=http://ss-user-api:8080
+    ports:
+      - "5223:8080"
     depends_on:
-      - webapi
-      - authserver
-      - reactui
+      - ss-user-api
     networks:
-      - supportsystem-network
+      - ss-network
 
-  webapi:
-    image: narendransekar/ss-web-api:latest
-    container_name: webapi
-    ports:
-      - "5001:80" # Maps port 5001 on the host to port 80 on the container
+  ss-user-api:
+    build:
+      context: .
+      dockerfile: SS.User.API/Dockerfile
+    container_name: ss-user-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-    networks:
-      - supportsystem-network
-
-  authserver:
-    image: narendransekar/ss-auth-server-api:latest
-    container_name: authserver
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__VirtualHost=/
+      - RabbitMq__Username=guest
+      - RabbitMq__Password=guest
     ports:
-      - "5002:80" # Maps port 5002 on the host to port 80 on the container
+      - "5335:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - rabbitmq
+    networks:
+      - ss-network
+
+  ss-ticket-api:
+    build:
+      context: .
+      dockerfile: SS.Ticket.API/Dockerfile
+    container_name: ss-ticket-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-    networks:
-      - supportsystem-network
-
-  reactui:
-    image: narendransekar/ss-react-ui:latest
-    container_name: reactui
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__VirtualHost=/
+      - RabbitMq__Username=guest
+      - RabbitMq__Password=guest
     ports:
-      - "80:80" # Maps port 3000 on the host to port 80 on the container
+      - "5336:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - rabbitmq
     networks:
-      - supportsystem-network
+      - ss-network
+
+  ss-gateway-api:
+    build:
+      context: ./SS.Gateway.API
+      dockerfile: Dockerfile
+    container_name: ss-gateway-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker # selects ocelot.Docker.json (container hostnames, plain HTTP)
+      - BaseUrl=http://ss-gateway-api:8080
+    ports:
+      - "5145:8080"
+    depends_on:
+      - ss-auth-server-api
+      - ss-user-api
+      - ss-ticket-api
+    networks:
+      - ss-network
+
+  ss-react-ui:
+    build:
+      context: ./supportsystem.reactui
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_GATEWAY_URL: ${REACT_APP_GATEWAY_URL:-http://localhost:5145}
+    container_name: ss-react-ui
+    environment:
+      - REACT_APP_GATEWAY_URL=${REACT_APP_GATEWAY_URL:-http://localhost:5145}
+    ports:
+      - "3000:80"
+    depends_on:
+      - ss-gateway-api
+    networks:
+      - ss-network
 
 networks:
-  supportsystem-network:
-    driver: bridge
+  ss-network:
