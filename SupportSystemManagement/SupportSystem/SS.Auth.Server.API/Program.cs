@@ -8,9 +8,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Added to the
+var userApiBaseUrl = builder.Configuration["UserApi:BaseUrl"] ?? "https://localhost:44335";
 builder.Services.AddHttpClient("WebAPI", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:44335"); // Adjust to the User API's base URL
+    client.BaseAddress = new Uri(userApiBaseUrl);
 });
 
 
