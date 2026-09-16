@@ -1,10 +1,9 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\",
+  "WorkspaceRootPath": "D:\\Projects\\afterwipro\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{5EF32DBC-804E-42B4-B277-810E61222F62}|SS.Base.Application.csproj|d:\\projects\\dotnet8\\support\\supportsystemmanagement\\supportsystem\\ss.base.application\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{5EF32DBC-804E-42B4-B277-810E61222F62}|SS.Base.Application.csproj|solutionrelative:class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -21,13 +20,11 @@
               "DocumentIndex": 0,
               "Title": "Class1.cs",
               "DocumentMoniker": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\Class1.cs",
-              "RelativeDocumentMoniker": "Class1.cs",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\Class1.cs",
               "ToolTip": "D:\\Projects\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\Class1.cs",
-              "RelativeToolTip": "Class1.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\DotNet8\\Support\\SupportSystemManagement\\SupportSystem\\SS.Base.Application\\Class1.cs",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-11-21T12:57:44.141Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-11-21T12:57:44.141Z"
             }
           ]
         }
