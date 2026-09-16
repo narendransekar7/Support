@@ -3,7 +3,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 // API Base URL
-const API_URL = "https://localhost:44345/api";
+const API_URL = `${process.env.REACT_APP_GATEWAY_URL || "https://localhost:44345"}/api`;
 
 // Async thunk for login
 export const loginUser = createAsyncThunk("auth/login", async (credentials, thunkAPI) => {
