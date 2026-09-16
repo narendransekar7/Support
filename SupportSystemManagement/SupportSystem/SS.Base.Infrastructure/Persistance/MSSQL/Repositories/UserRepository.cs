@@ -35,7 +35,7 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
         public async Task<User?> GetNextAgentForAssignmentAsync()
         {
             var agents = await _context.Users
-                .Where(u => u.Role == Role.Agent)
+                //.Where(u => u.Role == Role.Agent)
                 .OrderBy(u => u.UserId)
                 .ToListAsync();
 
