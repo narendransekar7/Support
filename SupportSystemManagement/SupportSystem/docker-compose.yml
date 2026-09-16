@@ -34,7 +34,7 @@ services:
  
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=learningdatanaren.database.windows.net;Database=SupportSystem;User Id=narendran;Password=Admin@123;TrustServerCertificate=True;
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
@@ -56,7 +56,7 @@ services:
  
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=host.docker.internal\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=learningdatanaren.database.windows.net;Database=SupportSystem;User Id=narendran;Password=Admin@123;TrustServerCertificate=True;
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
