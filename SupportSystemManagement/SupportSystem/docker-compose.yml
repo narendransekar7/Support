@@ -39,6 +39,7 @@ services:
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
+      - Cors__ReactUIOrigin=http://localhost:5145
     ports:
       - "5335:8080"
     extra_hosts:
@@ -60,6 +61,7 @@ services:
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
+      - Cors__ReactUIOrigin=http://localhost:5145
     ports:
       - "5336:8080"
     extra_hosts:
