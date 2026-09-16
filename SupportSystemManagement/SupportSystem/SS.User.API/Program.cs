@@ -15,11 +15,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure CORS
+// React UI origin: https://localhost:44345 for local Visual Studio dev (Gateway's sslPort),
+// http://localhost:5145 in Docker (Gateway container port 8080 mapped by docker-compose) —
+// overridden there via Cors__ReactUIOrigin.
+var reactUiOrigin = builder.Configuration["Cors:ReactUIOrigin"] ?? "https://localhost:44345";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactUICorsPolicy", policy =>
     {
-        policy.WithOrigins("https://localhost:44345") // React UI origin
+        policy.WithOrigins(reactUiOrigin)
             .AllowAnyHeader()                      // Allow all headers
             .AllowAnyMethod()                      // Allow all HTTP methods (GET, POST, etc.)
             .AllowCredentials();                   // Allow cookies and credentials
