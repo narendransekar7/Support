@@ -1,7 +1,7 @@
 services:
   rabbitmq:
     image: rabbitmq:3-management  # Includes management UI
-    container_name: rabbitmq
+ 
     hostname: rabbitmq
     ports:
       - "5672:5672"   # RabbitMQ connection port
@@ -16,7 +16,7 @@ services:
     build:
       context: ./SS.Auth.Server.API
       dockerfile: Dockerfile
-    container_name: ss-auth-server-api
+   
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - UserApi__BaseUrl=http://ss-user-api:8080
@@ -31,7 +31,7 @@ services:
     build:
       context: .
       dockerfile: SS.User.API/Dockerfile
-    container_name: ss-user-api
+ 
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=host.docker.internal\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;
@@ -52,7 +52,7 @@ services:
     build:
       context: .
       dockerfile: SS.Ticket.API/Dockerfile
-    container_name: ss-ticket-api
+ 
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=host.docker.internal\SQLEXPRESS;Database=SupportSystem;User Id=testnaren;Password=Naren@123;TrustServerCertificate=True;
@@ -69,11 +69,29 @@ services:
     networks:
       - ss-network
 
+  ss-email-api:
+    build:
+      context: .
+      dockerfile: SS.Email.API/SS.Email.API/Dockerfile
+
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - RabbitMq__Host=rabbitmq
+      - RabbitMq__VirtualHost=/
+      - RabbitMq__Username=guest
+      - RabbitMq__Password=guest
+    ports:
+      - "5337:8080"
+    depends_on:
+      - rabbitmq
+    networks:
+      - ss-network
+
   ss-gateway-api:
     build:
       context: ./SS.Gateway.API
       dockerfile: Dockerfile
-    container_name: ss-gateway-api
+    
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker # selects ocelot.Docker.json (container hostnames, plain HTTP)
       - BaseUrl=http://ss-gateway-api:8080
@@ -92,7 +110,7 @@ services:
       dockerfile: Dockerfile
       args:
         REACT_APP_GATEWAY_URL: ${REACT_APP_GATEWAY_URL:-http://localhost:5145}
-    container_name: ss-react-ui
+  
     environment:
       - REACT_APP_GATEWAY_URL=${REACT_APP_GATEWAY_URL:-http://localhost:5145}
     ports:
