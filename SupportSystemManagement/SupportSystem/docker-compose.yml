@@ -13,6 +13,7 @@ services:
       - ss-network
 
   ss-auth-server-api:
+    image: narendransekar7/ss-auth-server-api:latest
     build:
       context: ./SS.Auth.Server.API
       dockerfile: Dockerfile
@@ -28,6 +29,7 @@ services:
       - ss-network
 
   ss-user-api:
+    image: narendransekar7/ss-user-api:latest
     build:
       context: .
       dockerfile: SS.User.API/Dockerfile
@@ -50,6 +52,7 @@ services:
       - ss-network
 
   ss-ticket-api:
+    image: narendransekar7/ss-ticket-api:latest
     build:
       context: .
       dockerfile: SS.Ticket.API/Dockerfile
@@ -72,6 +75,7 @@ services:
       - ss-network
 
   ss-email-api:
+    image: narendransekar7/ss-email-api:latest
     build:
       context: .
       dockerfile: SS.Email.API/SS.Email.API/Dockerfile
@@ -90,6 +94,7 @@ services:
       - ss-network
 
   ss-gateway-api:
+    image: narendransekar7/ss-gateway-api:latest
     build:
       context: ./SS.Gateway.API
       dockerfile: Dockerfile
@@ -107,6 +112,7 @@ services:
       - ss-network
 
   ss-react-ui:
+    image: narendransekar7/ss-react-ui:latest
     build:
       context: ./supportsystem.reactui
       dockerfile: Dockerfile
