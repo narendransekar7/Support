@@ -13,8 +13,9 @@ metadata:
 data:
   RABBITMQ_HOST: "rabbitmq"
   RABBITMQ_VHOST: "/"
-  CORS_REACT_UI_ORIGIN: "http://localhost:5145"
-  REACT_APP_GATEWAY_URL: "http://localhost:5145"
+  # The browser only talks to the ingress (same origin), so no CORS/gateway URL is needed for the UI.
+  # Set to the ingress URL if you also want to call the APIs from another origin.
+  CORS_REACT_UI_ORIGIN: "http://localhost:3000"
   AUTH_USER_API_BASE_URL: "http://ss-user-api:8080"
   GATEWAY_BASE_URL: "http://ss-gateway-api:8080"
 
@@ -30,8 +31,8 @@ metadata:
 type: Opaque
 stringData:
   DB_CONNECTION_STRING: "REPLACE_ME"
-  RABBITMQ_USERNAME: "REPLACE_ME"
-  RABBITMQ_PASSWORD: "REPLACE_ME"
+  RABBITMQ_USERNAME: "guest"
+  RABBITMQ_PASSWORD: "guest"
 
 ---
 # ---------------------------------------------------------------------------
@@ -339,7 +340,7 @@ spec:
 
 ---
 # ---------------------------------------------------------------------------
-# ss-gateway-api (entry point - exposed outside the cluster, mirrors "5145:8080")
+# ss-gateway-api (reached from outside only through the ingress at /api)
 # ---------------------------------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
@@ -377,16 +378,15 @@ metadata:
   name: ss-gateway-api
   namespace: supportsystem
 spec:
-  type: LoadBalancer
   selector:
     app: ss-gateway-api
   ports:
-    - port: 5145
+    - port: 8080
       targetPort: 8080
 
 ---
 # ---------------------------------------------------------------------------
-# ss-react-ui (exposed outside the cluster, mirrors "3000:80")
+# ss-react-ui (reached from outside only through the ingress at /)
 # ---------------------------------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
@@ -409,12 +409,6 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
-          env:
-            - name: REACT_APP_GATEWAY_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: supportsystem-config
-                  key: REACT_APP_GATEWAY_URL
 ---
 apiVersion: v1
 kind: Service
@@ -422,9 +416,38 @@ metadata:
   name: ss-react-ui
   namespace: supportsystem
 spec:
-  type: LoadBalancer
   selector:
     app: ss-react-ui
   ports:
-    - port: 3000
+    - port: 80
       targetPort: 80
+
+---
+# ---------------------------------------------------------------------------
+# Ingress (single public entry point via the ingress-nginx controller's one load balancer)
+#   /api -> ss-gateway-api, everything else -> ss-react-ui
+# ---------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: supportsystem-ingress
+  namespace: supportsystem
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ss-gateway-api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ss-react-ui
+                port:
+                  number: 80

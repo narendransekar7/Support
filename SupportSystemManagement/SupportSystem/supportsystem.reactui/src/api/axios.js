@@ -3,7 +3,8 @@ import axios from "axios";
 import store from "../app/store";
 import { refreshAccessToken } from "../features/authSlice";
 
-const gatewayUrl = process.env.REACT_APP_GATEWAY_URL || "https://localhost:44345";
+// Relative by default: the dev proxy (setupProxy.js), nginx or the ingress forwards /api to the gateway.
+const gatewayUrl = process.env.REACT_APP_GATEWAY_URL || "";
 
 const API = axios.create({
     baseURL: `${gatewayUrl}/api`,

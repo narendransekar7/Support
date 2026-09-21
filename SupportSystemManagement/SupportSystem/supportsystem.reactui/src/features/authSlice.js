@@ -3,7 +3,8 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 // API Base URL
-const API_URL = `${process.env.REACT_APP_GATEWAY_URL || "https://localhost:44345"}/api`;
+// Relative by default: the dev proxy (setupProxy.js), nginx or the ingress forwards /api to the gateway.
+const API_URL = `${process.env.REACT_APP_GATEWAY_URL || ""}/api`;
 
 // Async thunk for login
 export const loginUser = createAsyncThunk("auth/login", async (credentials, thunkAPI) => {
