@@ -1,0 +1,430 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: supportsystem
+
+---
+# Non-secret config shared across services (mirrors the plain env values in docker-compose.yml)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supportsystem-config
+  namespace: supportsystem
+data:
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_VHOST: "/"
+  CORS_REACT_UI_ORIGIN: "http://localhost:5145"
+  REACT_APP_GATEWAY_URL: "http://localhost:5145"
+  AUTH_USER_API_BASE_URL: "http://ss-user-api:8080"
+  GATEWAY_BASE_URL: "http://ss-gateway-api:8080"
+
+---
+# Sensitive values - placeholders only, no credentials are committed. Set real values (same ones
+# docker-compose.yml uses) before applying, e.g. via `kubectl create secret` (see README.md) or
+# by editing these locally without committing them.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: supportsystem-secrets
+  namespace: supportsystem
+type: Opaque
+stringData:
+  DB_CONNECTION_STRING: "REPLACE_ME"
+  RABBITMQ_USERNAME: "REPLACE_ME"
+  RABBITMQ_PASSWORD: "REPLACE_ME"
+
+---
+# ---------------------------------------------------------------------------
+# rabbitmq
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          ports:
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: supportsystem
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+
+---
+# ---------------------------------------------------------------------------
+# ss-auth-server-api
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-auth-server-api
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ss-auth-server-api
+  template:
+    metadata:
+      labels:
+        app: ss-auth-server-api
+    spec:
+      containers:
+        - name: ss-auth-server-api
+          image: narendransekar/ss-auth-server-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: UserApi__BaseUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: AUTH_USER_API_BASE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-auth-server-api
+  namespace: supportsystem
+spec:
+  selector:
+    app: ss-auth-server-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-user-api
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-user-api
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ss-user-api
+  template:
+    metadata:
+      labels:
+        app: ss-user-api
+    spec:
+      containers:
+        - name: ss-user-api
+          image: narendransekar/ss-user-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: DB_CONNECTION_STRING
+            - name: RabbitMq__Host
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_HOST
+            - name: RabbitMq__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_VHOST
+            - name: RabbitMq__Username
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: Cors__ReactUIOrigin
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: CORS_REACT_UI_ORIGIN
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-user-api
+  namespace: supportsystem
+spec:
+  selector:
+    app: ss-user-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-ticket-api
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-ticket-api
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ss-ticket-api
+  template:
+    metadata:
+      labels:
+        app: ss-ticket-api
+    spec:
+      containers:
+        - name: ss-ticket-api
+          image: narendransekar/ss-ticket-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: DB_CONNECTION_STRING
+            - name: RabbitMq__Host
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_HOST
+            - name: RabbitMq__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_VHOST
+            - name: RabbitMq__Username
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: Cors__ReactUIOrigin
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: CORS_REACT_UI_ORIGIN
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-ticket-api
+  namespace: supportsystem
+spec:
+  selector:
+    app: ss-ticket-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-email-api
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-email-api
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ss-email-api
+  template:
+    metadata:
+      labels:
+        app: ss-email-api
+    spec:
+      containers:
+        - name: ss-email-api
+          image: narendransekar/ss-email-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: RabbitMq__Host
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_HOST
+            - name: RabbitMq__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_VHOST
+            - name: RabbitMq__Username
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-email-api
+  namespace: supportsystem
+spec:
+  selector:
+    app: ss-email-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-gateway-api (entry point - exposed outside the cluster, mirrors "5145:8080")
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-gateway-api
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ss-gateway-api
+  template:
+    metadata:
+      labels:
+        app: ss-gateway-api
+    spec:
+      containers:
+        - name: ss-gateway-api
+          image: narendransekar/ss-gateway-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Docker" # selects ocelot.Docker.json, which already routes by these Service names
+            - name: BaseUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: GATEWAY_BASE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-gateway-api
+  namespace: supportsystem
+spec:
+  type: LoadBalancer
+  selector:
+    app: ss-gateway-api
+  ports:
+    - port: 5145
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-react-ui (exposed outside the cluster, mirrors "3000:80")
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-react-ui
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ss-react-ui
+  template:
+    metadata:
+      labels:
+        app: ss-react-ui
+    spec:
+      containers:
+        - name: ss-react-ui
+          image: narendransekar/ss-react-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: REACT_APP_GATEWAY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: REACT_APP_GATEWAY_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-react-ui
+  namespace: supportsystem
+spec:
+  type: LoadBalancer
+  selector:
+    app: ss-react-ui
+  ports:
+    - port: 3000
+      targetPort: 80
