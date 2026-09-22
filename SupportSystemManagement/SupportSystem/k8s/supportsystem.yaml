@@ -406,7 +406,8 @@ spec:
       containers:
         - name: ss-react-ui
           image: narendransekar/ss-react-ui:latest
-          imagePullPolicy: IfNotPresent
+          # Always: a :latest tag with IfNotPresent lets a node keep a stale cached image forever.
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
 ---
