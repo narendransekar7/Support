@@ -36,31 +36,14 @@ stringData:
 
 ---
 # ---------------------------------------------------------------------------
-# rabbitmq (single broker, persistent)
+# rabbitmq
 # ---------------------------------------------------------------------------
-# Zone-redundant disk: the nodes are spread over availability zones and a normal (LRS) Azure disk
-# can only attach in its own zone, so rabbitmq could not be rescheduled if that zone's node died.
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: supportsystem-zrs
-provisioner: disk.csi.azure.com
-parameters:
-  skuName: StandardSSD_ZRS
-reclaimPolicy: Retain          # keep the broker's data even if the PVC is deleted by mistake
-volumeBindingMode: WaitForFirstConsumer
-allowVolumeExpansion: true
----
-# StatefulSet (not a Deployment) so the pod keeps a stable hostname (rabbitmq-0) - RabbitMQ names
-# its node and data directory after the hostname, so a new name would not find the old queues.
-# Durable queues + persistent messages (MassTransit's defaults) survive a pod restart on this volume.
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: rabbitmq
   namespace: supportsystem
 spec:
-  serviceName: rabbitmq
   replicas: 1
   selector:
     matchLabels:
@@ -70,9 +53,6 @@ spec:
       labels:
         app: rabbitmq
     spec:
-      terminationGracePeriodSeconds: 60   # let the broker flush to disk before it is killed
-      securityContext:
-        fsGroup: 999                      # rabbitmq user in the image, so it can write the volume
       containers:
         - name: rabbitmq
           image: rabbitmq:3-management
@@ -99,34 +79,6 @@ spec:
                 secretKeyRef:
                   name: supportsystem-secrets
                   key: RABBITMQ_PASSWORD
-          volumeMounts:
-            - name: data
-              mountPath: /var/lib/rabbitmq
-          startupProbe:          # first boot on a fresh volume can take a while
-            exec:
-              command: ["rabbitmq-diagnostics", "-q", "ping"]
-            periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 30
-          livenessProbe:         # restart a broker whose Erlang node stopped responding
-            exec:
-              command: ["rabbitmq-diagnostics", "-q", "ping"]
-            periodSeconds: 30
-            timeoutSeconds: 15
-            failureThreshold: 3
-          readinessProbe:        # accepting AMQP connections
-            tcpSocket:
-              port: 5672
-            periodSeconds: 10
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: supportsystem-zrs
-        resources:
-          requests:
-            storage: 5Gi
 ---
 apiVersion: v1
 kind: Service

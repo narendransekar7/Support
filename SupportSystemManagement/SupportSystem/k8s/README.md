@@ -108,22 +108,25 @@ kubectl get hpa -n supportsystem -w
 | Container crashes | kubelet restarts it (`restartPolicy: Always`) |
 | API hangs (process up, not responding) | liveness probe on `/health/live` -> container restarted |
 | Pod not ready / lost its RabbitMQ connection | readiness probe on `/health/ready` -> removed from the Service until it recovers |
-| RabbitMQ Erlang node unresponsive | liveness probe `rabbitmq-diagnostics -q ping` -> container restarted |
-| RabbitMQ pod restarted or rescheduled | StatefulSet keeps the hostname (`rabbitmq-0`) and its persistent volume, so durable queues and persistent messages survive |
-| Node or zone goes down | Deployments/StatefulSet recreate pods elsewhere; `topologySpreadConstraints` keep replicas on different nodes/zones so the other copy keeps serving; the RabbitMQ disk is zone-redundant (ZRS) so it can re-attach in the other zone |
-| AKS upgrade / node drain / scale-in | `PodDisruptionBudget`s (`minAvailable: 1`) stop all replicas of a service being evicted at once |
+| Node or zone goes down | Deployments recreate pods elsewhere; `topologySpreadConstraints` keep replicas on different nodes/zones so the other copy keeps serving meanwhile |
+| Cluster upgrade / node drain / scale-in | `PodDisruptionBudget`s (`minAvailable: 1`) stop all replicas of a service being evicted at once |
 
-Notes:
-- **One-time migration** - rabbitmq changed from a Deployment to a StatefulSet. After applying,
-  delete the old Deployment, otherwise the `rabbitmq` Service load-balances between two separate brokers:
-  ```bash
-  kubectl -n supportsystem delete deployment rabbitmq
-  ```
-  Messages on the old (non-persistent) broker are lost at this point, so do it when the queues are empty.
-- The `supportsystem-zrs` StorageClass uses `StandardSSD_ZRS` disks. If your region doesn't support
-  ZRS managed disks, change `skuName` to `StandardSSD_LRS` (the broker then can't move across zones).
-  It uses `reclaimPolicy: Retain`, so the Azure disk is kept even after the PVC is deleted - remove it
-  manually in the portal if you tear the environment down.
-- RabbitMQ is still a single broker: while it restarts (~30-60s), publishers get errors and API pods
-  go not-ready. For zero-downtime messaging, run a 3-node cluster with quorum queues (e.g. the
+### Known gap: RabbitMQ is not persistent (future work)
+
+`rabbitmq` is still a single-replica Deployment with no volume and no probes. Kubernetes recreates
+it if it crashes, but **any messages still in its queues are lost on restart**, and while it's down
+publishing fails and the API pods go not-ready. Planned fix, deliberately deferred for now:
+
+- Run it as a **StatefulSet** (stable hostname `rabbitmq-0` - RabbitMQ names its node and data
+  directory after the hostname, so a Deployment + volume would not find its old queues) with a
+  `volumeClaimTemplates` volume mounted at `/var/lib/rabbitmq`, `fsGroup: 999` and a 60s
+  `terminationGracePeriodSeconds`.
+- Probes: `rabbitmq-diagnostics -q ping` for startup/liveness, TCP 5672 for readiness.
+- Storage is cluster-specific. On AKS with nodes in several zones use a zone-redundant disk
+  (`disk.csi.azure.com`, `skuName: StandardSSD_ZRS`) - the disk is created in the cluster's `MC_...`
+  node resource group and billed as a managed disk (5Gi rounds up to the 8 GiB E2 tier). With
+  `reclaimPolicy: Retain` it keeps billing after the PVC is deleted until removed manually.
+- Switching from the Deployment needs a one-time `kubectl -n supportsystem delete deployment rabbitmq`
+  after applying, done while the queues are empty.
+- For zero-downtime messaging: a 3-node cluster with quorum queues (e.g. the
   [RabbitMQ Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview)) or a managed broker.
