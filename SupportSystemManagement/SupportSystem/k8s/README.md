@@ -83,7 +83,7 @@ CPU at 70% of the container's `resources.requests.cpu`:
 | `ss-email-api`       | 1   | 3   |
 | `ss-react-ui`        | 2   | 5   |
 
-`rabbitmq` is not autoscaled - extra replicas would be separate brokers, not a cluster.
+`rabbitmq` is not autoscaled - extra replicas would be separate brokers, not a cluster (see Self-healing below).
 
 - **metrics-server** must be running (it is by default on AKS). Check with `kubectl top pods -n supportsystem`;
   on minikube run `minikube addons enable metrics-server`.
@@ -100,3 +100,33 @@ Watch it work:
 ```bash
 kubectl get hpa -n supportsystem -w
 ```
+
+## Self-healing
+
+| Failure | What recovers it |
+|---|---|
+| Container crashes | kubelet restarts it (`restartPolicy: Always`) |
+| API hangs (process up, not responding) | liveness probe on `/health/live` -> container restarted |
+| Pod not ready / lost its RabbitMQ connection | readiness probe on `/health/ready` -> removed from the Service until it recovers |
+| Node or zone goes down | Deployments recreate pods elsewhere; `topologySpreadConstraints` keep replicas on different nodes/zones so the other copy keeps serving meanwhile |
+| Cluster upgrade / node drain / scale-in | `PodDisruptionBudget`s (`minAvailable: 1`) stop all replicas of a service being evicted at once |
+
+### Known gap: RabbitMQ is not persistent (future work)
+
+`rabbitmq` is still a single-replica Deployment with no volume and no probes. Kubernetes recreates
+it if it crashes, but **any messages still in its queues are lost on restart**, and while it's down
+publishing fails and the API pods go not-ready. Planned fix, deliberately deferred for now:
+
+- Run it as a **StatefulSet** (stable hostname `rabbitmq-0` - RabbitMQ names its node and data
+  directory after the hostname, so a Deployment + volume would not find its old queues) with a
+  `volumeClaimTemplates` volume mounted at `/var/lib/rabbitmq`, `fsGroup: 999` and a 60s
+  `terminationGracePeriodSeconds`.
+- Probes: `rabbitmq-diagnostics -q ping` for startup/liveness, TCP 5672 for readiness.
+- Storage is cluster-specific. On AKS with nodes in several zones use a zone-redundant disk
+  (`disk.csi.azure.com`, `skuName: StandardSSD_ZRS`) - the disk is created in the cluster's `MC_...`
+  node resource group and billed as a managed disk (5Gi rounds up to the 8 GiB E2 tier). With
+  `reclaimPolicy: Retain` it keeps billing after the PVC is deleted until removed manually.
+- Switching from the Deployment needs a one-time `kubectl -n supportsystem delete deployment rabbitmq`
+  after applying, done while the queues are empty.
+- For zero-downtime messaging: a 3-node cluster with quorum queues (e.g. the
+  [RabbitMQ Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview)) or a managed broker.

@@ -116,6 +116,21 @@ spec:
       labels:
         app: ss-auth-server-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-auth-server-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-auth-server-api
       containers:
         - name: ss-auth-server-api
           image: narendransekar/ss-auth-server-api:latest
@@ -190,6 +205,21 @@ spec:
       labels:
         app: ss-user-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-user-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-user-api
       containers:
         - name: ss-user-api
           image: narendransekar/ss-user-api:latest
@@ -289,6 +319,21 @@ spec:
       labels:
         app: ss-ticket-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-ticket-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-ticket-api
       containers:
         - name: ss-ticket-api
           image: narendransekar/ss-ticket-api:latest
@@ -388,6 +433,21 @@ spec:
       labels:
         app: ss-email-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-email-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-email-api
       containers:
         - name: ss-email-api
           image: narendransekar/ss-email-api:latest
@@ -477,6 +537,21 @@ spec:
       labels:
         app: ss-gateway-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-gateway-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-gateway-api
       containers:
         - name: ss-gateway-api
           image: narendransekar/ss-gateway-api:latest
@@ -551,6 +626,21 @@ spec:
       labels:
         app: ss-react-ui
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-react-ui
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-react-ui
       containers:
         - name: ss-react-ui
           image: narendransekar/ss-react-ui:latest
@@ -807,3 +897,69 @@ spec:
         - type: Pods
           value: 1                      # remove at most 1 pod per minute
           periodSeconds: 60
+
+---
+# ---------------------------------------------------------------------------
+# PodDisruptionBudgets: during voluntary disruptions (AKS upgrades, node drains, cluster-autoscaler
+# scale-in) keep at least one pod of each service running instead of evicting all at once.
+#   Not added for ss-email-api / rabbitmq: they can run a single replica, and minAvailable: 1 on a
+#   single pod would block node drains (and AKS upgrades) forever.
+# ---------------------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-gateway-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-gateway-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-auth-server-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-auth-server-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-user-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-user-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-ticket-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-ticket-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-react-ui
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-react-ui
