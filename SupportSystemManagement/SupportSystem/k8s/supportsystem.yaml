@@ -61,6 +61,13 @@ spec:
               name: amqp
             - containerPort: 15672
               name: management
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
           env:
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
@@ -99,7 +106,8 @@ metadata:
   name: ss-auth-server-api
   namespace: supportsystem
 spec:
-  replicas: 1
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
   selector:
     matchLabels:
       app: ss-auth-server-api
@@ -111,9 +119,36 @@ spec:
       containers:
         - name: ss-auth-server-api
           image: narendransekar/ss-auth-server-api:latest
-          imagePullPolicy: IfNotPresent
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
@@ -145,7 +180,8 @@ metadata:
   name: ss-user-api
   namespace: supportsystem
 spec:
-  replicas: 1
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
   selector:
     matchLabels:
       app: ss-user-api
@@ -157,9 +193,36 @@ spec:
       containers:
         - name: ss-user-api
           image: narendransekar/ss-user-api:latest
-          imagePullPolicy: IfNotPresent
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
@@ -216,7 +279,8 @@ metadata:
   name: ss-ticket-api
   namespace: supportsystem
 spec:
-  replicas: 1
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
   selector:
     matchLabels:
       app: ss-ticket-api
@@ -228,9 +292,36 @@ spec:
       containers:
         - name: ss-ticket-api
           image: narendransekar/ss-ticket-api:latest
-          imagePullPolicy: IfNotPresent
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
@@ -287,7 +378,8 @@ metadata:
   name: ss-email-api
   namespace: supportsystem
 spec:
-  replicas: 1
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
   selector:
     matchLabels:
       app: ss-email-api
@@ -299,9 +391,36 @@ spec:
       containers:
         - name: ss-email-api
           image: narendransekar/ss-email-api:latest
-          imagePullPolicy: IfNotPresent
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
@@ -348,7 +467,8 @@ metadata:
   name: ss-gateway-api
   namespace: supportsystem
 spec:
-  replicas: 1
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
   selector:
     matchLabels:
       app: ss-gateway-api
@@ -360,9 +480,36 @@ spec:
       containers:
         - name: ss-gateway-api
           image: narendransekar/ss-gateway-api:latest
-          imagePullPolicy: IfNotPresent
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Docker" # selects ocelot.Docker.json, which already routes by these Service names
@@ -394,7 +541,8 @@ metadata:
   name: ss-react-ui
   namespace: supportsystem
 spec:
-  replicas: 1
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
   selector:
     matchLabels:
       app: ss-react-ui
@@ -410,6 +558,23 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
@@ -452,3 +617,193 @@ spec:
                 name: ss-react-ui
                 port:
                   number: 80
+
+---
+# ---------------------------------------------------------------------------
+# Autoscaling (HorizontalPodAutoscaler)
+#   Requires metrics-server in the cluster (see README.md) and resources.requests on the containers.
+#   Scales on CPU only: .NET's GC keeps memory high after load drops, so memory-based scaling
+#   would scale up and never come back down.
+#   rabbitmq is deliberately NOT autoscaled - extra replicas would be separate brokers.
+# ---------------------------------------------------------------------------
+# ss-gateway-api: every request goes through here
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-gateway-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-gateway-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-auth-server-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-auth-server-api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-user-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-user-api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+# ss-ticket-api: RabbitMQ consumers and the EF saga repository are safe with competing replicas
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-ticket-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-ticket-api
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+# ss-email-api: RabbitMQ consumer - replicas share the queue as competing consumers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-email-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-email-api
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-react-ui
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-react-ui
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60

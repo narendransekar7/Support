@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Azure.Messaging.ServiceBus;
 using MassTransit;
 using SS.Email.API;
@@ -79,6 +80,10 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
+// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Resolve and start queue receiver
@@ -104,6 +109,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready");
 
 var summaries = new[]
 {

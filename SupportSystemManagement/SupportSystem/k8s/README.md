@@ -68,3 +68,35 @@ that were hardcoded in `docker-compose.yml`, and a `Deployment` + `Service` per 
   ```
   then delete the `Secret` block from `supportsystem.yaml` (or `kubectl apply` will overwrite it
   with the placeholders) before running `kubectl apply -f k8s/supportsystem.yaml`.
+
+## Autoscaling
+
+Each app Deployment has a `HorizontalPodAutoscaler` (bottom of `supportsystem.yaml`) that scales on
+CPU at 70% of the container's `resources.requests.cpu`:
+
+| Deployment           | min | max |
+|----------------------|-----|-----|
+| `ss-gateway-api`     | 2   | 10  |
+| `ss-auth-server-api` | 2   | 6   |
+| `ss-user-api`        | 2   | 6   |
+| `ss-ticket-api`      | 2   | 6   |
+| `ss-email-api`       | 1   | 3   |
+| `ss-react-ui`        | 2   | 5   |
+
+`rabbitmq` is not autoscaled - extra replicas would be separate brokers, not a cluster.
+
+- **metrics-server** must be running (it is by default on AKS). Check with `kubectl top pods -n supportsystem`;
+  on minikube run `minikube addons enable metrics-server`.
+- **Health probes**: every API exposes `/health/live` (liveness/startup, no dependency checks) and
+  `/health/ready` (readiness, includes MassTransit's RabbitMQ bus check). **Rebuild and push all
+  images (step 1) before applying**, or the probes will fail against old images.
+- **Nodes**: HPA only adds pods. On AKS, enable the cluster autoscaler so new nodes are added when
+  pods are `Pending`:
+  ```bash
+  az aks update -g <resource-group> -n <cluster> --enable-cluster-autoscaler --min-count 1 --max-count 5
+  ```
+
+Watch it work:
+```bash
+kubectl get hpa -n supportsystem -w
+```
