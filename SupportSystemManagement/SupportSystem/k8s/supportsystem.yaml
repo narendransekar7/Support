@@ -36,14 +36,31 @@ stringData:
 
 ---
 # ---------------------------------------------------------------------------
-# rabbitmq
+# rabbitmq (single broker, persistent)
 # ---------------------------------------------------------------------------
+# Zone-redundant disk: the nodes are spread over availability zones and a normal (LRS) Azure disk
+# can only attach in its own zone, so rabbitmq could not be rescheduled if that zone's node died.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: supportsystem-zrs
+provisioner: disk.csi.azure.com
+parameters:
+  skuName: StandardSSD_ZRS
+reclaimPolicy: Retain          # keep the broker's data even if the PVC is deleted by mistake
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+---
+# StatefulSet (not a Deployment) so the pod keeps a stable hostname (rabbitmq-0) - RabbitMQ names
+# its node and data directory after the hostname, so a new name would not find the old queues.
+# Durable queues + persistent messages (MassTransit's defaults) survive a pod restart on this volume.
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: rabbitmq
   namespace: supportsystem
 spec:
+  serviceName: rabbitmq
   replicas: 1
   selector:
     matchLabels:
@@ -53,6 +70,9 @@ spec:
       labels:
         app: rabbitmq
     spec:
+      terminationGracePeriodSeconds: 60   # let the broker flush to disk before it is killed
+      securityContext:
+        fsGroup: 999                      # rabbitmq user in the image, so it can write the volume
       containers:
         - name: rabbitmq
           image: rabbitmq:3-management
@@ -79,6 +99,34 @@ spec:
                 secretKeyRef:
                   name: supportsystem-secrets
                   key: RABBITMQ_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/rabbitmq
+          startupProbe:          # first boot on a fresh volume can take a while
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 30
+          livenessProbe:         # restart a broker whose Erlang node stopped responding
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            periodSeconds: 30
+            timeoutSeconds: 15
+            failureThreshold: 3
+          readinessProbe:        # accepting AMQP connections
+            tcpSocket:
+              port: 5672
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: supportsystem-zrs
+        resources:
+          requests:
+            storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
@@ -116,6 +164,21 @@ spec:
       labels:
         app: ss-auth-server-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-auth-server-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-auth-server-api
       containers:
         - name: ss-auth-server-api
           image: narendransekar/ss-auth-server-api:latest
@@ -190,6 +253,21 @@ spec:
       labels:
         app: ss-user-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-user-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-user-api
       containers:
         - name: ss-user-api
           image: narendransekar/ss-user-api:latest
@@ -289,6 +367,21 @@ spec:
       labels:
         app: ss-ticket-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-ticket-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-ticket-api
       containers:
         - name: ss-ticket-api
           image: narendransekar/ss-ticket-api:latest
@@ -388,6 +481,21 @@ spec:
       labels:
         app: ss-email-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-email-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-email-api
       containers:
         - name: ss-email-api
           image: narendransekar/ss-email-api:latest
@@ -477,6 +585,21 @@ spec:
       labels:
         app: ss-gateway-api
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-gateway-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-gateway-api
       containers:
         - name: ss-gateway-api
           image: narendransekar/ss-gateway-api:latest
@@ -551,6 +674,21 @@ spec:
       labels:
         app: ss-react-ui
     spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-react-ui
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-react-ui
       containers:
         - name: ss-react-ui
           image: narendransekar/ss-react-ui:latest
@@ -807,3 +945,69 @@ spec:
         - type: Pods
           value: 1                      # remove at most 1 pod per minute
           periodSeconds: 60
+
+---
+# ---------------------------------------------------------------------------
+# PodDisruptionBudgets: during voluntary disruptions (AKS upgrades, node drains, cluster-autoscaler
+# scale-in) keep at least one pod of each service running instead of evicting all at once.
+#   Not added for ss-email-api / rabbitmq: they can run a single replica, and minAvailable: 1 on a
+#   single pod would block node drains (and AKS upgrades) forever.
+# ---------------------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-gateway-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-gateway-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-auth-server-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-auth-server-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-user-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-user-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-ticket-api
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-ticket-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ss-react-ui
+  namespace: supportsystem
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ss-react-ui

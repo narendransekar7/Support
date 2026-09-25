@@ -83,7 +83,7 @@ CPU at 70% of the container's `resources.requests.cpu`:
 | `ss-email-api`       | 1   | 3   |
 | `ss-react-ui`        | 2   | 5   |
 
-`rabbitmq` is not autoscaled - extra replicas would be separate brokers, not a cluster.
+`rabbitmq` is not autoscaled - extra replicas would be separate brokers, not a cluster (see Self-healing below).
 
 - **metrics-server** must be running (it is by default on AKS). Check with `kubectl top pods -n supportsystem`;
   on minikube run `minikube addons enable metrics-server`.
@@ -100,3 +100,30 @@ Watch it work:
 ```bash
 kubectl get hpa -n supportsystem -w
 ```
+
+## Self-healing
+
+| Failure | What recovers it |
+|---|---|
+| Container crashes | kubelet restarts it (`restartPolicy: Always`) |
+| API hangs (process up, not responding) | liveness probe on `/health/live` -> container restarted |
+| Pod not ready / lost its RabbitMQ connection | readiness probe on `/health/ready` -> removed from the Service until it recovers |
+| RabbitMQ Erlang node unresponsive | liveness probe `rabbitmq-diagnostics -q ping` -> container restarted |
+| RabbitMQ pod restarted or rescheduled | StatefulSet keeps the hostname (`rabbitmq-0`) and its persistent volume, so durable queues and persistent messages survive |
+| Node or zone goes down | Deployments/StatefulSet recreate pods elsewhere; `topologySpreadConstraints` keep replicas on different nodes/zones so the other copy keeps serving; the RabbitMQ disk is zone-redundant (ZRS) so it can re-attach in the other zone |
+| AKS upgrade / node drain / scale-in | `PodDisruptionBudget`s (`minAvailable: 1`) stop all replicas of a service being evicted at once |
+
+Notes:
+- **One-time migration** - rabbitmq changed from a Deployment to a StatefulSet. After applying,
+  delete the old Deployment, otherwise the `rabbitmq` Service load-balances between two separate brokers:
+  ```bash
+  kubectl -n supportsystem delete deployment rabbitmq
+  ```
+  Messages on the old (non-persistent) broker are lost at this point, so do it when the queues are empty.
+- The `supportsystem-zrs` StorageClass uses `StandardSSD_ZRS` disks. If your region doesn't support
+  ZRS managed disks, change `skuName` to `StandardSSD_LRS` (the broker then can't move across zones).
+  It uses `reclaimPolicy: Retain`, so the Azure disk is kept even after the PVC is deleted - remove it
+  manually in the portal if you tear the environment down.
+- RabbitMQ is still a single broker: while it restarts (~30-60s), publishers get errors and API pods
+  go not-ready. For zero-downtime messaging, run a 3-node cluster with quorum queues (e.g. the
+  [RabbitMQ Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview)) or a managed broker.
