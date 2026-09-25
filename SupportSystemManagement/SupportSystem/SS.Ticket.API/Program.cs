@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MassTransit;
 using SS.Base.Application;
 using SS.Base.Application.Consumers;
@@ -65,6 +66,10 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
+// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -83,5 +88,7 @@ app.UseCors("ReactUICorsPolicy");
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready");
 
 app.Run();

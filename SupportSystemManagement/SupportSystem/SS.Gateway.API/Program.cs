@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Ocelot.DependencyInjection;
@@ -48,6 +49,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
+// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -64,6 +69,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+
+// Health endpoints registered as middleware ahead of Ocelot because
+// Ocelot is terminal - a mapped endpoint would never be reached.
+app.UseHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.UseHealthChecks("/health/ready");
 
 // Use Ocelot middleware
 app.UseOcelot().Wait();
