@@ -9,6 +9,7 @@ COPY SS.Ticket.API/SS.Ticket.API.csproj SS.Ticket.API/
 COPY SS.Base.Application/SS.Base.Application.csproj SS.Base.Application/
 COPY SS.Base.Infrastructure/SS.Base.Infrastructure.csproj SS.Base.Infrastructure/
 COPY SS.Base.Domain/SS.Base.Domain.csproj SS.Base.Domain/
+COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
 RUN dotnet restore SS.Ticket.API/SS.Ticket.API.csproj
 
 # Copy the rest of the source
@@ -16,6 +17,7 @@ COPY SS.Ticket.API/ SS.Ticket.API/
 COPY SS.Base.Application/ SS.Base.Application/
 COPY SS.Base.Infrastructure/ SS.Base.Infrastructure/
 COPY SS.Base.Domain/ SS.Base.Domain/
+COPY SS.Base.Observability/ SS.Base.Observability/
 
 # Build the application
 RUN dotnet publish SS.Ticket.API/SS.Ticket.API.csproj -c Release -o /app/publish

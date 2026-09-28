@@ -1,17 +1,19 @@
 # Use the official .NET 8.0 SDK image to build the application
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-# Build context is the solution root (SS.Email.API depends on SS.Base.Domain as a sibling)
+# Build context is the solution root (SS.Email.API depends on SS.Base.Domain and SS.Base.Observability as siblings)
 WORKDIR /src
 
 # Copy csproj files first and restore (better layer caching)
 COPY SS.Email.API/SS.Email.API/SS.Email.API.csproj SS.Email.API/SS.Email.API/
 COPY SS.Base.Domain/SS.Base.Domain.csproj SS.Base.Domain/
+COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
 RUN dotnet restore SS.Email.API/SS.Email.API/SS.Email.API.csproj
 
 # Copy the rest of the source
 COPY SS.Email.API/SS.Email.API/ SS.Email.API/SS.Email.API/
 COPY SS.Base.Domain/ SS.Base.Domain/
+COPY SS.Base.Observability/ SS.Base.Observability/
 
 # Build the application
 RUN dotnet publish SS.Email.API/SS.Email.API/SS.Email.API.csproj -c Release -o /app/publish

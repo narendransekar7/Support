@@ -2,10 +2,14 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MassTransit;
 using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
+using SS.Base.Observability;
 using System;
 using SS.User.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging (stdout, JSON in containers) + OpenTelemetry export to Application Insights - see SS.Base.Observability.
+builder.AddSupportSystemObservability("ss-user-api");
 
 // Add services to the container.
 
@@ -70,6 +74,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler();
+}
+
+app.UseTraceIdResponseHeader();
 
 app.UseHttpsRedirection();
 

@@ -39,6 +39,7 @@ public class TicketCreationStateMachine : MassTransitStateMachine<TicketCreation
                     context.Saga.Priority = context.Message.Priority;
                     context.Saga.CreatedByEmail = context.Message.CreatedByEmail;
                     context.Saga.CreatedByName = context.Message.CreatedByName;
+                    LogContext.Info?.Log("Ticket-creation saga started for ticket {TicketId}", context.Message.TicketId);
                 })
                 .PublishAsync(context => context.Init<AssignEngineerCommand>(new AssignEngineerCommand
                 {
@@ -49,6 +50,8 @@ public class TicketCreationStateMachine : MassTransitStateMachine<TicketCreation
 
         During(AssigningEngineer,
             When(EngineerAssignedEvent)
+                .Then(context => LogContext.Info?.Log("Saga: engineer {EngineerId} assigned to ticket {TicketId}, reserving SLA",
+                    context.Message.EngineerId, context.Saga.TicketId))
                 .PublishAsync(context => context.Init<ReserveSlaCommand>(new ReserveSlaCommand
                 {
                     TicketId = context.Saga.TicketId,
@@ -56,7 +59,12 @@ public class TicketCreationStateMachine : MassTransitStateMachine<TicketCreation
                 }))
                 .TransitionTo(ReservingSla),
             When(AssignEngineerFailedEvent)
-                .Then(context => context.Saga.FailureReason = context.Message.Reason)
+                .Then(context =>
+                {
+                    context.Saga.FailureReason = context.Message.Reason;
+                    LogContext.Warning?.Log("Saga: assigning an engineer to ticket {TicketId} failed ({Reason}); compensating",
+                        context.Saga.TicketId, context.Message.Reason);
+                })
                 .PublishAsync(context => context.Init<DeleteTicketCommand>(new DeleteTicketCommand
                 {
                     TicketId = context.Saga.TicketId
@@ -74,6 +82,7 @@ public class TicketCreationStateMachine : MassTransitStateMachine<TicketCreation
 
         During(ReservingSla,
             When(SlaReservedEvent)
+                .Then(context => LogContext.Info?.Log("Ticket-creation saga completed for ticket {TicketId}", context.Saga.TicketId))
                 .Finalize()
         );
 

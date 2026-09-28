@@ -4,6 +4,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"dependencies": {
+		"@microsoft/applicationinsights-web": "^3.4.4",
 		"@reduxjs/toolkit": "^2.6.0",
 		"@testing-library/jest-dom": "^5.17.0",
 		"@testing-library/react": "^13.4.0",

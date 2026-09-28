@@ -5,8 +5,12 @@ using SS.Base.Application.Consumers;
 using SS.Base.Application.Sagas;
 using SS.Base.Domain.Entities;
 using SS.Base.Infrastructure.Persistance.MSSQL;
+using SS.Base.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging (stdout, JSON in containers) + OpenTelemetry export to Application Insights - see SS.Base.Observability.
+builder.AddSupportSystemObservability("ss-ticket-api");
 
 // Add services to the container.
 
@@ -79,6 +83,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler();
+}
+
+app.UseTraceIdResponseHeader();
 
 app.UseHttpsRedirection();
 

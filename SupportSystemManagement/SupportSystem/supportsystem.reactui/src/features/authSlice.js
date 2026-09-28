@@ -1,6 +1,7 @@
 ﻿import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
+import logger from "../telemetry/logger";
 
 // API Base URL
 // Relative by default: the dev proxy (setupProxy.js), nginx or the ingress forwards /api to the gateway.
@@ -19,8 +20,10 @@ export const loginUser = createAsyncThunk("auth/login", async (credentials, thun
 		localStorage.setItem("refreshToken", response.data.refreshToken);
 	}
 	
+    logger.info("Login succeeded");
     return response.data; // { token, user }
   } catch (error) {
+    logger.warn("Login failed", { status: error.response?.status });
     return thunkAPI.rejectWithValue(error.response.data);
   }
 });
@@ -34,8 +37,10 @@ export const fetchUser = createAsyncThunk("auth/fetchUser", async (_, thunkAPI) 
     const response = await axios.get(`${API_URL}/user/fetchuser/${email}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    logger.setUser(response.data.userId);
     return response.data; // { id, name, role }
   } catch (error) {
+    logger.error("Fetching the signed-in user failed", error);
     return thunkAPI.rejectWithValue(error.response.data);
   }
 });
@@ -53,6 +58,7 @@ export const refreshAccessToken = createAsyncThunk("auth/refreshToken", async (_
 
         return response.data;
     } catch (error) {
+        logger.warn("Access token refresh failed; session expired", { status: error.response?.status });
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         return thunkAPI.rejectWithValue("Session expired, please log in again.");
@@ -92,7 +98,7 @@ export const logoutUser = createAsyncThunk("auth/logout", async (_, thunkAPI) =>
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("Logout failed:", errorText);
+            logger.error("Logout failed", undefined, { response: errorText });
             return thunkAPI.rejectWithValue(errorText || "Logout failed");
         }
 
@@ -100,10 +106,11 @@ export const logoutUser = createAsyncThunk("auth/logout", async (_, thunkAPI) =>
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("email");
+        logger.clearUser();
 
         return true;
     } catch (error) {
-        console.error("Logout error:", error);
+        logger.error("Logout error", error);
         return thunkAPI.rejectWithValue(error.message);
     }
 });

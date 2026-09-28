@@ -18,6 +18,10 @@ data:
   CORS_REACT_UI_ORIGIN: "http://localhost:3000"
   AUTH_USER_API_BASE_URL: "http://ss-user-api:8080"
   GATEWAY_BASE_URL: "http://ss-gateway-api:8080"
+  # Logging (all .NET services): "json" = one structured line per entry on stdout, which is what
+  # `kubectl logs` and cluster log collectors read. Level can be changed here without rebuilding images.
+  LOG_CONSOLE_FORMAT: "json"
+  LOG_LEVEL_DEFAULT: "Information"
 
 ---
 # Sensitive values - placeholders only, no credentials are committed. Set real values (same ones
@@ -33,6 +37,9 @@ stringData:
   DB_CONNECTION_STRING: "REPLACE_ME"
   RABBITMQ_USERNAME: "guest"
   RABBITMQ_PASSWORD: "guest"
+  # Application Insights connection string (Azure portal -> Application Insights -> Overview).
+  # Leave empty to disable OpenTelemetry export; logs still go to stdout either way.
+  APPLICATIONINSIGHTS_CONNECTION_STRING: ""
 
 ---
 # ---------------------------------------------------------------------------
@@ -165,6 +172,22 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
             - name: UserApi__BaseUrl
@@ -254,6 +277,22 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
             - name: ConnectionStrings__DefaultConnection
@@ -368,6 +407,22 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
             - name: ConnectionStrings__DefaultConnection
@@ -482,6 +537,22 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
             - name: RabbitMq__Host
@@ -586,6 +657,22 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
             - name: ASPNETCORE_ENVIRONMENT
               value: "Docker" # selects ocelot.Docker.json, which already routes by these Service names
             - name: BaseUrl
@@ -648,6 +735,14 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          env:
+            # Written into /config.js at container start - see supportsystem.reactui/docker-entrypoint.d.
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
           resources:
             requests:
               cpu: 25m

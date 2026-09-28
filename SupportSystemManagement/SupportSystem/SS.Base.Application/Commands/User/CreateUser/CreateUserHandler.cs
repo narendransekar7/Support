@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Identity;
 using SS.Base.Domain.Entities;
 using SS.Base.Domain.Interfaces.Repository;
@@ -18,8 +19,10 @@ namespace SS.Base.Application.Commands
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPasswordHasher<SS.Base.Domain.Entities.User> _passwordHasher;
         private AzureServiceBusQueueSender _queueSender;
-        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<SS.Base.Domain.Entities.User> passwordHasher, AzureServiceBusQueueSender queueSender)
+        private readonly ILogger<CreateUserHandler> _logger;
+        public CreateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordHasher<SS.Base.Domain.Entities.User> passwordHasher, AzureServiceBusQueueSender queueSender, ILogger<CreateUserHandler> logger)
         {
+            _logger = logger;
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
             _queueSender = queueSender;
@@ -51,6 +54,7 @@ namespace SS.Base.Application.Commands
 
             // Commit changes using Unit of Work
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Created user {UserId} with role {Role}", user.UserId, user.Role);
             
             // Send message to Azure Service Bus Queue
             var userCreatedMessage = new UserCreatedMessage

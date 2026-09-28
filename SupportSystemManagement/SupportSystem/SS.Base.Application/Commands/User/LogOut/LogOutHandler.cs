@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Amqp.Framing;
 using SS.Base.Domain.Entities;
 using SS.Base.Domain.Interfaces.Repository;
@@ -14,9 +15,11 @@ namespace SS.Base.Application.Commands.User.LogOut
     {
         private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<LogOutHandler> _logger;
 
-        public LogOutHandler(IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork)
+        public LogOutHandler(IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork, ILogger<LogOutHandler> logger)
         {
+            _logger = logger;
             _refreshTokenRepository = refreshTokenRepository;
             _unitOfWork = unitOfWork;
         }
@@ -30,6 +33,11 @@ namespace SS.Base.Application.Commands.User.LogOut
             if (refreshTokens != null) {
                 refreshTokens.IsRevoked = true;
                 //refreshTokens.IsExpired = true;
+                _logger.LogInformation("User {UserId} logged out; refresh token revoked", refreshTokens.UserId);
+            }
+            else
+            {
+                _logger.LogWarning("Logout: refresh token not found, nothing to revoke");
             }
             // Need to check whether it works after clik on the logout option from the react
 

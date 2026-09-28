@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API from '../api/axios';
+import logger from "../telemetry/logger";
 
 const UserList = () => {
   // State to store user data
@@ -15,6 +16,7 @@ const UserList = () => {
 	   setUsers(response.data); // Set fetched data to state
         setLoading(false);
       } catch (err) {
+        logger.error("Loading the user list failed", err);
         setError(err.message);
         setLoading(false);
       }

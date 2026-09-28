@@ -1,6 +1,7 @@
 ﻿namespace SS.Base.Application.Commands;
 
 using MediatR;
+using Microsoft.Extensions.Logging;
 using SS.Base.Domain.Interfaces.Repository;
 using SS.Base.Domain.Entities;
 
@@ -8,9 +9,11 @@ public class LoginSuccessHandler: IRequestHandler<LoginSuccessCommand>
 {
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<LoginSuccessHandler> _logger;
 
-    public LoginSuccessHandler(IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork)
+    public LoginSuccessHandler(IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork, ILogger<LoginSuccessHandler> logger)
     {
+        _logger = logger;
         _refreshTokenRepository = refreshTokenRepository;
         _unitOfWork = unitOfWork;
     }
@@ -29,6 +32,7 @@ public class LoginSuccessHandler: IRequestHandler<LoginSuccessCommand>
 
         // Commit changes using Unit of Work
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("User {UserId} logged in; refresh token issued", request.UserId);
 
         return Unit.Value;
     }

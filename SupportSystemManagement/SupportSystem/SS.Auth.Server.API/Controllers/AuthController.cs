@@ -19,12 +19,14 @@ namespace SS.Auth.Server.API.Controllers
         private readonly string _jwtSecret = "hldiSW6BAHCCzY9Yy1zQLiN+MHYJ0Fm5InfQlPANUyM=";
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthController> _logger;
 
 
-        public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<AuthController> logger)
         {
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("login")]
@@ -42,6 +44,7 @@ namespace SS.Auth.Server.API.Controllers
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning("Login rejected: User API validate returned {StatusCode}", (int)response.StatusCode);
                 // Forward status + message from validate API
                 return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
             }
@@ -62,6 +65,13 @@ namespace SS.Auth.Server.API.Controllers
 
             //Save refresh token with in the datbase for the user.
             var refreshTokenSaveResponse = await client.PostAsJsonAsync("/api/user/saverefreshtoken",  new RefreshTokenModel { Token = refreshToken,UserId = user.UserId.ToString() });
+            if (!refreshTokenSaveResponse.IsSuccessStatusCode)
+            {
+                // Login still succeeds, but the refresh token won't be usable later.
+                _logger.LogError("Saving refresh token for user {UserId} failed with {StatusCode}", user.UserId, (int)refreshTokenSaveResponse.StatusCode);
+            }
+
+            _logger.LogInformation("Issued JWT for user {UserId} with role {Role}", user.UserId, user.Role);
 
             return Ok(new { token,refreshToken,});
             // }
@@ -78,6 +88,7 @@ namespace SS.Auth.Server.API.Controllers
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning("Logout for user {UserId} failed: User API returned {StatusCode}", model.UserId, (int)response.StatusCode);
                 // Forward status + message from invalidate API
                 return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
             }
@@ -97,6 +108,7 @@ namespace SS.Auth.Server.API.Controllers
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning("Token refresh for user {UserId} failed: User API returned {StatusCode}", refreshTokenDto.UserId, (int)response.StatusCode);
                 // Forward status + message from invalidate API
                 return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
             }

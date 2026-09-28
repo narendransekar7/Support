@@ -1,3 +1,6 @@
+# Observability: every .NET service logs JSON to stdout (`docker compose logs -f <service>`).
+# To also export logs/traces/metrics to Application Insights, set APPLICATIONINSIGHTS_CONNECTION_STRING
+# in your shell or in a .env file next to this compose file (git-ignored) before `docker compose up`.
 services:
   rabbitmq:
     image: rabbitmq:3-management  # Includes management UI
@@ -15,12 +18,14 @@ services:
   ss-auth-server-api:
     image: narendransekar/ss-auth-server-api:latest
     build:
-      context: ./SS.Auth.Server.API
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: SS.Auth.Server.API/Dockerfile
    
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - UserApi__BaseUrl=http://ss-user-api:8080
+      - Logging__Console__FormatterName=json
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
       - "5223:8080"
     depends_on:
@@ -42,6 +47,8 @@ services:
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
       - Cors__ReactUIOrigin=http://localhost:5145
+      - Logging__Console__FormatterName=json
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
       - "5335:8080"
     extra_hosts:
@@ -65,6 +72,8 @@ services:
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
       - Cors__ReactUIOrigin=http://localhost:5145
+      - Logging__Console__FormatterName=json
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
       - "5336:8080"
     extra_hosts:
@@ -86,6 +95,8 @@ services:
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
+      - Logging__Console__FormatterName=json
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
       - "5337:8080"
     depends_on:
@@ -96,12 +107,14 @@ services:
   ss-gateway-api:
     image: narendransekar/ss-gateway-api:latest
     build:
-      context: ./SS.Gateway.API
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: SS.Gateway.API/Dockerfile
     
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker # selects ocelot.Docker.json (container hostnames, plain HTTP)
       - BaseUrl=http://ss-gateway-api:8080
+      - Logging__Console__FormatterName=json
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
       - "5145:8080"
     depends_on:
@@ -116,6 +129,9 @@ services:
     build:
       context: ./supportsystem.reactui
       dockerfile: Dockerfile
+    environment:
+      # Written into /config.js at container start (see supportsystem.reactui/docker-entrypoint.d) - empty disables browser telemetry.
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - ss-network
 
