@@ -6,10 +6,12 @@ namespace SS.Email.API.Consumers;
 public class TicketCreationFailedEmailConsumer : IConsumer<SendTicketCreationFailedEmail>
 {
     private readonly EmailService _emailService;
+    private readonly ILogger<TicketCreationFailedEmailConsumer> _logger;
 
-    public TicketCreationFailedEmailConsumer(EmailService emailService)
+    public TicketCreationFailedEmailConsumer(EmailService emailService, ILogger<TicketCreationFailedEmailConsumer> logger)
     {
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task Consume(ConsumeContext<SendTicketCreationFailedEmail> context)
@@ -17,6 +19,7 @@ public class TicketCreationFailedEmailConsumer : IConsumer<SendTicketCreationFai
         var message = context.Message;
         if (string.IsNullOrWhiteSpace(message.CreatedByEmail))
         {
+            _logger.LogWarning("Skipping ticket-creation-failed email for ticket {TicketId}: creator has no email address", message.TicketId);
             return;
         }
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import API from '../api/axios';
+import logger from "../telemetry/logger";
 import { useLoaderData } from "react-router-dom";
 
 const TicketDetails = () => {
@@ -51,13 +52,13 @@ const TicketDetails = () => {
       const response = await API.post('/ticketupdate/add', newUpdateContent);
 
       if (response.status === 200) {
-        console.log('Ticket updated successfully', response.data);
+        logger.info("Ticket update added");
         // Handle success, clear form, display message, etc.
       } else {
-        console.error('Error while submitting', response.statusText);
+        logger.warn("Ticket update returned an unexpected status", { status: response.status });
       }
     } catch (error) {
-      console.error('Error occurred during the request:', error.message);
+      logger.error("Adding ticket update failed", error);
     }
 
 	setUpdates(updates => [...updates, newUpdateEntry]);

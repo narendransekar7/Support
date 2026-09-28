@@ -12,9 +12,11 @@ public class AzureServiceBusQueueReceiver
     private readonly string _connectionString;
     private readonly string _queueName;
     private readonly ServiceBusClient _serviceBusClient;
+    private readonly ILogger<AzureServiceBusQueueReceiver> _logger;
 
-    public AzureServiceBusQueueReceiver(ServiceBusClient serviceBusClient,string connectionString, string queueName, EmailService emailService)
+    public AzureServiceBusQueueReceiver(ServiceBusClient serviceBusClient,string connectionString, string queueName, EmailService emailService, ILogger<AzureServiceBusQueueReceiver> logger)
     {
+        _logger = logger;
         _connectionString = connectionString;
         _queueName = queueName;
         _emailService = emailService;
@@ -32,7 +34,7 @@ public class AzureServiceBusQueueReceiver
             string body = args.Message.Body.ToString();
             var userCreatedMessage = JsonSerializer.Deserialize<UserCreatedMessage>(body);
 
-            Console.WriteLine($"Received message for user: {userCreatedMessage.Email}");
+            _logger.LogInformation("Received user-created message for user {UserId}", userCreatedMessage.UserId);
 
             // Send Email
             string subject = "Welcome to Support System!";
@@ -45,7 +47,7 @@ public class AzureServiceBusQueueReceiver
 
         processor.ProcessErrorAsync += args =>
         {
-            Console.WriteLine($"Error: {args.Exception.Message}");
+            _logger.LogError(args.Exception, "Service Bus error on {EntityPath} ({ErrorSource})", args.EntityPath, args.ErrorSource);
             return Task.CompletedTask;
         };
 

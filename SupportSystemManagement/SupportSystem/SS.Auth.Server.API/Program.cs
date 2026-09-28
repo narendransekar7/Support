@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using SS.Base.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging (stdout, JSON in containers) + OpenTelemetry export to Application Insights - see SS.Base.Observability.
+builder.AddSupportSystemObservability("ss-auth-server-api");
 
 // Add services to the container.
 
@@ -29,6 +33,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler();
+}
+
+app.UseTraceIdResponseHeader();
 
 app.UseHttpsRedirection();
 

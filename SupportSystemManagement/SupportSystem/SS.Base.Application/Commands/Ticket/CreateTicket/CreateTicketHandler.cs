@@ -1,5 +1,6 @@
 ﻿using MassTransit;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using SS.Base.Domain.Entities;
 using SS.Base.Domain.Interfaces.Repository;
 using SS.Base.Domain.Messages.Ticket;
@@ -18,9 +19,11 @@ namespace SS.Base.Application.Commands
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IPublishEndpoint _publishEndpoint;
+        private readonly ILogger<CreateTicketHandler> _logger;
 
-        public CreateTicketHandler(ITicketRepository ticketRepository, IUserRepository userRepository, IUnitOfWork unitOfWork, IPublishEndpoint publishEndpoint)
+        public CreateTicketHandler(ITicketRepository ticketRepository, IUserRepository userRepository, IUnitOfWork unitOfWork, IPublishEndpoint publishEndpoint, ILogger<CreateTicketHandler> logger)
         {
+            _logger = logger;
             _ticketRepository = ticketRepository;
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
@@ -56,6 +59,7 @@ namespace SS.Base.Application.Commands
 
             // Commit changes using Unit of Work
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Created ticket {TicketId} ({Priority}) for user {UserId}", ticket.TicketId, ticket.Priority, ticket.CreatedBy);
 
             var creator = await _userRepository.GetByIdAsync(request.CreatedBy);
 
@@ -70,6 +74,7 @@ namespace SS.Base.Application.Commands
                 CreatedByEmail = creator?.PrimaryEmail,
                 CreatedByName = creator?.DisplayName
             }, cancellationToken);
+            _logger.LogInformation("Published TicketCreated for ticket {TicketId}", ticket.TicketId);
 
             return Unit.Value;
         }

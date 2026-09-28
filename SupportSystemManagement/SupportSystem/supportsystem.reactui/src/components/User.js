@@ -1,5 +1,6 @@
 import { useState, React } from "react";
 import API from '../api/axios';
+import logger from "../telemetry/logger";
 
 
 function User() {
@@ -27,13 +28,13 @@ function User() {
       const response = await API.post('/user/createuser', formData);
 
       if (response.status === 200) {
-        console.log('User added successfully:', response.data);
+        logger.info("User added");
         // Handle success, clear form, display message, etc.
       } else {
-        console.error('Error submitting the form:', response.statusText);
+        logger.warn("Adding user returned an unexpected status", { status: response.status });
       }
     } catch (error) {
-      console.error('Error occurred during the request:', error.message);
+      logger.error("Adding user failed", error);
     }
 	  
   };

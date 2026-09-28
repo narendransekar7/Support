@@ -1,5 +1,6 @@
 import React, { useState, useEffect  } from "react";
 import API from "../api/axios";
+import logger from "../telemetry/logger";
 import {useSelector } from "react-redux";
 
 
@@ -41,13 +42,13 @@ const CreateTicketForm = () => {
       const response = await API.post("/ticket/create", formData);
 
       if (response.status === 200) {
-        console.log("Ticket created successfully:", response.data);
+        logger.info("Ticket created");
         alert("Ticket Created!");
       } else {
-        console.error("Error submitting the form:", response.statusText);
+        logger.warn("Ticket creation returned an unexpected status", { status: response.status });
       }
     } catch (error) {
-      console.error("Error occurred during the request:", error.message);
+      logger.error("Ticket creation failed", error);
     }
   };
 

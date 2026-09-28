@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Gateway.API", "SS.Gateway.API.csproj", "{F118D047-3997-4795-9C0C-46D9B1968364}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Observability", "..\SS.Base.Observability\SS.Base.Observability.csproj", "{B6DC01CC-4648-42CC-B1AA-A456228C9AD4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{F118D047-3997-4795-9C0C-46D9B1968364}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F118D047-3997-4795-9C0C-46D9B1968364}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F118D047-3997-4795-9C0C-46D9B1968364}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6DC01CC-4648-42CC-B1AA-A456228C9AD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6DC01CC-4648-42CC-B1AA-A456228C9AD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6DC01CC-4648-42CC-B1AA-A456228C9AD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6DC01CC-4648-42CC-B1AA-A456228C9AD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

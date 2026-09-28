@@ -25,6 +25,11 @@ FROM nginx:1.26.2
 COPY --from=build /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# The nginx entrypoint runs /docker-entrypoint.d/*.sh at startup; this one writes config.js from env
+# vars (APPLICATIONINSIGHTS_CONNECTION_STRING). CRs are stripped in case of a Windows checkout.
+COPY docker-entrypoint.d/40-app-config.sh /docker-entrypoint.d/40-app-config.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.d/40-app-config.sh && chmod +x /docker-entrypoint.d/40-app-config.sh
+
 # Expose port 80 to the outside world
 EXPOSE 80
 

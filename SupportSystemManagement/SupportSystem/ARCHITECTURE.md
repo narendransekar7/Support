@@ -14,6 +14,7 @@ This system follows **Clean Architecture** for its core business logic (users, t
 | `SS.Auth.Server.API` | Edge service | *(none — HTTP client only)* | Issues/validates JWTs, mints refresh tokens. Talks to `SS.User.API` over HTTP as a plain client, not via project references. |
 | `SS.Gateway.API` | Edge service | *(none — Ocelot only)* | Ocelot reverse proxy (`ocelot.json`). Single entry point for the frontend; validates JWT bearer tokens on protected routes before forwarding to `SS.User.API`/`SS.Ticket.API`. |
 | `SS.Email.API` | Edge service | *(none)* | Standalone worker that drains an Azure Service Bus queue (user-created emails) **and** consumes RabbitMQ messages from the ticket-creation saga (ticket-received / ticket-creation-failed emails). Decoupled from the rest of the system by messaging, not by reference. |
+| `SS.Base.Observability` | Cross-cutting | *(none — ASP.NET Core + OpenTelemetry only)* | Shared logging/tracing/metrics setup (`AddSupportSystemObservability`) referenced by every .NET host — see [Observability](#observability). Knows nothing about the business layers. |
 | `supportsystem.reactui` | Client | *(HTTP only)* | React 18 + Redux Toolkit SPA. Talks only to the Gateway. |
 
 > `SS.Base.Domain` referencing `MassTransit.Abstractions` is a deliberate, narrow exception to "zero dependencies": MassTransit's saga state machine requires the persisted saga-state class to implement its `SagaStateMachineInstance` marker interface, and that class needs to live somewhere Infrastructure can map it without Infrastructure depending on Application — Domain is the natural home, same as any other persisted entity.
@@ -146,6 +147,32 @@ React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/
 3. **`TicketCreatedEmailConsumer`** (in `SS.Email.API`) reacts to `TicketCreated` directly, emailing the creator a "ticket received" message.
 
 RabbitMQ's default convention-based topology means all three subscribers receive their own copy of `TicketCreated` with no manual exchange/queue configuration.
+
+## Observability
+
+Logging, distributed tracing and metrics use **OpenTelemetry**, exported to **Azure Application Insights** via Microsoft's Azure Monitor OpenTelemetry Distro (`Azure.Monitor.OpenTelemetry.AspNetCore`). Every .NET host calls one extension from `SS.Base.Observability`:
+
+```csharp
+builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Application Map node
+```
+
+| Signal | Where it goes | What produces it |
+|---|---|---|
+| **Logs** | Always stdout (`docker logs` / `kubectl logs`); also Application Insights `traces` when configured | `ILogger<T>` everywhere — consumers, saga, handlers, `EmailService`, `AuthController`; plus `LoggingBehavior` (a MediatR pipeline behavior that logs every command/query name + duration + failures, never the payload) |
+| **Traces** | Application Insights `requests`/`dependencies` | ASP.NET Core, `HttpClient` (Auth → User API, Ocelot → downstream), SQL Client, and MassTransit (`AddSource("MassTransit")`: publish/send/consume/saga spans over RabbitMQ) |
+| **Metrics** | Application Insights `customMetrics` | ASP.NET Core/HTTP/runtime metrics + MassTransit meter |
+| **Browser** | Application Insights (role `ss-react-ui`) | `src/telemetry/logger.js` (Application Insights JS SDK): page views, `/api` dependency calls, unhandled exceptions, `ErrorBoundary` render errors, `logger.*` calls |
+
+**Correlation.** W3C Trace Context (`traceparent`) is propagated automatically: the browser SDK stamps `/api` calls, ASP.NET Core/`HttpClient` continue it through Gateway → Auth/User/Ticket API, and MassTransit carries it in RabbitMQ message headers into the saga consumers and `SS.Email.API`. So one "create ticket" click is one end-to-end transaction in Application Insights, and every stdout log line carries the same `TraceId` in its scope. Each response also has an `X-Trace-Id` header (`UseTraceIdResponseHeader`) for looking a failed call up directly.
+
+**Configuration** (all via standard config/env vars, no rebuild needed):
+
+- `APPLICATIONINSIGHTS_CONNECTION_STRING` — empty/unset (the default) disables export entirely; logs still go to stdout. Set via the `supportsystem-secrets` Secret in k8s, a shell var / `.env` for docker-compose, and read by the React container at start-up into `config.js` (`docker-entrypoint.d/40-app-config.sh`).
+- `Logging__Console__FormatterName` — `simple` (readable, default for local runs) or `json` (one structured line per entry; set in docker-compose and the k8s ConfigMap as `LOG_CONSOLE_FORMAT`).
+- `Logging__LogLevel__Default` and per-category levels in `appsettings.json` (`Microsoft.EntityFrameworkCore`, `Ocelot`, `System.Net.Http.HttpClient` default to `Warning` so SQL text and per-request proxy chatter don't flood logs or the Application Insights bill).
+- `/health/*` probe requests are excluded from tracing.
+
+**What is deliberately not logged:** request bodies, passwords, JWTs/refresh tokens, and email addresses (users are identified by `UserId`). The browser logger drops properties named like `password`/`token`/`authorization`/`secret`, and the JS SDK is configured not to capture request/response headers.
 
 ## Known gaps / technical debt
 

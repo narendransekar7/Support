@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
+using SS.Base.Observability;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging (stdout, JSON in containers) + OpenTelemetry export to Application Insights - see SS.Base.Observability.
+builder.AddSupportSystemObservability("ss-gateway-api");
 
 // Add services to the container.
 
@@ -17,7 +21,6 @@ builder.Configuration.AddEnvironmentVariables();
 string baseUrl = Environment.GetEnvironmentVariable("BaseUrl") ?? "https://localhost:44345";
 // Add the resolved BaseUrl to the configuration
 builder.Configuration["BaseUrl"] = baseUrl;
-Console.WriteLine($"Resolved BaseUrl: {baseUrl}");
 
 // In Docker, downstream services are reached by container name over plain HTTP instead of
 // localhost + dev-cert HTTPS ports, so a separate routing table is used for that environment.
@@ -55,12 +58,16 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+app.Logger.LogInformation("Resolved BaseUrl: {BaseUrl}", baseUrl);
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseTraceIdResponseHeader();
 
 app.UseHttpsRedirection();
 

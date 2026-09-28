@@ -1,8 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Email.API", "SS.Email.API\SS.Email.API.csproj", "{C54AED24-14DB-49AB-B872-0D6016D3B371}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Domain", "..\SS.Base.Domain\SS.Base.Domain.csproj", "{E9A0BB0D-ECF5-4516-80E8-60C22849C71A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Observability", "..\SS.Base.Observability\SS.Base.Observability.csproj", "{3FB7D801-AC25-4989-A183-6458E5103782}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +21,9 @@ Global
 		{E9A0BB0D-ECF5-4516-80E8-60C22849C71A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E9A0BB0D-ECF5-4516-80E8-60C22849C71A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E9A0BB0D-ECF5-4516-80E8-60C22849C71A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FB7D801-AC25-4989-A183-6458E5103782}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FB7D801-AC25-4989-A183-6458E5103782}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FB7D801-AC25-4989-A183-6458E5103782}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FB7D801-AC25-4989-A183-6458E5103782}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

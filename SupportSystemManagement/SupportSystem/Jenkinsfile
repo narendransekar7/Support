@@ -23,8 +23,9 @@ pipeline {
                 stage('Build SS.Auth.Server.API') {
                     steps {
 					    script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Auth.Server.API') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest .'
+                            // Build context is the solution root: the service references SS.Base.Observability.
+                            dir('SupportSystemManagement/SupportSystem') {
+                                sh 'docker build -f SS.Auth.Server.API/Dockerfile -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest .'
                             }
                         }
                     }
@@ -32,8 +33,9 @@ pipeline {
 				stage('Build SS.Gateway.API') {
 					steps {
 					    script {
-                            dir('SupportSystemManagement/SupportSystem/SS.Gateway.API') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest .'
+                            // Build context is the solution root: the service references SS.Base.Observability.
+                            dir('SupportSystemManagement/SupportSystem') {
+                                sh 'docker build -f SS.Gateway.API/Dockerfile -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest .'
                             }
                         }
                     }

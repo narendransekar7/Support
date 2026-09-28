@@ -16,6 +16,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\SS.Base.Domain\SS.Base.Domain.csproj" />
+      <ProjectReference Include="..\..\SS.Base.Observability\SS.Base.Observability.csproj" />
     </ItemGroup>
 
 </Project>

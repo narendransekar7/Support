@@ -1,4 +1,5 @@
 using MassTransit;
+using Microsoft.Extensions.Logging;
 using SS.Base.Domain.Entities;
 using SS.Base.Domain.Interfaces.Repository;
 using SS.Base.Domain.Messages.Ticket;
@@ -14,9 +15,11 @@ public class CreateNotificationConsumer : IConsumer<TicketCreated>
 {
     private readonly INotificationRepository _notificationRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<CreateNotificationConsumer> _logger;
 
-    public CreateNotificationConsumer(INotificationRepository notificationRepository, IUnitOfWork unitOfWork)
+    public CreateNotificationConsumer(INotificationRepository notificationRepository, IUnitOfWork unitOfWork, ILogger<CreateNotificationConsumer> logger)
     {
+        _logger = logger;
         _notificationRepository = notificationRepository;
         _unitOfWork = unitOfWork;
     }
@@ -34,5 +37,6 @@ public class CreateNotificationConsumer : IConsumer<TicketCreated>
 
         await _notificationRepository.AddAsync(notification);
         await _unitOfWork.SaveChangesAsync(context.CancellationToken);
+        _logger.LogInformation("Created notification {NotificationId} for ticket {TicketId}", notification.NotificationId, notification.TicketId);
     }
 }

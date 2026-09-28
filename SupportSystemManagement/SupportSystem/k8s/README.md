@@ -64,10 +64,29 @@ that were hardcoded in `docker-compose.yml`, and a `Deployment` + `Service` per 
   kubectl -n supportsystem create secret generic supportsystem-secrets \
     --from-literal=DB_CONNECTION_STRING='...' \
     --from-literal=RABBITMQ_USERNAME='...' \
-    --from-literal=RABBITMQ_PASSWORD='...'
+    --from-literal=RABBITMQ_PASSWORD='...' \n    --from-literal=APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=...;IngestionEndpoint=...'
   ```
   then delete the `Secret` block from `supportsystem.yaml` (or `kubectl apply` will overwrite it
   with the placeholders) before running `kubectl apply -f k8s/supportsystem.yaml`.
+
+## Logging & monitoring
+
+Every .NET service logs to stdout; `LOG_CONSOLE_FORMAT: "json"` in the ConfigMap makes each entry one
+structured JSON line (with `TraceId`/`SpanId` scopes), and `LOG_LEVEL_DEFAULT` sets the minimum level
+without rebuilding images:
+
+```bash
+kubectl -n supportsystem logs deploy/ss-ticket-api -f
+```
+
+When the `APPLICATIONINSIGHTS_CONNECTION_STRING` secret key is set, all services (and the React UI)
+also export logs, distributed traces and metrics via OpenTelemetry to Azure Application Insights -
+see the "Observability" section of `ARCHITECTURE.md`. After changing the secret, restart the pods so
+they pick it up:
+
+```bash
+kubectl -n supportsystem rollout restart deploy
+```
 
 ## Autoscaling
 

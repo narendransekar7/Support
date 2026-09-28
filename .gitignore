@@ -11,3 +11,8 @@ node_modules
 # Local-only environment overrides (personal dev URLs, secrets)
 .env.local
 .env.*.local
+# Local docker-compose variables (e.g. APPLICATIONINSIGHTS_CONNECTION_STRING)
+SupportSystemManagement/SupportSystem/.env
+
+# React production build output
+build/

@@ -3,8 +3,12 @@ using Azure.Messaging.ServiceBus;
 using MassTransit;
 using SS.Email.API;
 using SS.Email.API.Consumers;
+using SS.Base.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging (stdout, JSON in containers) + OpenTelemetry export to Application Insights - see SS.Base.Observability.
+builder.AddSupportSystemObservability("ss-email-api");
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -47,7 +51,8 @@ builder.Services.AddSingleton<SS.Email.API.EmailService>(sp =>
         int.Parse(config["SmtpSettings:Port"]),
         config["SmtpSettings:Username"],
         config["SmtpSettings:Password"],
-        config["SmtpSettings:FromEmail"]
+        config["SmtpSettings:FromEmail"],
+        sp.GetRequiredService<ILogger<SS.Email.API.EmailService>>()
     ));
 
 //hiding below for testing
@@ -57,7 +62,8 @@ builder.Services.AddSingleton<SS.Email.API.EmailService>(sp =>
 //    var serviceBusClient = sp.GetRequiredService<ServiceBusClient>();
 //    string connectionString = builder.Configuration["AzureServiceBus:ConnectionString"];
 //    string queueName = builder.Configuration["AzureServiceBus:QueueName"];
-//    return new SS.Email.API.AzureServiceBusQueueReceiver(serviceBusClient,connectionString, queueName, emailService); 
+//    var logger = sp.GetRequiredService<ILogger<SS.Email.API.AzureServiceBusQueueReceiver>>();
+//    return new SS.Email.API.AzureServiceBusQueueReceiver(serviceBusClient,connectionString, queueName, emailService, logger); 
 //});
 
 // Ticket-creation email consumers (RabbitMQ) — additive alongside the existing
