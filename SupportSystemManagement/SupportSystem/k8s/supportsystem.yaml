@@ -68,6 +68,8 @@ spec:
               name: amqp
             - containerPort: 15672
               name: management
+            - containerPort: 15692   # Prometheus metrics (rabbitmq_prometheus plugin, on by default in the official image)
+              name: prometheus
           resources:
             requests:
               cpu: 200m
@@ -146,6 +148,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
           resources:
             requests:        # reserved for scheduling; the HPA's CPU % is measured against this
               cpu: 100m
@@ -172,6 +177,14 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
             - name: Logging__Console__FormatterName
               valueFrom:
                 configMapKeyRef:
@@ -251,6 +264,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
           resources:
             requests:        # reserved for scheduling; the HPA's CPU % is measured against this
               cpu: 100m
@@ -277,6 +293,14 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
             - name: Logging__Console__FormatterName
               valueFrom:
                 configMapKeyRef:
@@ -381,6 +405,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
           resources:
             requests:        # reserved for scheduling; the HPA's CPU % is measured against this
               cpu: 100m
@@ -407,6 +434,14 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
             - name: Logging__Console__FormatterName
               valueFrom:
                 configMapKeyRef:
@@ -511,6 +546,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
           resources:
             requests:        # reserved for scheduling; the HPA's CPU % is measured against this
               cpu: 100m
@@ -537,6 +575,14 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
             - name: Logging__Console__FormatterName
               valueFrom:
                 configMapKeyRef:
@@ -631,6 +677,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
           resources:
             requests:        # reserved for scheduling; the HPA's CPU % is measured against this
               cpu: 100m
@@ -657,6 +706,14 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
             - name: Logging__Console__FormatterName
               valueFrom:
                 configMapKeyRef:

@@ -114,6 +114,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseSupportSystemMetrics();
+
 app.UseHttpsRedirection();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
