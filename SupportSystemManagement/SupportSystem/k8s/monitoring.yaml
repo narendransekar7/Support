@@ -1,0 +1,62 @@
+# Prometheus scrape config for Azure Monitor managed service for Prometheus (see README.md -> Metrics).
+#
+# Kept out of supportsystem.yaml on purpose: the PodMonitor CRD (azmonitoring.coreos.com) only exists
+# once the AKS metrics add-on is enabled, so applying it to a cluster without the add-on fails.
+#
+#   kubectl apply -f k8s/monitoring.yaml
+#
+# The add-on's ama-metrics pods pick these up automatically; no restart needed.
+
+# ---------------------------------------------------------------------------
+# .NET APIs - OpenTelemetry Prometheus exporter on the dedicated metrics port (9464)
+# ---------------------------------------------------------------------------
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: supportsystem-apis
+  namespace: supportsystem
+spec:
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - ss-auth-server-api
+          - ss-user-api
+          - ss-ticket-api
+          - ss-email-api
+          - ss-gateway-api
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      relabelings:
+        # job = the service name (ss-ticket-api, ...) so Grafana dashboards can filter per service;
+        # instance stays the pod IP:port, so replicas remain separate series.
+        - sourceLabels: [__meta_kubernetes_pod_label_app]
+          targetLabel: job
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+
+---
+# ---------------------------------------------------------------------------
+# RabbitMQ - built-in rabbitmq_prometheus plugin (queue depth, publish/deliver rates, connections)
+# ---------------------------------------------------------------------------
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: rabbitmq
+  namespace: supportsystem
+spec:
+  selector:
+    matchLabels:
+      app: rabbitmq
+  podMetricsEndpoints:
+    - port: prometheus
+      path: /metrics
+      interval: 30s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_app]
+          targetLabel: job
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod

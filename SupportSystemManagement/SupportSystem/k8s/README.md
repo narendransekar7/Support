@@ -88,6 +88,85 @@ they pick it up:
 kubectl -n supportsystem rollout restart deploy
 ```
 
+## Metrics: Prometheus + Grafana (Azure managed)
+
+Every API serves Prometheus metrics at `/metrics` on a **separate port 9464** (the `metrics` container
+port; the app stays on 8080). No Service exposes 9464, so metrics can't be read through the gateway's
+public LoadBalancer. RabbitMQ exposes its built-in metrics on 15692 (`prometheus` port).
+
+What you get:
+
+| Source | Examples |
+|---|---|
+| ASP.NET Core / Kestrel | `http_server_request_duration_seconds` (rate, latency, status codes per route), `http_server_active_requests`, `kestrel_active_connections` |
+| HttpClient | `http_client_request_duration_seconds` (Gateway/Ocelot → downstream, Auth → User API) |
+| .NET runtime | `process_runtime_dotnet_gc_*`, `..._thread_pool_*`, `..._exceptions_count` |
+| MassTransit | publish/send/consume counts and durations (once messages flow) |
+| RabbitMQ | `rabbitmq_queue_messages_ready`, publish/deliver rates, connections |
+| Cluster (from the add-on itself) | node/pod CPU & memory, restarts, HPA replicas, kube-state-metrics |
+
+### 1. Create the Azure resources (once)
+
+```bash
+az monitor account create -g <resource-group> -n <amw-name> -l <location>          # Azure Monitor workspace (stores Prometheus data)
+az grafana create -g <resource-group> -n <grafana-name>                            # Azure Managed Grafana
+```
+
+### 2. Enable managed Prometheus on the cluster and link Grafana
+
+```bash
+az aks update -g <resource-group> -n <cluster> --enable-azure-monitor-metrics \
+  --azure-monitor-workspace-resource-id $(az monitor account show -g <resource-group> -n <amw-name> --query id -o tsv) \
+  --grafana-resource-id $(az grafana show -g <resource-group> -n <grafana-name> --query id -o tsv)
+```
+
+This installs the `ama-metrics` pods in `kube-system`, adds the Prometheus data source to Grafana and
+creates the built-in Kubernetes dashboards (Grafana → Dashboards → *Azure Managed Prometheus*).
+
+### 3. Scrape the Support System pods
+
+After the images are rebuilt/pushed (step 1) and `supportsystem.yaml` is applied:
+
+```bash
+kubectl apply -f k8s/monitoring.yaml
+```
+
+`monitoring.yaml` holds `PodMonitor`s for the APIs and RabbitMQ. It's a separate file because its CRD
+only exists once step 2 is done. Metrics show up in Grafana within a couple of minutes, with
+`job` = service name (`ss-ticket-api`, ...) and `pod` = replica.
+
+Check an endpoint by hand:
+
+```bash
+kubectl -n supportsystem port-forward deploy/ss-ticket-api 9464:9464
+curl http://localhost:9464/metrics
+```
+
+### 4. Dashboards
+
+Grafana → Dashboards → New → Import, pick the Managed Prometheus data source:
+
+- **19924** - ASP.NET Core (request rate, latency, errors, connections per `job`/`instance`)
+- **19925** - ASP.NET Core Endpoint (drill-down per route)
+- **10991** - RabbitMQ Overview
+
+Useful queries (Explore):
+
+```promql
+# requests/s per service
+sum by (job) (rate(http_server_request_duration_seconds_count[5m]))
+# p95 latency per service
+histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket[5m])))
+# 5xx ratio per service
+sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+  / sum by (job) (rate(http_server_request_duration_seconds_count[5m]))
+# messages waiting in RabbitMQ (all queues - /metrics is aggregated; per-queue needs /metrics/per-object)
+sum(rabbitmq_queue_messages_ready)
+```
+
+Locally (`dotnet run` / docker-compose) there's no metrics port - `/metrics` is served on the normal
+app port, e.g. `http://localhost:<port>/metrics`.
+
 ## Autoscaling
 
 Each app Deployment has a `HorizontalPodAutoscaler` (bottom of `supportsystem.yaml`) that scales on

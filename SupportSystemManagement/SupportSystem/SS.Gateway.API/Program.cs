@@ -68,6 +68,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseTraceIdResponseHeader();
+// Prometheus /metrics - middleware, so it runs ahead of the terminal Ocelot pipeline.
+app.UseSupportSystemMetrics();
 
 app.UseHttpsRedirection();
 

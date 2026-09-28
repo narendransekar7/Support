@@ -160,7 +160,7 @@ builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Appl
 |---|---|---|
 | **Logs** | Always stdout (`docker logs` / `kubectl logs`); also Application Insights `traces` when configured | `ILogger<T>` everywhere — consumers, saga, handlers, `EmailService`, `AuthController`; plus `LoggingBehavior` (a MediatR pipeline behavior that logs every command/query name + duration + failures, never the payload) |
 | **Traces** | Application Insights `requests`/`dependencies` | ASP.NET Core, `HttpClient` (Auth → User API, Ocelot → downstream), SQL Client, and MassTransit (`AddSource("MassTransit")`: publish/send/consume/saga spans over RabbitMQ) |
-| **Metrics** | Application Insights `customMetrics` | ASP.NET Core/HTTP/runtime metrics + MassTransit meter |
+| **Metrics** | Always Prometheus `/metrics` (`UseSupportSystemMetrics`, scraped by Azure Managed Prometheus → Grafana); also Application Insights `customMetrics` when configured | .NET 8 built-in meters (HTTP server/Kestrel/routing/HttpClient), runtime instrumentation (GC, thread pool, exceptions) + MassTransit meter |
 | **Browser** | Application Insights (role `ss-react-ui`) | `src/telemetry/logger.js` (Application Insights JS SDK): page views, `/api` dependency calls, unhandled exceptions, `ErrorBoundary` render errors, `logger.*` calls |
 
 **Correlation.** W3C Trace Context (`traceparent`) is propagated automatically: the browser SDK stamps `/api` calls, ASP.NET Core/`HttpClient` continue it through Gateway → Auth/User/Ticket API, and MassTransit carries it in RabbitMQ message headers into the saga consumers and `SS.Email.API`. So one "create ticket" click is one end-to-end transaction in Application Insights, and every stdout log line carries the same `TraceId` in its scope. Each response also has an `X-Trace-Id` header (`UseTraceIdResponseHeader`) for looking a failed call up directly.
@@ -170,7 +170,8 @@ builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Appl
 - `APPLICATIONINSIGHTS_CONNECTION_STRING` — empty/unset (the default) disables export entirely; logs still go to stdout. Set via the `supportsystem-secrets` Secret in k8s, a shell var / `.env` for docker-compose, and read by the React container at start-up into `config.js` (`docker-entrypoint.d/40-app-config.sh`).
 - `Logging__Console__FormatterName` — `simple` (readable, default for local runs) or `json` (one structured line per entry; set in docker-compose and the k8s ConfigMap as `LOG_CONSOLE_FORMAT`).
 - `Logging__LogLevel__Default` and per-category levels in `appsettings.json` (`Microsoft.EntityFrameworkCore`, `Ocelot`, `System.Net.Http.HttpClient` default to `Warning` so SQL text and per-request proxy chatter don't flood logs or the Application Insights bill).
-- `/health/*` probe requests are excluded from tracing.
+- `/health/*` probe and `/metrics` scrape requests are excluded from tracing.
+- `Metrics__Port` — when set, `/metrics` is only answered on that port (k8s: `9464`, bound via `Kestrel__Endpoints__Metrics__Url` and not exposed by any Service, so metrics aren't public through the gateway's LoadBalancer). Unset (local runs, docker-compose), it's served on the normal app port.
 
 **What is deliberately not logged:** request bodies, passwords, JWTs/refresh tokens, and email addresses (users are identified by `UserId`). The browser logger drops properties named like `password`/`token`/`authorization`/`secret`, and the JS SDK is configured not to capture request/response headers.
 

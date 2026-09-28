@@ -39,6 +39,7 @@ else
 }
 
 app.UseTraceIdResponseHeader();
+app.UseSupportSystemMetrics();
 
 app.UseHttpsRedirection();
 
