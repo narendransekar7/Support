@@ -23,17 +23,30 @@ Replace `narendransekar` with your own registry/repo if needed - just keep the i
 
 ## 2. Install the ingress controller (once per cluster)
 
-The `supportsystem-ingress` uses `ingressClassName: webapprouting.kubernetes.azure.com`, the class of
-the AKS **application routing** add-on (Microsoft-managed NGINX). Enable it once:
+The `supportsystem-ingress` uses `ingressClassName: nginx`, served by the community
+[ingress-nginx](https://github.com/kubernetes/ingress-nginx) controller. Install it once per cluster:
 
 ```bash
-az aks approuting enable -g <resource-group> -n <cluster>
-kubectl get ingressclass   # should list webapprouting.kubernetes.azure.com
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/cloud/deploy.yaml
+kubectl -n ingress-nginx wait --for=condition=available deployment/ingress-nginx-controller --timeout=180s
+kubectl get ingressclass                                    # should list nginx
+kubectl -n ingress-nginx get svc ingress-nginx-controller   # TYPE LoadBalancer + EXTERNAL-IP
 ```
 
-(It can also be ticked in the portal when creating the cluster - Networking tab.) Off AKS, e.g. on
-minikube (`minikube addons enable ingress`) or with community ingress-nginx, change
-`ingressClassName` back to `nginx`.
+This creates the `ingress-nginx` namespace, the NGINX controller pods, the `nginx` IngressClass, and a
+`LoadBalancer` Service - on AKS that Service is what creates the Azure load balancer and the single
+public IP for the whole app.
+
+- **Use a current version.** Keep to the newest `controller-v1.x` release; older ones such as
+  v1.11.3 are affected by the critical "IngressNightmare" CVEs (CVE-2025-1974 etc., fixed in
+  1.11.5/1.12.1). The ingress-nginx project stopped active maintenance in March 2026, so for
+  long-running clusters prefer a maintained controller (below).
+- **minikube:** `minikube addons enable ingress` instead (same `nginx` class).
+- **AKS-managed alternative:** the application routing add-on runs a Microsoft-maintained NGINX.
+  Enable it with `az aks approuting enable -g <resource-group> -n <cluster>` and change
+  `ingressClassName` to `webapprouting.kubernetes.azure.com`.
+
+To remove the controller later: `kubectl delete -f <same deploy.yaml URL>`.
 
 ## 3. Apply the manifests
 
