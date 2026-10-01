@@ -178,7 +178,7 @@ spec:
             failureThreshold: 3
           env:
             # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
-            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            # so metrics aren't reachable through the Services / the public Ingress.
             - name: Kestrel__Endpoints__Http__Url
               value: "http://+:8080"
             - name: Kestrel__Endpoints__Metrics__Url
@@ -294,7 +294,7 @@ spec:
             failureThreshold: 3
           env:
             # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
-            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            # so metrics aren't reachable through the Services / the public Ingress.
             - name: Kestrel__Endpoints__Http__Url
               value: "http://+:8080"
             - name: Kestrel__Endpoints__Metrics__Url
@@ -435,7 +435,7 @@ spec:
             failureThreshold: 3
           env:
             # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
-            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            # so metrics aren't reachable through the Services / the public Ingress.
             - name: Kestrel__Endpoints__Http__Url
               value: "http://+:8080"
             - name: Kestrel__Endpoints__Metrics__Url
@@ -576,7 +576,7 @@ spec:
             failureThreshold: 3
           env:
             # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
-            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            # so metrics aren't reachable through the Services / the public Ingress.
             - name: Kestrel__Endpoints__Http__Url
               value: "http://+:8080"
             - name: Kestrel__Endpoints__Metrics__Url
@@ -707,7 +707,7 @@ spec:
             failureThreshold: 3
           env:
             # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
-            # so metrics aren't reachable through the Services / the gateway's public LoadBalancer.
+            # so metrics aren't reachable through the Services / the public Ingress.
             - name: Kestrel__Endpoints__Http__Url
               value: "http://+:8080"
             - name: Kestrel__Endpoints__Metrics__Url
@@ -832,8 +832,11 @@ spec:
 
 ---
 # ---------------------------------------------------------------------------
-# Ingress (single public entry point via the ingress-nginx controller's one load balancer)
+# Ingress (single public entry point - the controller's one Azure load balancer / public IP)
 #   /api -> ss-gateway-api, everything else -> ss-react-ui
+#   Served by the AKS application routing add-on (Microsoft-managed NGINX):
+#     az aks approuting enable -g <resource-group> -n <cluster>
+#   On a non-AKS cluster with community ingress-nginx, change the class back to "nginx".
 # ---------------------------------------------------------------------------
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -841,7 +844,7 @@ metadata:
   name: supportsystem-ingress
   namespace: supportsystem
 spec:
-  ingressClassName: nginx
+  ingressClassName: webapprouting.kubernetes.azure.com
   rules:
     - http:
         paths:

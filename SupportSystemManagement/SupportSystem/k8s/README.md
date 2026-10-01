@@ -6,49 +6,72 @@ built and pushed to a registry first.
 
 ## 1. Build and push images
 
-```bash
-docker build -t narendransekar/ss-auth-server-api:latest ./SS.Auth.Server.API
-docker build -f SS.User.API/Dockerfile -t narendransekar/ss-user-api:latest .
-docker build -f SS.Ticket.API/Dockerfile -t narendransekar/ss-ticket-api:latest .
-docker build -f SS.Email.API/SS.Email.API/Dockerfile -t narendransekar/ss-email-api:latest .
-docker build -t narendransekar/ss-gateway-api:latest ./SS.Gateway.API
-docker build --build-arg REACT_APP_GATEWAY_URL=http://localhost:5145 -t narendransekar/ss-react-ui:latest ./supportsystem.reactui
+From this folder's parent (`SupportSystemManagement/SupportSystem`, where `docker-compose.yml` is),
+build and push all six images with the names/build contexts already defined in compose:
 
-docker push narendransekar/ss-auth-server-api:latest
-docker push narendransekar/ss-user-api:latest
-docker push narendransekar/ss-ticket-api:latest
-docker push narendransekar/ss-email-api:latest
-docker push narendransekar/ss-gateway-api:latest
-docker push narendransekar/ss-react-ui:latest
+```bash
+docker compose build ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui
+docker compose push ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui
 ```
 
-Replace `narendransekar` with your own registry/repo if needed - just keep the image names in
-`supportsystem.yaml` in sync.
+Every .NET image is built from the solution folder (`context: .`) because the APIs reference the
+shared `SS.Base.*` projects. The React UI needs no build args: it calls `/api` on its own origin,
+which the Ingress routes to the gateway.
 
-## 2. Apply the manifests
+Replace `narendransekar` with your own registry/repo if needed - just keep the image names in
+`docker-compose.yml` and `supportsystem.yaml` in sync.
+
+## 2. Install the ingress controller (once per cluster)
+
+The `supportsystem-ingress` uses `ingressClassName: webapprouting.kubernetes.azure.com`, the class of
+the AKS **application routing** add-on (Microsoft-managed NGINX). Enable it once:
+
+```bash
+az aks approuting enable -g <resource-group> -n <cluster>
+kubectl get ingressclass   # should list webapprouting.kubernetes.azure.com
+```
+
+(It can also be ticked in the portal when creating the cluster - Networking tab.) Off AKS, e.g. on
+minikube (`minikube addons enable ingress`) or with community ingress-nginx, change
+`ingressClassName` back to `nginx`.
+
+## 3. Apply the manifests
 
 ```bash
 kubectl apply -f k8s/supportsystem.yaml
 ```
 
 This creates everything in the `supportsystem` namespace: a `ConfigMap`/`Secret` for the env vars
-that were hardcoded in `docker-compose.yml`, and a `Deployment` + `Service` per compose service.
+that were hardcoded in `docker-compose.yml`, a `Deployment` + `Service` per compose service, and the
+`Ingress`. Create the real secret first - see **Secrets** below.
 
-## 3. Access the app
+## 4. Access the app
 
-- `ss-gateway-api` and `ss-react-ui` are `LoadBalancer` Services (compose's `5145:8080` and
-  `3000:80` host port mappings). On a cloud cluster they get an external IP; on `minikube` run
-  `minikube tunnel` or `minikube service -n supportsystem ss-react-ui`; on `kind`, port-forward
-  instead:
-  ```bash
-  kubectl -n supportsystem port-forward svc/ss-react-ui 3000:3000
-  kubectl -n supportsystem port-forward svc/ss-gateway-api 5145:5145
-  ```
-- All other services (`rabbitmq`, `ss-auth-server-api`, `ss-user-api`, `ss-ticket-api`,
-  `ss-email-api`) are `ClusterIP` (internal only), matching how the gateway/react-ui talk to them
-  in `ocelot.Docker.json` - those routes already use the plain service names (`ss-user-api`,
-  `ss-auth-server-api`, etc.), which is exactly what Kubernetes DNS resolves inside the cluster, so
-  no changes were needed there.
+Every Service is `ClusterIP` (internal only). The single public entry point is the Ingress, which
+gets one public IP from the controller's Azure load balancer:
+
+| Path | Routed to |
+|---|---|
+| `/api/...` | `ss-gateway-api:8080` (Ocelot, which forwards to the other APIs) |
+| everything else | `ss-react-ui:80` |
+
+```bash
+kubectl get ingress -n supportsystem   # ADDRESS column = public IP (can take a minute or two)
+```
+
+Open `http://<ADDRESS>/`. Because the UI and API share that origin, no CORS or gateway URL setup is
+needed.
+
+Without an ingress controller (e.g. `kind`), port-forward the UI and gateway instead - the UI then
+calls `/api` on `localhost:3000`, so use the gateway directly for API testing:
+
+```bash
+kubectl -n supportsystem port-forward svc/ss-react-ui 3000:80
+kubectl -n supportsystem port-forward svc/ss-gateway-api 5145:8080
+```
+
+Inside the cluster, the gateway and APIs reach each other by Service name (`ss-user-api`,
+`ss-auth-server-api`, ...), which is what `ocelot.Docker.json` already uses.
 
 ## Notes / deliberate differences from docker-compose.yml
 
@@ -64,7 +87,8 @@ that were hardcoded in `docker-compose.yml`, and a `Deployment` + `Service` per 
   kubectl -n supportsystem create secret generic supportsystem-secrets \
     --from-literal=DB_CONNECTION_STRING='...' \
     --from-literal=RABBITMQ_USERNAME='...' \
-    --from-literal=RABBITMQ_PASSWORD='...' \n    --from-literal=APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=...;IngestionEndpoint=...'
+    --from-literal=RABBITMQ_PASSWORD='...' \
+    --from-literal=APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=...;IngestionEndpoint=...'
   ```
   then delete the `Secret` block from `supportsystem.yaml` (or `kubectl apply` will overwrite it
   with the placeholders) before running `kubectl apply -f k8s/supportsystem.yaml`.
@@ -91,8 +115,8 @@ kubectl -n supportsystem rollout restart deploy
 ## Metrics: Prometheus + Grafana (Azure managed)
 
 Every API serves Prometheus metrics at `/metrics` on a **separate port 9464** (the `metrics` container
-port; the app stays on 8080). No Service exposes 9464, so metrics can't be read through the gateway's
-public LoadBalancer. RabbitMQ exposes its built-in metrics on 15692 (`prometheus` port).
+port; the app stays on 8080). No Service exposes 9464, so metrics can't be read through the public
+Ingress. RabbitMQ exposes its built-in metrics on 15692 (`prometheus` port).
 
 What you get:
 
