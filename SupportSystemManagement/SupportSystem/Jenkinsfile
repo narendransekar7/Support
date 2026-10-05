@@ -39,6 +39,10 @@ pipeline {
         // Unique, immutable tag per build - this is what makes a rollback really go back to the old code
         // (with only :latest, rolling back would pull the same new image again).
         IMAGE_TAG             = "${env.BUILD_NUMBER}"
+        // Values that define the release - used by BOTH 'Render Manifest' and 'Deploy to AKS', so the
+        // archived manifest matches what is deployed. Add release overrides here, not in one stage only.
+        // pullPolicy IfNotPresent is safe: every build has its own tag.
+        HELM_RELEASE_ARGS     = "--set-string image.tag=${env.BUILD_NUMBER} --set image.pullPolicy=IfNotPresent"
         // Helm revisions kept in the cluster = how far back you can roll back
         HELM_HISTORY_MAX      = '20'
     }
@@ -73,6 +77,17 @@ pipeline {
         // -------------------------------------------------------------------------------------
         // deploy
         // -------------------------------------------------------------------------------------
+        // First, before the slow image builds: a broken chart fails the build in seconds.
+        stage('Helm Lint') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    // existingSecret only so linting doesn't need the real secret values
+                    sh 'helm lint "$CHART" --strict --set secrets.existingSecret=lint-only $HELM_RELEASE_ARGS'
+                }
+            }
+        }
+
         stage('Build Docker Images') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
@@ -120,24 +135,17 @@ pipeline {
             }
         }
 
-        stage('Helm Lint') {
-            when { expression { params.ACTION == 'deploy' } }
-            steps {
-                dir('SupportSystemManagement/SupportSystem') {
-                    // existingSecret only so linting doesn't need the real secret values
-                    sh 'helm lint "$CHART" --strict --set secrets.existingSecret=lint-only'
-                }
-            }
-        }
-
         stage('Render Manifest') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
                 dir('SupportSystemManagement/SupportSystem') {
-                    // Exactly what gets deployed (without secret values), kept with the build for reference
+                    // What gets deployed, kept with the build for reference. Same $HELM_RELEASE_ARGS as the
+                    // deploy; the only difference is the Secret: rendered in existingSecret mode so no secret
+                    // values end up in the artifact (the real release also has the Secret object and its
+                    // checksum/secret pod annotation differs).
                     sh '''
                         helm template "$RELEASE" "$CHART" -n "$NAMESPACE" \
-                          --set image.tag="$IMAGE_TAG" \
+                          $HELM_RELEASE_ARGS \
                           --set secrets.existingSecret=supportsystem-secrets \
                           > "rendered-$IMAGE_TAG.yaml"
                     '''
@@ -157,13 +165,11 @@ pipeline {
                         sh aksLogin()
                         // --rollback-on-failure (Helm 4; use --atomic on Helm 3): if the new pods don't pass
                         // their readiness probes within the timeout, Helm restores the previous revision itself.
-                        // pullPolicy IfNotPresent is safe now: every build has its own tag.
                         sh '''
                             helm upgrade --install "$RELEASE" "$CHART" \
                               -n "$NAMESPACE" --create-namespace \
                               -f "$SECRET_VALUES" \
-                              --set image.tag="$IMAGE_TAG" \
-                              --set image.pullPolicy=IfNotPresent \
+                              $HELM_RELEASE_ARGS \
                               --description "Jenkins build #$BUILD_NUMBER, commit $GIT_SHORT" \
                               --history-max "$HELM_HISTORY_MAX" \
                               --rollback-on-failure --wait --timeout 10m
