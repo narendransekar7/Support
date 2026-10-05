@@ -42,6 +42,32 @@ helm rollback supportsystem <REVISION> -n supportsystem
 helm uninstall supportsystem -n supportsystem
 ```
 
+## CI/CD with Jenkins (deploy, rollback, status)
+
+The [`Jenkinsfile`](../../Jenkinsfile) deploys this chart to AKS. Use **Build with Parameters**:
+
+| `ACTION` | What happens |
+|---|---|
+| `deploy` (default) | Builds the 6 images tagged `:<BUILD_NUMBER>` (+ `:latest`), pushes them, `helm upgrade --install --set image.tag=<BUILD_NUMBER>`. If the new pods don't become ready within 10 min, Helm rolls back to the previous revision automatically. |
+| `rollback` | No build. `helm rollback` to `ROLLBACK_REVISION` (empty = previous revision). |
+| `status` | Read-only: `helm history` and the image each Deployment is running. |
+
+Image tag = Jenkins build number, and each Helm revision's description records the build and commit:
+
+```
+REVISION  STATUS      DESCRIPTION
+6         superseded  Jenkins build #41, commit 3f2a1c9
+7         superseded  Jenkins build #42, commit a7b9e44
+8         deployed    Rollback to 6
+```
+
+So to undo build #42: run `ACTION=status`, find the revision of the build you want (6 = build #41),
+then run `ACTION=rollback`, `ROLLBACK_REVISION=6`.
+
+A rollback restores the images **and** the values of that revision (including secret values from
+`values.secret.yaml`). It does not undo database migrations or messages already in RabbitMQ, and it
+only works while the old image tags still exist in the registry. The last 20 revisions are kept.
+
 ## Common overrides
 
 | Value | Default | Purpose |
