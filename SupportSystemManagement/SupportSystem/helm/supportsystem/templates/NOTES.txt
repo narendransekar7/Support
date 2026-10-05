@@ -1,0 +1,32 @@
+Support System is deployed to namespace "{{ .Release.Namespace }}" (release "{{ .Release.Name }}").
+
+{{- if .Values.ingress.enabled }}
+
+1. Get the public address (can take a minute or two to appear):
+
+     kubectl get ingress supportsystem-ingress -n {{ .Release.Namespace }}
+
+   Then open http://{{ default "<ADDRESS>" .Values.ingress.host }}/ - /api goes to the gateway, everything else to the UI.
+   Requires an ingress controller serving class "{{ .Values.ingress.className }}" (see k8s/README.md step 2).
+{{- else }}
+
+1. Ingress is disabled. Port-forward instead:
+
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Values.reactUi.name }} 3000:{{ .Values.reactUi.port }}
+     kubectl -n {{ .Release.Namespace }} port-forward svc/ss-gateway-api 5145:{{ .Values.apiDefaults.httpPort }}
+{{- end }}
+
+2. Watch the pods come up:
+
+     kubectl get pods,hpa -n {{ .Release.Namespace }}
+
+{{- if .Values.secrets.existingSecret }}
+
+Using existing Secret "{{ .Values.secrets.existingSecret }}" - pods are NOT restarted automatically when it
+changes; run `kubectl -n {{ .Release.Namespace }} rollout restart deploy` after updating it.
+{{- end }}
+{{- if not .Values.monitoring.podMonitors.enabled }}
+
+Prometheus scraping is off. Once the AKS metrics add-on is enabled, upgrade with
+--set monitoring.podMonitors.enabled=true (or apply k8s/monitoring.yaml).
+{{- end }}

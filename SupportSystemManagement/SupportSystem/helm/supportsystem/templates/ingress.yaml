@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled }}
+# Single public entry point (the controller's one Azure load balancer / public IP)
+#   /api -> ss-gateway-api, everything else -> ss-react-ui
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: supportsystem-ingress
+  labels:
+    {{- include "supportsystem.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: ss-gateway-api
+                port:
+                  number: {{ .Values.apiDefaults.httpPort }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.reactUi.name }}
+                port:
+                  number: {{ .Values.reactUi.port }}
+      {{- with .Values.ingress.host }}
+      host: {{ . | quote }}
+      {{- end }}
+{{- end }}

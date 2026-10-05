@@ -13,6 +13,9 @@ node_modules
 .env.*.local
 # Local docker-compose variables (e.g. APPLICATIONINSIGHTS_CONNECTION_STRING)
 SupportSystemManagement/SupportSystem/.env
+# Helm secret values (see helm/supportsystem/values.secret.example.yaml)
+values.secret.yaml
+values.*.secret.yaml
 
 # React production build output
 build/
