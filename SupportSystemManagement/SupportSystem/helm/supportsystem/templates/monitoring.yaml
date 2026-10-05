@@ -1,0 +1,58 @@
+{{- /*
+Azure Monitor managed Prometheus scrape config - same as k8s/monitoring.yaml.
+Off by default: the azmonitoring.coreos.com CRD only exists once the AKS metrics add-on is enabled.
+*/ -}}
+{{- if .Values.monitoring.podMonitors.enabled }}
+# .NET APIs - OpenTelemetry Prometheus exporter on the dedicated metrics port
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: supportsystem-apis
+  labels:
+    {{- include "supportsystem.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          {{- range $name, $svc := .Values.apis }}
+          {{- if $svc.enabled }}
+          - {{ $name }}
+          {{- end }}
+          {{- end }}
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.monitoring.podMonitors.interval }}
+      relabelings:
+        # job = the service name (ss-ticket-api, ...) so Grafana dashboards can filter per service;
+        # instance stays the pod IP:port, so replicas remain separate series.
+        - sourceLabels: [__meta_kubernetes_pod_label_app]
+          targetLabel: job
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+{{- if .Values.rabbitmq.enabled }}
+---
+# RabbitMQ - built-in rabbitmq_prometheus plugin (queue depth, publish/deliver rates, connections)
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "supportsystem.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: rabbitmq
+  podMetricsEndpoints:
+    - port: prometheus
+      path: /metrics
+      interval: {{ .Values.monitoring.podMonitors.interval }}
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_app]
+          targetLabel: job
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+{{- end }}
+{{- end }}

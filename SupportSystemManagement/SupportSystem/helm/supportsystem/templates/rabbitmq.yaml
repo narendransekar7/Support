@@ -1,0 +1,66 @@
+{{- if .Values.rabbitmq.enabled }}
+{{- $secretName := include "supportsystem.secretName" . }}
+# rabbitmq - deliberately not autoscaled: extra replicas would be separate brokers
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "supportsystem.componentLabels" (dict "root" $ "name" "rabbitmq") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        {{- include "supportsystem.componentLabels" (dict "root" $ "name" "rabbitmq") | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print .Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: rabbitmq
+          image: {{ .Values.rabbitmq.image }}
+          ports:
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: management
+            - containerPort: 15692   # Prometheus metrics (rabbitmq_prometheus plugin, on by default in the official image)
+              name: prometheus
+          resources:
+            {{- toYaml .Values.rabbitmq.resources | nindent 12 }}
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: RABBITMQ_USERNAME
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: RABBITMQ_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "supportsystem.componentLabels" (dict "root" $ "name" "rabbitmq") | nindent 4 }}
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+{{- end }}

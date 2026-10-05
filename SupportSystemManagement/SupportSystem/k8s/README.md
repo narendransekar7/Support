@@ -58,6 +58,17 @@ This creates everything in the `supportsystem` namespace: a `ConfigMap`/`Secret`
 that were hardcoded in `docker-compose.yml`, a `Deployment` + `Service` per compose service, and the
 `Ingress`. Create the real secret first - see **Secrets** below.
 
+**Or install with Helm** - the same resources are packaged as a chart in
+[`../helm/supportsystem`](../helm/supportsystem/README.md):
+
+```bash
+helm upgrade --install supportsystem ./helm/supportsystem -n supportsystem --create-namespace \
+  -f helm/supportsystem/values.secret.yaml
+```
+
+Use one or the other per namespace, and keep `supportsystem.yaml` and the chart in sync when
+changing either.
+
 ## 4. Access the app
 
 Every Service is `ClusterIP` (internal only). The single public entry point is the Ingress, which

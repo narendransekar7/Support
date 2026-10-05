@@ -1,0 +1,312 @@
+# Default values for the Support System chart. Mirrors k8s/supportsystem.yaml - keep the two in sync.
+#
+# Resource names (ss-user-api, rabbitmq, supportsystem-config, ...) are fixed, not prefixed with the
+# release name: ocelot.Docker.json routes by these Service names and k8s/monitoring.yaml selects on the
+# `app` label. So install one release per namespace:
+#
+#   helm upgrade --install supportsystem ./helm/supportsystem -n supportsystem --create-namespace \
+#     -f helm/supportsystem/values.secret.yaml
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+image:
+  # Prefix put in front of every app image: Docker Hub user/org, or e.g. myacr.azurecr.io
+  registry: narendransekar
+  # Default tag for all app images; override per service with <service>.image.tag
+  tag: latest
+  # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+  # pods pull the new one, so replicas would run different versions.
+  pullPolicy: Always
+
+imagePullSecrets: []
+#  - name: acr-pull
+
+# ---------------------------------------------------------------------------
+# Non-secret config shared across services -> ConfigMap "supportsystem-config"
+# ---------------------------------------------------------------------------
+config:
+  # Service name of the in-cluster broker (rabbitmq.enabled) or the host of an external one
+  rabbitmqHost: "rabbitmq"
+  rabbitmqVhost: "/"
+  # The browser only talks to the ingress (same origin), so no CORS/gateway URL is needed for the UI.
+  # Set to the ingress URL if you also want to call the APIs from another origin.
+  corsReactUiOrigin: "http://localhost:3000"
+  authUserApiBaseUrl: "http://ss-user-api:8080"
+  gatewayBaseUrl: "http://ss-gateway-api:8080"
+  # Logging (all .NET services): "json" = one structured line per entry on stdout.
+  logConsoleFormat: "json"
+  logLevelDefault: "Information"
+
+# ---------------------------------------------------------------------------
+# Secrets -> Secret "supportsystem-secrets"
+#   Never commit real values here. Either:
+#     - put them in values.secret.yaml (git-ignored) and pass it with -f, or
+#     - create the Secret yourself (kubectl create secret ..., Key Vault CSI, sealed-secrets, ...)
+#       and set existingSecret to its name - the chart then doesn't create one.
+#   The Secret must contain the keys DB_CONNECTION_STRING, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
+#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING.
+# ---------------------------------------------------------------------------
+secrets:
+  existingSecret: ""
+  dbConnectionString: ""
+  rabbitmqUsername: "guest"
+  rabbitmqPassword: "guest"
+  # Application Insights connection string. Leave empty to disable OpenTelemetry export.
+  applicationInsightsConnectionString: ""
+
+# ---------------------------------------------------------------------------
+# RabbitMQ (single replica, no persistence - see k8s/README.md "Known gap")
+# ---------------------------------------------------------------------------
+rabbitmq:
+  # Set false to use an external broker (then point config.rabbitmqHost at it)
+  enabled: true
+  image: rabbitmq:3-management
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# Defaults shared by every .NET API below (apis.*)
+# ---------------------------------------------------------------------------
+apiDefaults:
+  httpPort: 8080
+  # Prometheus /metrics on its own port - not exposed by the Services / the public Ingress
+  metricsPort: 9464
+  resources:
+    requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+      cpu: 100m
+      memory: 256Mi
+    limits:          # CPU above this is throttled, memory above this is OOMKilled
+      cpu: 500m
+      memory: 512Mi
+  startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+    httpGet:
+      path: /health/live
+      port: http
+    periodSeconds: 2
+    failureThreshold: 30
+  readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+    httpGet:
+      path: /health/ready
+      port: http
+    periodSeconds: 10
+    failureThreshold: 3
+  livenessProbe:     # restart a hung process
+    httpGet:
+      path: /health/live
+      port: http
+    periodSeconds: 20
+    failureThreshold: 3
+
+# Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+# ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+topologySpread:
+  enabled: true
+  topologyKeys:
+    - kubernetes.io/hostname
+    - topology.kubernetes.io/zone
+
+# HPA scaling behaviour shared by every autoscaled Deployment
+autoscalingBehavior:
+  scaleUp:
+    stabilizationWindowSeconds: 0     # react to spikes immediately
+  scaleDown:
+    stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+    policies:
+      - type: Pods
+        value: 1                      # remove at most 1 pod per minute
+        periodSeconds: 60
+
+# ---------------------------------------------------------------------------
+# .NET APIs
+#   Per service:
+#     enabled                 render this service at all
+#     image.repository/tag    image name (prefixed with image.registry); tag defaults to image.tag
+#     aspnetcoreEnvironment   ASPNETCORE_ENVIRONMENT
+#     database                inject ConnectionStrings__DefaultConnection from the Secret
+#     rabbitmq                inject RabbitMq__Host/VirtualHost/Username/Password
+#     cors                    inject Cors__ReactUIOrigin
+#     configEnv               extra env vars read from the ConfigMap ({ENV_NAME: CONFIGMAP_KEY})
+#     extraEnv                extra raw env entries (list, as in a container spec)
+#     resources               overrides apiDefaults.resources
+#     replicaCount            used only when autoscaling.enabled is false
+#     autoscaling             HorizontalPodAutoscaler on CPU (requires metrics-server)
+#     pdb.enabled             PodDisruptionBudget minAvailable: 1 - keep off for single-replica
+#                             services, or it blocks node drains / AKS upgrades
+# ---------------------------------------------------------------------------
+apis:
+  ss-auth-server-api:
+    enabled: true
+    image:
+      repository: ss-auth-server-api
+      tag: ""
+    aspnetcoreEnvironment: Development
+    database: false
+    rabbitmq: false
+    cors: false
+    configEnv:
+      UserApi__BaseUrl: AUTH_USER_API_BASE_URL
+    extraEnv: []
+    resources: {}
+    replicaCount: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: true
+
+  ss-user-api:
+    enabled: true
+    image:
+      repository: ss-user-api
+      tag: ""
+    aspnetcoreEnvironment: Development
+    database: true
+    rabbitmq: true
+    cors: true
+    configEnv: {}
+    extraEnv: []
+    resources: {}
+    replicaCount: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: true
+
+  # RabbitMQ consumers and the EF saga repository are safe with competing replicas
+  ss-ticket-api:
+    enabled: true
+    image:
+      repository: ss-ticket-api
+      tag: ""
+    aspnetcoreEnvironment: Development
+    database: true
+    rabbitmq: true
+    cors: true
+    configEnv: {}
+    extraEnv: []
+    resources: {}
+    replicaCount: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: true
+
+  # RabbitMQ consumer - replicas share the queue as competing consumers
+  ss-email-api:
+    enabled: true
+    image:
+      repository: ss-email-api
+      tag: ""
+    aspnetcoreEnvironment: Development
+    database: false
+    rabbitmq: true
+    cors: false
+    configEnv: {}
+    extraEnv: []
+    resources: {}
+    replicaCount: 1
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false   # can run a single replica
+
+  # Every request goes through here; reached from outside only through the ingress at /api
+  ss-gateway-api:
+    enabled: true
+    image:
+      repository: ss-gateway-api
+      tag: ""
+    aspnetcoreEnvironment: Docker   # selects ocelot.Docker.json, which routes by these Service names
+    database: false
+    rabbitmq: false
+    cors: false
+    configEnv:
+      BaseUrl: GATEWAY_BASE_URL
+    extraEnv: []
+    resources: {}
+    replicaCount: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: true
+
+# ---------------------------------------------------------------------------
+# React UI (nginx) - reached from outside only through the ingress at /
+# ---------------------------------------------------------------------------
+reactUi:
+  enabled: true
+  name: ss-react-ui
+  image:
+    repository: ss-react-ui
+    tag: ""
+  port: 80
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    periodSeconds: 10
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    periodSeconds: 20
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+
+# ---------------------------------------------------------------------------
+# Ingress (single public entry point): /api -> ss-gateway-api, everything else -> ss-react-ui
+#   className "nginx" = community ingress-nginx (k8s/README.md step 2);
+#   "webapprouting.kubernetes.azure.com" = AKS application routing add-on.
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  # Optional host name; empty = match any host (access by the load balancer IP)
+  host: ""
+  annotations: {}
+  tls: []
+  #  - secretName: supportsystem-tls
+  #    hosts:
+  #      - support.example.com
+
+# ---------------------------------------------------------------------------
+# Azure Monitor managed Prometheus PodMonitors (same as k8s/monitoring.yaml).
+#   Only enable once the AKS metrics add-on is on - the azmonitoring.coreos.com CRD exists only then.
+# ---------------------------------------------------------------------------
+monitoring:
+  podMonitors:
+    enabled: false
+    interval: 30s

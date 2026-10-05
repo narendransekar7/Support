@@ -1,0 +1,64 @@
+{{- if .Values.reactUi.enabled }}
+{{- $ui := .Values.reactUi }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $ui.name }}
+  labels:
+    {{- include "supportsystem.componentLabels" (dict "root" $ "name" $ui.name) | nindent 4 }}
+spec:
+  {{- if not $ui.autoscaling.enabled }}
+  replicas: {{ $ui.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ $ui.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "supportsystem.componentLabels" (dict "root" $ "name" $ui.name) | nindent 8 }}
+      annotations:
+        {{- include "supportsystem.podChecksums" . | nindent 8 }}
+    spec:
+      {{- include "supportsystem.topologySpread" (dict "root" $ "name" $ui.name) | nindent 6 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $ui.name }}
+          image: {{ include "supportsystem.image" (dict "root" $ "image" $ui.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $ui.port }}
+              name: http
+          env:
+            # Written into /config.js at container start - see supportsystem.reactui/docker-entrypoint.d.
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supportsystem.secretName" . }}
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
+          resources:
+            {{- toYaml $ui.resources | nindent 12 }}
+          readinessProbe:
+            {{- toYaml $ui.readinessProbe | nindent 12 }}
+          livenessProbe:
+            {{- toYaml $ui.livenessProbe | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $ui.name }}
+  labels:
+    {{- include "supportsystem.componentLabels" (dict "root" $ "name" $ui.name) | nindent 4 }}
+spec:
+  selector:
+    app: {{ $ui.name }}
+  ports:
+    - name: http
+      port: {{ $ui.port }}
+      targetPort: http
+{{- include "supportsystem.scaling" (dict "root" $ "name" $ui.name "svc" $ui) }}
+{{- end }}

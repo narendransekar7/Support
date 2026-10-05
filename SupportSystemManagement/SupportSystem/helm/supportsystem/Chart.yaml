@@ -1,0 +1,13 @@
+apiVersion: v2
+name: supportsystem
+description: Support System - .NET microservices (auth, user, ticket, email, Ocelot gateway), React UI and RabbitMQ
+type: application
+# Chart version - bump on every change to the templates/values.
+version: 0.1.0
+# Version of the application images deployed by default (image.tag in values.yaml).
+appVersion: "latest"
+keywords:
+  - supportsystem
+  - aspnetcore
+  - react
+  - rabbitmq
