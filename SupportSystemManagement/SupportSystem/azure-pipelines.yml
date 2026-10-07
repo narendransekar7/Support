@@ -1,0 +1,349 @@
+# Support System CI/CD (Azure DevOps equivalent of the Jenkinsfile): build + push the six images, then
+# deploy them to AKS with the Helm chart (helm/supportsystem). The same pipeline can also roll back to an
+# earlier release or show the history.
+#
+#   action = deploy    build images tagged with this run's BuildId, push, `helm upgrade --install`
+#                      (automatically rolls back if the new pods don't become healthy)
+#   action = rollback  no build - `helm rollback` to rollbackRevision ("previous" = the previous one)
+#   action = status    no changes - print the release history and the images currently running
+#
+# Version mapping: image tag == Build.BuildId (the run number below starts with it), and every Helm
+# revision's DESCRIPTION says which run / commit it came from, so `helm history` (or action = status) shows
+#   REVISION 7   deployed   Azure DevOps run #4211, commit a7b9e44
+#
+# Agents: Microsoft-hosted ubuntu-latest (see `pool`); Helm 4 is installed in each job that uses helm,
+# because --rollback-on-failure (below) is a Helm 4 flag.
+# Project setup (Project settings / Pipelines / Library):
+#   Service connection  docker-hub            Docker Registry      - Docker Hub
+#   Service connection  azure-aks             Azure Resource Manager - needs access to the AKS cluster
+#   Secure file         values.secret.yaml    the filled-in helm/supportsystem/values.secret.yaml
+#   Environment         supportsystem-aks     add an "Exclusive lock" check (= Jenkins disableConcurrentBuilds:
+#                                             two helm operations on one release at once fail); approvals optional
+# Run retention (Jenkins buildDiscarder) is set in Project settings / Pipelines / Settings.
+
+name: $(BuildID) ${{ parameters.action }}
+
+trigger: none   # run manually (Run pipeline -> pick action), like the parameterised Jenkins job
+pr: none
+
+lockBehavior: sequential
+
+parameters:
+  - name: action
+    displayName: 'deploy = build & release this commit; rollback = return to an earlier Helm revision; status = show history only'
+    type: string
+    default: deploy
+    values: [deploy, rollback, status]
+  - name: rollbackRevision
+    displayName: 'Only for rollback: Helm revision to restore (run action=status to see them). "previous" = the previous revision'
+    type: string
+    default: previous
+
+# Microsoft-hosted agent: a fresh VM per job with docker, az and kubectl preinstalled - no agent VMs to
+# build or maintain (Jenkins needed its own 'Jenkins-Agent' machine). Helm 4 is installed per job below.
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  DOCKER_HUB_REPO: narendransekar
+  DOCKER_SERVICE_CONNECTION: docker-hub
+  AZURE_SERVICE_CONNECTION: azure-aks
+  HELM_SECRET_VALUES: values.secret.yaml
+  RESOURCE_GROUP: '<aks-resource-group>'
+  AKS_CLUSTER: '<aks-cluster-name>'
+  NAMESPACE: supportsystem
+  RELEASE: supportsystem
+  CHART: helm/supportsystem
+  APP_DIR: $(Build.SourcesDirectory)/SupportSystemManagement/SupportSystem
+  # Unique, immutable tag per run - this is what makes a rollback really go back to the old code
+  # (with only :latest, rolling back would pull the same new image again).
+  IMAGE_TAG: $(Build.BuildId)
+  # Values that define the release - used by BOTH 'Render manifest' and 'Deploy to AKS', so the
+  # published manifest matches what is deployed. Add release overrides here, not in one step only.
+  # pullPolicy IfNotPresent is safe: every run has its own tag.
+  HELM_RELEASE_ARGS: --set-string image.tag=$(Build.BuildId) --set image.pullPolicy=IfNotPresent
+  # Helm revisions kept in the cluster = how far back you can roll back
+  HELM_HISTORY_MAX: '20'
+
+stages:
+  # -------------------------------------------------------------------------------------
+  # deploy
+  # -------------------------------------------------------------------------------------
+  - ${{ if eq(parameters.action, 'deploy') }}:
+    - stage: Build
+      displayName: Lint, build & push
+      jobs:
+        - job: Build
+          steps:
+            - checkout: self
+            - task: HelmInstaller@1
+              displayName: Install Helm
+              inputs:
+                helmVersionToInstall: latest
+
+            # First, before the slow image builds: a broken chart fails the run in seconds.
+            # existingSecret only so linting doesn't need the real secret values
+            - bash: helm lint "$CHART" --strict --set secrets.existingSecret=lint-only $HELM_RELEASE_ARGS
+              displayName: Helm lint
+              workingDirectory: $(APP_DIR)
+
+            - bash: |
+                set -u
+                # image name -> Dockerfile (same as docker-compose.yml). Build context is the solution root
+                # because the APIs reference the shared SS.Base.* projects; the UI has its own context.
+                build() {   # name dockerfile context
+                  docker build -f "$2" -t "$DOCKER_HUB_REPO/$1:$IMAGE_TAG" -t "$DOCKER_HUB_REPO/$1:latest" "$3" \
+                    > "build-$1.log" 2>&1
+                }
+                declare -A pids
+                build ss-auth-server-api SS.Auth.Server.API/Dockerfile         . & pids[ss-auth-server-api]=$!
+                build ss-user-api        SS.User.API/Dockerfile                . & pids[ss-user-api]=$!
+                build ss-ticket-api      SS.Ticket.API/Dockerfile              . & pids[ss-ticket-api]=$!
+                build ss-email-api       SS.Email.API/SS.Email.API/Dockerfile  . & pids[ss-email-api]=$!
+                build ss-gateway-api     SS.Gateway.API/Dockerfile             . & pids[ss-gateway-api]=$!
+                build ss-react-ui        supportsystem.reactui/Dockerfile supportsystem.reactui & pids[ss-react-ui]=$!
+
+                failed=0
+                for name in "${!pids[@]}"; do
+                  if wait "${pids[$name]}"; then status=ok; else status=FAILED; failed=1; fi
+                  echo "##[group]$name: $status"; cat "build-$name.log"; echo "##[endgroup]"
+                  [ "$status" = ok ] || echo "##vso[task.logissue type=error]docker build failed: $name"
+                done
+                rm -f build-*.log
+                exit $failed
+              displayName: Build Docker images (parallel)
+              workingDirectory: $(APP_DIR)
+
+            - task: Docker@2
+              displayName: Docker Hub login
+              inputs:
+                command: login
+                containerRegistry: ${{ variables.DOCKER_SERVICE_CONNECTION }}
+
+            - bash: |
+                set -e
+                for img in ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui; do
+                  docker push "$DOCKER_HUB_REPO/$img:$IMAGE_TAG"
+                  docker push "$DOCKER_HUB_REPO/$img:latest"
+                done
+              displayName: Push Docker images
+
+            # What gets deployed, kept with the run for reference. Same $HELM_RELEASE_ARGS as the deploy;
+            # the only difference is the Secret: rendered in existingSecret mode so no secret values end up
+            # in the artifact (the real release also has the Secret object and its checksum/secret pod
+            # annotation differs).
+            - bash: |
+                set -e
+                helm template "$RELEASE" "$CHART" -n "$NAMESPACE" \
+                  $HELM_RELEASE_ARGS \
+                  --set secrets.existingSecret=supportsystem-secrets \
+                  > "$BUILD_ARTIFACTSTAGINGDIRECTORY/rendered-$IMAGE_TAG.yaml"
+              displayName: Render manifest
+              workingDirectory: $(APP_DIR)
+
+            - publish: $(Build.ArtifactStagingDirectory)
+              artifact: rendered-manifest
+              displayName: Publish rendered manifest
+
+            - task: Docker@2
+              displayName: Docker Hub logout
+              condition: always()
+              inputs:
+                command: logout
+                containerRegistry: ${{ variables.DOCKER_SERVICE_CONNECTION }}
+
+    - stage: Deploy
+      displayName: Deploy to AKS
+      dependsOn: Build
+      jobs:
+        - deployment: Deploy
+          environment: supportsystem-aks
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - download: none
+                  - checkout: self
+                  - task: HelmInstaller@1
+                    displayName: Install Helm
+                    inputs:
+                      helmVersionToInstall: latest
+
+                  - task: DownloadSecureFile@1
+                    name: secretValues
+                    displayName: Download values.secret.yaml
+                    inputs:
+                      secureFile: ${{ variables.HELM_SECRET_VALUES }}
+
+                  # --rollback-on-failure (Helm 4; use --atomic on Helm 3): if the new pods don't pass
+                  # their readiness probes within the timeout, Helm restores the previous revision itself.
+                  - task: AzureCLI@2
+                    displayName: Helm upgrade
+                    inputs:
+                      azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      workingDirectory: $(APP_DIR)
+                      inlineScript: |
+                        set -e
+                        az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing
+                        helm upgrade --install "$RELEASE" "$CHART" \
+                          -n "$NAMESPACE" --create-namespace \
+                          -f "$SECRET_VALUES" \
+                          $HELM_RELEASE_ARGS \
+                          --description "Azure DevOps run #$BUILD_BUILDID, commit ${BUILD_SOURCEVERSION:0:7}" \
+                          --history-max "$HELM_HISTORY_MAX" \
+                          --rollback-on-failure --wait --timeout 10m
+                        echo "##vso[build.addbuildtag]image-$IMAGE_TAG"
+                        echo "##vso[build.addbuildtag]commit-${BUILD_SOURCEVERSION:0:7}"
+                    env:
+                      SECRET_VALUES: $(secretValues.secureFilePath)
+
+                  - task: AzureCLI@2
+                    displayName: Smoke test
+                    inputs:
+                      azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: |
+                        set -e
+                        az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing
+                        IP=$(kubectl -n "$NAMESPACE" get ingress supportsystem-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+                        curl -fsS --retry 5 --retry-delay 10 "http://$IP/" > /dev/null
+                        echo "UI reachable at http://$IP/"
+
+  # -------------------------------------------------------------------------------------
+  # rollback - no build; re-applies an earlier revision's images AND values (incl. secret values)
+  # -------------------------------------------------------------------------------------
+  - ${{ if eq(parameters.action, 'rollback') }}:
+    - stage: Rollback
+      jobs:
+        - deployment: Rollback
+          environment: supportsystem-aks
+          strategy:
+            runOnce:
+              deploy:
+                steps:
+                  - download: none
+                  - task: HelmInstaller@1
+                    displayName: Install Helm
+                    inputs:
+                      helmVersionToInstall: latest
+
+                  - bash: |
+                      if [ "$ROLLBACK_REVISION" != previous ] && ! [[ "$ROLLBACK_REVISION" =~ ^[0-9]+$ ]]; then
+                        echo "##vso[task.logissue type=error]rollbackRevision must be a revision number from 'helm history' or 'previous', got '$ROLLBACK_REVISION'"
+                        exit 1
+                      fi
+                    displayName: Validate parameters
+                    env:
+                      ROLLBACK_REVISION: ${{ parameters.rollbackRevision }}
+
+                  - task: AzureCLI@2
+                    displayName: Helm rollback
+                    inputs:
+                      azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: |
+                        set -e
+                        az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing
+                        echo "=== Before ==="
+                        helm history "$RELEASE" -n "$NAMESPACE" --max 10
+
+                        # "previous" = no revision argument = previous revision
+                        REVISION=$([ "$ROLLBACK_REVISION" = previous ] || echo "$ROLLBACK_REVISION")
+                        helm rollback "$RELEASE" $REVISION -n "$NAMESPACE" \
+                          --history-max "$HELM_HISTORY_MAX" --wait --timeout 10m
+
+                        echo "=== After ==="
+                        helm history "$RELEASE" -n "$NAMESPACE" --max 10
+
+                        echo "=== Images running ==="
+                        kubectl -n "$NAMESPACE" get deploy -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image'
+                        echo "##vso[build.addbuildtag]rollback-to-$ROLLBACK_REVISION"
+                    env:
+                      ROLLBACK_REVISION: ${{ parameters.rollbackRevision }}
+
+  # -------------------------------------------------------------------------------------
+  # status - read-only
+  # -------------------------------------------------------------------------------------
+  - ${{ if eq(parameters.action, 'status') }}:
+    - stage: Status
+      jobs:
+        - job: Status
+          steps:
+            - checkout: none
+            - task: HelmInstaller@1
+              displayName: Install Helm
+              inputs:
+                helmVersionToInstall: latest
+            - task: AzureCLI@2
+              displayName: Release history & running images
+              inputs:
+                azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+                scriptType: bash
+                scriptLocation: inlineScript
+                inlineScript: |
+                  set -e
+                  az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing
+                  helm history "$RELEASE" -n "$NAMESPACE" --max "$HELM_HISTORY_MAX"
+                  echo "=== Images running ==="
+                  kubectl -n "$NAMESPACE" get deploy -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image'
+
+  # -------------------------------------------------------------------------------------
+  # post (Jenkins `post { failure / always }`) - runs after every action, even a failed one
+  # -------------------------------------------------------------------------------------
+  - stage: OnFailure
+    displayName: Diagnostics (on failure)
+    dependsOn:
+      - ${{ if eq(parameters.action, 'deploy') }}:
+        - Build
+        - Deploy
+      - ${{ if eq(parameters.action, 'rollback') }}:
+        - Rollback
+      - ${{ if eq(parameters.action, 'status') }}:
+        - Status
+    condition: failed()   # any of the stages above failed
+    jobs:
+      - job: PodsAndEvents
+        steps:
+          - checkout: none
+          - task: AzureCLI@2
+            displayName: Pods & events
+            inputs:
+              azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing >/dev/null || exit 0
+                kubectl -n "$NAMESPACE" get pods,events --sort-by=.lastTimestamp 2>/dev/null | tail -40 || true
+
+  - stage: History
+    displayName: Release history
+    dependsOn:   # same list as OnFailure (Azure Pipelines doesn't support YAML anchors)
+      - ${{ if eq(parameters.action, 'deploy') }}:
+        - Build
+        - Deploy
+      - ${{ if eq(parameters.action, 'rollback') }}:
+        - Rollback
+      - ${{ if eq(parameters.action, 'status') }}:
+        - Status
+    condition: always()
+    jobs:
+      - job: History
+        steps:
+          - checkout: none
+          - task: HelmInstaller@1
+            displayName: Install Helm
+            inputs:
+              helmVersionToInstall: latest
+          - task: AzureCLI@2
+            displayName: helm history
+            inputs:
+              azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing >/dev/null || exit 0
+                helm history "$RELEASE" -n "$NAMESPACE" --max 5 2>/dev/null || true
