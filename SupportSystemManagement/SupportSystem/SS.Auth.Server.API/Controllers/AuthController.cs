@@ -16,16 +16,20 @@ namespace SS.Auth.Server.API.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly string _jwtSecret = "hldiSW6BAHCCzY9Yy1zQLiN+MHYJ0Fm5InfQlPANUyM=";
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
+        private readonly string _jwtSecret;
 
 
         public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<AuthController> logger)
         {
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
+            // Shared with SS.Gateway.API / SS.User.API (SS.Base.Authentication), which validate these tokens.
+            var signingKey = configuration["Jwt:SigningKey"];
+            _jwtSecret = !string.IsNullOrEmpty(signingKey) ? signingKey
+                : throw new InvalidOperationException("Jwt:SigningKey is not configured (env var Jwt__SigningKey).");
             _logger = logger;
         }
 

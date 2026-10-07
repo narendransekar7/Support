@@ -85,30 +85,6 @@
       "UpstreamHttpMethod": [ "GET", "POST" ]
     },
     {
-      "DownstreamPathTemplate": "/api/user/validate",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "ss-user-api",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/user/validate",
-      "UpstreamHttpMethod": [ "GET", "POST" ]
-    },
-    {
-      "DownstreamPathTemplate": "/api/user/saverefreshtoken",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "ss-user-api",
-          "Port": 8080
-        }
-      ],
-      "UpstreamPathTemplate": "/api/user/saverefreshtoken",
-      "UpstreamHttpMethod": [ "GET", "POST" ]
-    },
-    {
       "DownstreamPathTemplate": "/api/user/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [

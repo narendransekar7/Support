@@ -1,6 +1,8 @@
 # Observability: every .NET service logs JSON to stdout (`docker compose logs -f <service>`).
 # To also export logs/traces/metrics to Application Insights, set APPLICATIONINSIGHTS_CONNECTION_STRING
 # in your shell or in a .env file next to this compose file (git-ignored) before `docker compose up`.
+# "Sign in with Microsoft" (Entra ID, optional - see ARCHITECTURE.md "Authentication") is configured the same way:
+#   ENTRA_TENANT_ID, ENTRA_API_CLIENT_ID, ENTRA_SPA_CLIENT_ID, ENTRA_API_SCOPE (ids only, no secrets)
 services:
   rabbitmq:
     image: rabbitmq:3-management  # Includes management UI
@@ -47,6 +49,8 @@ services:
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
       - Cors__ReactUIOrigin=http://localhost:5145
+      - AzureAd__TenantId=${ENTRA_TENANT_ID:-}
+      - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
@@ -113,6 +117,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker # selects ocelot.Docker.json (container hostnames, plain HTTP)
       - BaseUrl=http://ss-gateway-api:8080
+      - AzureAd__TenantId=${ENTRA_TENANT_ID:-}
+      - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
@@ -132,6 +138,10 @@ services:
     environment:
       # Written into /config.js at container start (see supportsystem.reactui/docker-entrypoint.d) - empty disables browser telemetry.
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      # Microsoft Entra ID sign-in (MSAL, authorization code + PKCE). Register http://localhost/ as a SPA redirect URI.
+      - ENTRA_TENANT_ID=${ENTRA_TENANT_ID:-}
+      - ENTRA_SPA_CLIENT_ID=${ENTRA_SPA_CLIENT_ID:-}
+      - ENTRA_API_SCOPE=${ENTRA_API_SCOPE:-}
     networks:
       - ss-network
 

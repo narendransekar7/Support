@@ -22,6 +22,12 @@ data:
   # `kubectl logs` and cluster log collectors read. Level can be changed here without rebuilding images.
   LOG_CONSOLE_FORMAT: "json"
   LOG_LEVEL_DEFAULT: "Information"
+  # Microsoft Entra ID sign-in (OpenID Connect), optional - empty = email/password login only. Ids, not secrets. See ARCHITECTURE.md "Authentication".
+  # The ingress must be served over HTTPS on a host name registered as a SPA redirect URI.
+  ENTRA_TENANT_ID: ""        # Directory (tenant) id
+  ENTRA_API_CLIENT_ID: ""    # Client id of the "Support System API" app registration
+  ENTRA_SPA_CLIENT_ID: ""    # Client id of the "Support System SPA" app registration
+  ENTRA_API_SCOPE: ""        # e.g. api://<ENTRA_API_CLIENT_ID>/access_as_user
 
 ---
 # Sensitive values - placeholders only, no credentials are committed. Set real values (same ones
@@ -37,6 +43,10 @@ stringData:
   DB_CONNECTION_STRING: "REPLACE_ME"
   RABBITMQ_USERNAME: "guest"
   RABBITMQ_PASSWORD: "guest"
+  # HS256 key for the email/password login's tokens (Auth Server signs, Gateway + User API validate).
+  # Leave the key out entirely to use the development default in appsettings.json - an empty value would
+  # override it with "". For real deployments set a long random value:
+  # JWT_SIGNING_KEY: "<random 32+ byte base64 string>"
   # Application Insights connection string (Azure portal -> Application Insights -> Overview).
   # Leave empty to disable OpenTelemetry export; logs still go to stdout either way.
   APPLICATIONINSIGHTS_CONNECTION_STRING: ""
@@ -201,6 +211,12 @@ spec:
                   name: supportsystem-secrets
                   key: APPLICATIONINSIGHTS_CONNECTION_STRING
                   optional: true
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: JWT_SIGNING_KEY
+                  optional: true   # absent = the development default in appsettings.json
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
             - name: UserApi__BaseUrl
@@ -317,6 +333,12 @@ spec:
                   name: supportsystem-secrets
                   key: APPLICATIONINSIGHTS_CONNECTION_STRING
                   optional: true
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: JWT_SIGNING_KEY
+                  optional: true   # absent = the development default in appsettings.json
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
             - name: ConnectionStrings__DefaultConnection
@@ -349,6 +371,16 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: CORS_REACT_UI_ORIGIN
+            - name: AzureAd__TenantId
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_TENANT_ID
+            - name: AzureAd__ClientId
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_API_CLIENT_ID
 ---
 apiVersion: v1
 kind: Service
@@ -730,6 +762,12 @@ spec:
                   name: supportsystem-secrets
                   key: APPLICATIONINSIGHTS_CONNECTION_STRING
                   optional: true
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: JWT_SIGNING_KEY
+                  optional: true   # absent = the development default in appsettings.json
             - name: ASPNETCORE_ENVIRONMENT
               value: "Docker" # selects ocelot.Docker.json, which already routes by these Service names
             - name: BaseUrl
@@ -737,6 +775,16 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: GATEWAY_BASE_URL
+            - name: AzureAd__TenantId
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_TENANT_ID
+            - name: AzureAd__ClientId
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_API_CLIENT_ID
 ---
 apiVersion: v1
 kind: Service
@@ -800,6 +848,21 @@ spec:
                   name: supportsystem-secrets
                   key: APPLICATIONINSIGHTS_CONNECTION_STRING
                   optional: true
+            - name: ENTRA_TENANT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_TENANT_ID
+            - name: ENTRA_SPA_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_SPA_CLIENT_ID
+            - name: ENTRA_API_SCOPE
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_API_SCOPE
           resources:
             requests:
               cpu: 25m

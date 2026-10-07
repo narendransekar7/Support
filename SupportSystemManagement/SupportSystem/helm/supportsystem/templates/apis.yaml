@@ -114,6 +114,14 @@ spec:
                   name: {{ $secretName }}
                   key: RABBITMQ_PASSWORD
             {{- end }}
+            {{- if $svc.jwt }}
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: JWT_SIGNING_KEY
+                  optional: true   # absent = appsettings.json development default
+            {{- end }}
             {{- if $svc.cors }}
             - name: Cors__ReactUIOrigin
               valueFrom:

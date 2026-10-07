@@ -39,13 +39,25 @@ config:
   logLevelDefault: "Information"
 
 # ---------------------------------------------------------------------------
+# Microsoft Entra ID sign-in (OpenID Connect), optional - empty = email/password login only -> ConfigMap "supportsystem-config"
+#   Ids only, no secrets: the SPA is a public client (authorization code + PKCE) and the APIs
+#   validate tokens against the tenant's published signing keys. See ARCHITECTURE.md "Authentication".
+#   The ingress must be served over HTTPS on a host name registered as a SPA redirect URI.
+# ---------------------------------------------------------------------------
+entra:
+  tenantId: ""        # Directory (tenant) id
+  apiClientId: ""     # Client id of the "Support System API" app registration
+  spaClientId: ""     # Client id of the "Support System SPA" app registration
+  apiScope: ""        # e.g. api://<apiClientId>/access_as_user
+
+# ---------------------------------------------------------------------------
 # Secrets -> Secret "supportsystem-secrets"
 #   Never commit real values here. Either:
 #     - put them in values.secret.yaml (git-ignored) and pass it with -f, or
 #     - create the Secret yourself (kubectl create secret ..., Key Vault CSI, sealed-secrets, ...)
 #       and set existingSecret to its name - the chart then doesn't create one.
 #   The Secret must contain the keys DB_CONNECTION_STRING, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
-#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING.
+#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING and JWT_SIGNING_KEY.
 # ---------------------------------------------------------------------------
 secrets:
   existingSecret: ""
@@ -54,6 +66,9 @@ secrets:
   rabbitmqPassword: "guest"
   # Application Insights connection string. Leave empty to disable OpenTelemetry export.
   applicationInsightsConnectionString: ""
+  # HS256 key for the email/password login's tokens (SS.Auth.Server.API signs, Gateway + User API validate).
+  # Empty = the development default in their appsettings.json - set a long random value for real deployments.
+  jwtSigningKey: ""
 
 # ---------------------------------------------------------------------------
 # RabbitMQ (single replica, no persistence - see k8s/README.md "Known gap")
@@ -131,6 +146,7 @@ autoscalingBehavior:
 #     database                inject ConnectionStrings__DefaultConnection from the Secret
 #     rabbitmq                inject RabbitMq__Host/VirtualHost/Username/Password
 #     cors                    inject Cors__ReactUIOrigin
+#     jwt                     inject Jwt__SigningKey from the Secret's JWT_SIGNING_KEY (if present)
 #     configEnv               extra env vars read from the ConfigMap ({ENV_NAME: CONFIGMAP_KEY})
 #     extraEnv                extra raw env entries (list, as in a container spec)
 #     resources               overrides apiDefaults.resources
@@ -149,6 +165,7 @@ apis:
     database: false
     rabbitmq: false
     cors: false
+    jwt: true
     configEnv:
       UserApi__BaseUrl: AUTH_USER_API_BASE_URL
     extraEnv: []
@@ -171,7 +188,10 @@ apis:
     database: true
     rabbitmq: true
     cors: true
-    configEnv: {}
+    jwt: true
+    configEnv:
+      AzureAd__TenantId: ENTRA_TENANT_ID
+      AzureAd__ClientId: ENTRA_API_CLIENT_ID
     extraEnv: []
     resources: {}
     replicaCount: 2
@@ -193,6 +213,7 @@ apis:
     database: true
     rabbitmq: true
     cors: true
+    jwt: false
     configEnv: {}
     extraEnv: []
     resources: {}
@@ -215,6 +236,7 @@ apis:
     database: false
     rabbitmq: true
     cors: false
+    jwt: false
     configEnv: {}
     extraEnv: []
     resources: {}
@@ -237,8 +259,11 @@ apis:
     database: false
     rabbitmq: false
     cors: false
+    jwt: true
     configEnv:
       BaseUrl: GATEWAY_BASE_URL
+      AzureAd__TenantId: ENTRA_TENANT_ID
+      AzureAd__ClientId: ENTRA_API_CLIENT_ID
     extraEnv: []
     resources: {}
     replicaCount: 2

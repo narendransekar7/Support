@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MassTransit;
+using SS.Base.Authentication;
 using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using SS.Base.Observability;
@@ -34,6 +35,10 @@ builder.Services.AddCors(options =>
             .AllowCredentials();                   // Allow cookies and credentials
     });
 });
+
+// Same bearer-token validation as SS.Gateway.API (Entra ID or password-login tokens) - only endpoints
+// marked [Authorize] use it, e.g. /api/user/me, which needs the caller's identity from the token itself.
+builder.Services.AddSupportSystemAuthentication(builder.Configuration);
 
 //Added the extension method in the Application layer for AddMediatR
 builder.Services.AddApplicationServices(builder.Configuration);
@@ -87,6 +92,7 @@ app.UseHttpsRedirection();
 // Use CORS middleware
 app.UseCors("ReactUICorsPolicy");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<ApiKeyMiddleware>();

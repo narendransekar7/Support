@@ -21,6 +21,7 @@
     <ProjectReference Include="..\SS.Base.Application\SS.Base.Application.csproj" />
     <ProjectReference Include="..\SS.Base.Infrastructure\SS.Base.Infrastructure.csproj" />
     <ProjectReference Include="..\SS.Base.Observability\SS.Base.Observability.csproj" />
+    <ProjectReference Include="..\SS.Base.Authentication\SS.Base.Authentication.csproj" />
   </ItemGroup>
 
 </Project>
