@@ -40,6 +40,13 @@ spec:
                   name: {{ include "supportsystem.secretName" . }}
                   key: APPLICATIONINSIGHTS_CONNECTION_STRING
                   optional: true
+            {{- range $envName := list "ENTRA_TENANT_ID" "ENTRA_SPA_CLIENT_ID" "ENTRA_API_SCOPE" }}
+            - name: {{ $envName }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "supportsystem.configMapName" $ }}
+                  key: {{ $envName }}
+            {{- end }}
           resources:
             {{- toYaml $ui.resources | nindent 12 }}
           readinessProbe:

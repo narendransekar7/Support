@@ -1,17 +1,15 @@
 import React from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import Sidebar from "./Sidebar";
 import { logoutUser } from "../features/authSlice";
 
 const MasterLayout = () => {
    const dispatch = useDispatch();
-   const navigate = useNavigate();
 
+   // Signs out of Microsoft Entra ID too; Entra then redirects back to the login page.
    const handleLogout = () => {
        dispatch(logoutUser());
-       localStorage.removeItem("token");
-       navigate("/");
    };
 
    const layoutStyle = {

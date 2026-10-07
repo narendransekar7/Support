@@ -13,3 +13,7 @@ data:
   GATEWAY_BASE_URL: {{ .Values.config.gatewayBaseUrl | quote }}
   LOG_CONSOLE_FORMAT: {{ .Values.config.logConsoleFormat | quote }}
   LOG_LEVEL_DEFAULT: {{ .Values.config.logLevelDefault | quote }}
+  ENTRA_TENANT_ID: {{ .Values.entra.tenantId | quote }}
+  ENTRA_API_CLIENT_ID: {{ .Values.entra.apiClientId | quote }}
+  ENTRA_SPA_CLIENT_ID: {{ .Values.entra.spaClientId | quote }}
+  ENTRA_API_SCOPE: {{ .Values.entra.apiScope | quote }}

@@ -58,6 +58,11 @@ This creates everything in the `supportsystem` namespace: a `ConfigMap`/`Secret`
 that were hardcoded in `docker-compose.yml`, a `Deployment` + `Service` per compose service, and the
 `Ingress`. Create the real secret first - see **Secrets** below.
 
+**Sign-in:** the email/password login works as is (set `JWT_SIGNING_KEY` in the Secret for real deployments). For "Sign in with Microsoft" (Entra ID), fill in the `ENTRA_*` keys of the `supportsystem-config` ConfigMap
+(tenant id, API/SPA client ids, API scope - ids, not secrets). Entra ID only redirects to HTTPS outside
+localhost, so the Ingress needs a host name with TLS, registered as a SPA redirect URI
+(`https://<host>/`). App-registration steps: [ARCHITECTURE.md](../ARCHITECTURE.md#authentication).
+
 **Or install with Helm** - the same resources are packaged as a chart in
 [`../helm/supportsystem`](../helm/supportsystem/README.md):
 

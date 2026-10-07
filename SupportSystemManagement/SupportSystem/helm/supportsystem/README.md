@@ -76,6 +76,8 @@ only works while the old image tags still exist in the registry. The last 20 rev
 | `image.tag` | `latest` | Tag for all app images; per service: `apis.<name>.image.tag`, `reactUi.image.tag` |
 | `imagePullSecrets` | `[]` | For a private registry |
 | `secrets.existingSecret` | `""` | Use a Secret created outside the chart |
+| `secrets.jwtSigningKey` | `""` | Password-login JWT key (empty = development default in `appsettings.json`; set it for real deployments) |
+| `entra.tenantId` / `entra.apiClientId` / `entra.spaClientId` / `entra.apiScope` | `""` | "Sign in with Microsoft" (optional - empty = password login only; needs `ingress.host` + `ingress.tls`, since Entra only redirects to HTTPS outside localhost) |
 | `config.logLevelDefault` | `Information` | .NET minimum log level |
 | `config.corsReactUiOrigin` | `http://localhost:3000` | Extra origin allowed to call the APIs |
 | `apis.<name>.autoscaling.*` | see values | HPA min/max/CPU target |

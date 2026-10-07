@@ -1,16 +1,18 @@
 # Use the official .NET 8.0 SDK image to build the application
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-# Build context is the solution root (SS.Gateway.API depends on SS.Base.Observability as a sibling)
+# Build context is the solution root (SS.Gateway.API depends on SS.Base.Observability and SS.Base.Authentication as siblings)
 WORKDIR /src
 
 # Copy csproj files first and restore (better layer caching)
 COPY SS.Gateway.API/SS.Gateway.API.csproj SS.Gateway.API/
+COPY SS.Base.Authentication/SS.Base.Authentication.csproj SS.Base.Authentication/
 COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
 RUN dotnet restore SS.Gateway.API/SS.Gateway.API.csproj
 
 # Copy the rest of the source
 COPY SS.Gateway.API/ SS.Gateway.API/
+COPY SS.Base.Authentication/ SS.Base.Authentication/
 COPY SS.Base.Observability/ SS.Base.Observability/
 
 # Build the application

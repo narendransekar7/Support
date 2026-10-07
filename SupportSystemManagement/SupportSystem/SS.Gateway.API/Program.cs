@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using SS.Base.Authentication;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using SS.Base.Observability;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,20 +26,10 @@ var ocelotFile = builder.Environment.IsEnvironment("Docker") ? "ocelot.Docker.js
 builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true).AddEnvironmentVariables();
 builder.Services.AddOcelot(builder.Configuration);
 
-// JWT Authentication using key which need to be check and removed in futher to access web api with out using this technique
-var key = Encoding.ASCII.GetBytes("hldiSW6BAHCCzY9Yy1zQLiN+MHYJ0Fm5InfQlPANUyM=");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true
-        };
-    });
+// Bearer tokens from either sign-in option - Microsoft Entra ID (OpenID Connect, validated against the
+// tenant's signing keys) or the SS.Auth.Server.API password login (Jwt:SigningKey) - see SS.Base.Authentication.
+// The "Bearer" scheme name is what ocelot*.json routes reference as AuthenticationProviderKey.
+builder.Services.AddSupportSystemAuthentication(builder.Configuration);
 
 
 
@@ -73,7 +61,6 @@ app.UseSupportSystemMetrics();
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
 app.UseAuthorization();
 
 app.MapControllers();
