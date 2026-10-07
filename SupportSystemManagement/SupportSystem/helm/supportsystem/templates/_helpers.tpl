@@ -30,7 +30,7 @@ app.kubernetes.io/name: {{ .name }}
 Full image reference. Call with (dict "root" $ "image" <svc.image>).
 */}}
 {{- define "supportsystem.image" -}}
-{{- $tag := default .root.Values.image.tag .image.tag -}}
+{{- $tag := toString (default .root.Values.image.tag .image.tag) -}}
 {{- if .root.Values.image.registry -}}
 {{- printf "%s/%s:%s" (trimSuffix "/" .root.Values.image.registry) .image.repository $tag -}}
 {{- else -}}

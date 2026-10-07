@@ -1,114 +1,262 @@
+// Support System CI/CD: build + push the six images, then deploy them to AKS with the Helm chart
+// (helm/supportsystem). The same job can also roll back to an earlier release or show the history.
+//
+//   ACTION = deploy    build images tagged with this build number, push, `helm upgrade --install`
+//                      (automatically rolls back if the new pods don't become healthy)
+//   ACTION = rollback  no build - `helm rollback` to ROLLBACK_REVISION (empty = the previous one)
+//   ACTION = status    no changes - print the release history and the images currently running
+//
+// Version mapping: image tag == Jenkins build number, and every Helm revision's DESCRIPTION says
+// which Jenkins build / commit it came from, so `helm history` (or ACTION = status) shows e.g.
+//   REVISION 7   deployed   Jenkins build #42, commit a7b9e44
+//
+// Agent requirements: docker, az (Azure CLI), kubectl, helm.
+// Jenkins credentials:
+//   docker-hub-credentials-id     Username/password  - Docker Hub
+//   azure-credentials-id          Azure Service Principal - needs access to the AKS cluster
+//   supportsystem-values-secret   Secret file - the filled-in helm/supportsystem/values.secret.yaml
+
 pipeline {
     agent { label 'Jenkins-Agent' }
 
+    parameters {
+        choice(name: 'ACTION', choices: ['deploy', 'rollback', 'status'],
+               description: 'deploy = build & release this commit; rollback = return to an earlier Helm revision; status = show history only')
+        string(name: 'ROLLBACK_REVISION', defaultValue: '', trim: true,
+               description: 'Only for rollback: Helm revision to restore (run ACTION=status to see them). Empty = the previous revision')
+    }
+
     environment {
-        DOCKER_HUB_REPO = 'narendransekar'
-        DOCKER_CREDENTIALS_ID  = 'docker-hub-credentials-id' // Jenkins credential ID for Docker Hub
-		AZURE_CREDENTIALS = 'azure-credentials-id'
-        AZURE_WEB_APP = 'myjenkinswebapp'
-        RESOURCE_GROUP = 'jenkinsresourcegroup'
-		
+        DOCKER_HUB_REPO       = 'narendransekar'
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials-id'
+        AZURE_CREDENTIALS     = 'azure-credentials-id'
+        HELM_SECRET_VALUES    = 'supportsystem-values-secret'
+        RESOURCE_GROUP        = '<aks-resource-group>'
+        AKS_CLUSTER           = '<aks-cluster-name>'
+        NAMESPACE             = 'supportsystem'
+        RELEASE               = 'supportsystem'
+        CHART                 = 'helm/supportsystem'
+        // Unique, immutable tag per build - this is what makes a rollback really go back to the old code
+        // (with only :latest, rolling back would pull the same new image again).
+        IMAGE_TAG             = "${env.BUILD_NUMBER}"
+        // Values that define the release - used by BOTH 'Render Manifest' and 'Deploy to AKS', so the
+        // archived manifest matches what is deployed. Add release overrides here, not in one stage only.
+        // pullPolicy IfNotPresent is safe: every build has its own tag.
+        HELM_RELEASE_ARGS     = "--set-string image.tag=${env.BUILD_NUMBER} --set image.pullPolicy=IfNotPresent"
+        // Helm revisions kept in the cluster = how far back you can roll back
+        HELM_HISTORY_MAX      = '20'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()   // two helm operations on one release at once fail ("another operation is in progress")
+        buildDiscarder(logRotator(numToKeepStr: '50'))
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                // Clone your .NET Core project repository
-                git 'https://github.com/narendransekar7/Support.git'
-            }
-        }
-		
-		stage('Build Docker Images') {
-            parallel {
-                stage('Build SS.Auth.Server.API') {
-                    steps {
-					    script {
-                            // Build context is the solution root: the service references SS.Base.Observability.
-                            dir('SupportSystemManagement/SupportSystem') {
-                                sh 'docker build -f SS.Auth.Server.API/Dockerfile -t ${DOCKER_HUB_REPO}/ss-auth-server-api:latest .'
-                            }
-                        }
-                    }
-				}
-				stage('Build SS.Gateway.API') {
-					steps {
-					    script {
-                            // Build context is the solution root: the service references SS.Base.Observability.
-                            dir('SupportSystemManagement/SupportSystem') {
-                                sh 'docker build -f SS.Gateway.API/Dockerfile -t ${DOCKER_HUB_REPO}/ss-gateway-api:latest .'
-                            }
-                        }
-                    }
-				}
-				stage('Build SupportSystem.ReactUI') {
-					steps {
-					    script {
-                            dir('SupportSystemManagement/SupportSystem/supportsystem.reactui') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:latest .'
-                            }
-                        }
-                    }
-				}
-				stage('Build SupportSystem.WebAPI') {
-					steps {
-					    script {
-                            dir('SupportSystemManagement/SupportSystem') {
-                                sh 'docker build -t ${DOCKER_HUB_REPO}/ss-web-api:latest .'
-                            }
-                        }
-                    }
-				}
-            }
-        }
-		
-		stage('Push Docker Images') {
-            steps {
+                git branch: 'master', url: 'https://github.com/narendransekar7/Support.git'
                 script {
-                    // Login to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                    }
-
-                    // Push the Docker image to Docker Hub
-                    sh 'docker push ${DOCKER_HUB_REPO}/ss-auth-server-api:latest'
-					sh 'docker push ${DOCKER_HUB_REPO}/ss-gateway-api:latest'
-                    sh 'docker push ${DOCKER_HUB_REPO}/ss-react-ui:latest'
-					sh 'docker push ${DOCKER_HUB_REPO}/ss-web-api:latest'
+                    env.GIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                 }
             }
         }
-		
-        stage('Deploy to Azure Web App') {
+
+        stage('Validate Parameters') {
+            when { expression { params.ACTION == 'rollback' && params.ROLLBACK_REVISION } }
             steps {
                 script {
-				
-					dir('SupportSystemManagement/SupportSystem') {
-						// Validate the docker-compose.yml file exists
-						if (!fileExists('docker-compose.yml')) {
-							error 'docker-compose.yml file not found in the repository!'
-						}
-
-						withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS)]) {
-							sh """
-								az webapp config container set \
-									--name ${AZURE_WEB_APP} \
-									--resource-group ${RESOURCE_GROUP} \
-									--multicontainer-config-type compose \
-									--multicontainer-config-file docker-compose.yml
-								az webapp restart --name ${AZURE_WEB_APP} --resource-group ${RESOURCE_GROUP}
-							"""
-						}
-
-						 
-						 
+                    if (!(params.ROLLBACK_REVISION ==~ /\d+/)) {
+                        error "ROLLBACK_REVISION must be a revision number from 'helm history', got '${params.ROLLBACK_REVISION}'"
                     }
-
                 }
             }
         }
-		
+
+        // -------------------------------------------------------------------------------------
+        // deploy
+        // -------------------------------------------------------------------------------------
+        // First, before the slow image builds: a broken chart fails the build in seconds.
+        stage('Helm Lint') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    // existingSecret only so linting doesn't need the real secret values
+                    sh 'helm lint "$CHART" --strict --set secrets.existingSecret=lint-only $HELM_RELEASE_ARGS'
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    script {
+                        // image name -> Dockerfile (same as docker-compose.yml). Build context is the solution
+                        // root because the APIs reference the shared SS.Base.* projects.
+                        def apis = [
+                            'ss-auth-server-api': 'SS.Auth.Server.API/Dockerfile',
+                            'ss-user-api'       : 'SS.User.API/Dockerfile',
+                            'ss-ticket-api'     : 'SS.Ticket.API/Dockerfile',
+                            'ss-email-api'      : 'SS.Email.API/SS.Email.API/Dockerfile',
+                            'ss-gateway-api'    : 'SS.Gateway.API/Dockerfile',
+                        ]
+                        def builds = apis.collectEntries { name, dockerfile ->
+                            [(name): {
+                                sh "docker build -f ${dockerfile} -t ${DOCKER_HUB_REPO}/${name}:${IMAGE_TAG} -t ${DOCKER_HUB_REPO}/${name}:latest ."
+                            }]
+                        }
+                        builds['ss-react-ui'] = {
+                            dir('supportsystem.reactui') {
+                                sh "docker build -t ${DOCKER_HUB_REPO}/ss-react-ui:${IMAGE_TAG} -t ${DOCKER_HUB_REPO}/ss-react-ui:latest ."
+                            }
+                        }
+                        parallel builds
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID,
+                                                  usernameVariable: 'DOCKER_USERNAME',
+                                                  passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
+                }
+                sh '''
+                    for img in ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui; do
+                        docker push "$DOCKER_HUB_REPO/$img:$IMAGE_TAG"
+                        docker push "$DOCKER_HUB_REPO/$img:latest"
+                    done
+                '''
+            }
+        }
+
+        stage('Render Manifest') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    // What gets deployed, kept with the build for reference. Same $HELM_RELEASE_ARGS as the
+                    // deploy; the only difference is the Secret: rendered in existingSecret mode so no secret
+                    // values end up in the artifact (the real release also has the Secret object and its
+                    // checksum/secret pod annotation differs).
+                    sh '''
+                        helm template "$RELEASE" "$CHART" -n "$NAMESPACE" \
+                          $HELM_RELEASE_ARGS \
+                          --set secrets.existingSecret=supportsystem-secrets \
+                          > "rendered-$IMAGE_TAG.yaml"
+                    '''
+                    archiveArtifacts artifacts: "rendered-${IMAGE_TAG}.yaml"
+                }
+            }
+        }
+
+        stage('Deploy to AKS') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    withCredentials([
+                        azureServicePrincipal(credentialsId: AZURE_CREDENTIALS),
+                        file(credentialsId: HELM_SECRET_VALUES, variable: 'SECRET_VALUES')
+                    ]) {
+                        sh aksLogin()
+                        // --rollback-on-failure (Helm 4; use --atomic on Helm 3): if the new pods don't pass
+                        // their readiness probes within the timeout, Helm restores the previous revision itself.
+                        sh '''
+                            helm upgrade --install "$RELEASE" "$CHART" \
+                              -n "$NAMESPACE" --create-namespace \
+                              -f "$SECRET_VALUES" \
+                              $HELM_RELEASE_ARGS \
+                              --description "Jenkins build #$BUILD_NUMBER, commit $GIT_SHORT" \
+                              --history-max "$HELM_HISTORY_MAX" \
+                              --rollback-on-failure --wait --timeout 10m
+                        '''
+                    }
+                }
+                script { currentBuild.description = "deploy · image tag ${IMAGE_TAG} · commit ${env.GIT_SHORT}" }
+            }
+        }
+
+        stage('Smoke Test') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                sh '''
+                    IP=$(kubectl -n "$NAMESPACE" get ingress supportsystem-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+                    curl -fsS --retry 5 --retry-delay 10 "http://$IP/" > /dev/null
+                    echo "UI reachable at http://$IP/"
+                '''
+            }
+        }
+
+        // -------------------------------------------------------------------------------------
+        // rollback - no build; re-applies an earlier revision's images AND values (incl. secret values)
+        // -------------------------------------------------------------------------------------
+        stage('Rollback') {
+            when { expression { params.ACTION == 'rollback' } }
+            steps {
+                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS)]) {
+                    sh aksLogin()
+                    sh '''
+                        echo "=== Before ==="
+                        helm history "$RELEASE" -n "$NAMESPACE" --max 10
+
+                        # Empty ROLLBACK_REVISION = previous revision
+                        helm rollback "$RELEASE" $ROLLBACK_REVISION -n "$NAMESPACE" \
+                          --history-max "$HELM_HISTORY_MAX" --wait --timeout 10m
+
+                        echo "=== After ==="
+                        helm history "$RELEASE" -n "$NAMESPACE" --max 10
+                    '''
+                    sh imagesRunning()
+                }
+                script { currentBuild.description = "ROLLBACK to revision ${params.ROLLBACK_REVISION ?: 'previous'}" }
+            }
+        }
+
+        // -------------------------------------------------------------------------------------
+        // status - read-only
+        // -------------------------------------------------------------------------------------
+        stage('Status') {
+            when { expression { params.ACTION == 'status' } }
+            steps {
+                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS)]) {
+                    sh aksLogin()
+                    sh 'helm history "$RELEASE" -n "$NAMESPACE" --max "$HELM_HISTORY_MAX"'
+                    sh imagesRunning()
+                }
+                script { currentBuild.description = 'status' }
+            }
+        }
     }
-     
 
+    post {
+        failure {
+            sh 'kubectl -n "$NAMESPACE" get pods,events --sort-by=.lastTimestamp 2>/dev/null | tail -40 || true'
+        }
+        always {
+            sh 'docker logout >/dev/null 2>&1 || true'
+            sh 'helm history "$RELEASE" -n "$NAMESPACE" --max 5 2>/dev/null || true'
+        }
+    }
+}
 
+// Logs in with the Azure service principal and points kubectl/helm at the AKS cluster.
+// Single-quoted so the secrets are expanded by the shell, not interpolated by Groovy into the log.
+def aksLogin() {
+    return '''
+        az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" >/dev/null
+        az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+        az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing
+    '''
+}
+
+// Which image (and therefore which Jenkins build) each Deployment is running right now.
+def imagesRunning() {
+    return '''
+        echo "=== Images running ==="
+        kubectl -n "$NAMESPACE" get deploy -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image'
+    '''
 }
