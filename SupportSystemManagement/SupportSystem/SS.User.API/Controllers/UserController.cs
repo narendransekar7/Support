@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SS.Base.Application.Commands;
-using SS.Base.Application.Commands.User.LogOut;
 using SS.Base.Application.Queries;
 using SS.Base.Domain.Dto;
 using SS.Base.Domain.Entities;
@@ -23,58 +22,6 @@ namespace SS.User.API.Controllers
         {
             _mediator = mediator;
             _logger = logger;
-        }
-
-        // Endpoint to validate credentials  
-        [HttpPost("validate")]
-        public async Task<IActionResult> Validate([FromBody] ValidateUserQuery query)
-        {
-            var response = await _mediator.Send(query);
-
-            if (response is not null)
-            {
-                var userData = new
-                {
-                    UserId = response?.UserId,
-                    PrimaryEmail = response?.PrimaryEmail,
-                    Role = response?.Role.ToString(),
-                    DisplayName = response?.DisplayName,
-                    FirstName = response?.FirstName,
-                    LastName = response?.LastName
-                };
-                return Ok(userData);
-            }
-            else
-            {
-                return Unauthorized("Invalid credentials.");
-            }
-        }
-        
-        [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshAccessToken([FromBody] TokenRefreshCommand query)
-        {
-            var result = await _mediator.Send(query);
-
-            if (!result.Success)
-            {
-                return Unauthorized(result.ErrorMessage);
-            }
-
-            return Ok(result);
-        }
-
-        [HttpPost("saverefreshtoken")]
-        public async Task<IActionResult> SaveRefreshToken([FromBody] LoginSuccessCommand query)
-        {
-            await _mediator.Send(query);
-            return Ok("Token saved successfully");
-        }
-
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout([FromBody] LogOutCommand query)
-        {
-            await _mediator.Send(query);
-            return Ok("Logout successfully");
         }
 
         [HttpPost("createuser")]

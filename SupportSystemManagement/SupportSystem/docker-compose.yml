@@ -27,24 +27,6 @@ services:
     networks:
       - ss-network
 
-  ss-auth-server-api:
-    image: narendransekar/ss-auth-server-api:latest
-    build:
-      context: .
-      dockerfile: SS.Auth.Server.API/Dockerfile
-   
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - UserApi__BaseUrl=http://ss-user-api:8080
-      - Logging__Console__FormatterName=json
-      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
-    ports:
-      - "5223:8080"
-    depends_on:
-      - ss-user-api
-    networks:
-      - ss-network
-
   ss-user-api:
     image: narendransekar/ss-user-api:latest
     build:
@@ -53,7 +35,7 @@ services:
  
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=learningdatanaren.database.windows.net;Database=SupportSystem;User Id=narendran;Password=Admin@123;TrustServerCertificate=True;
+      - &db-connection ConnectionStrings__DefaultConnection=Server=learningdatanaren.database.windows.net;Database=SupportSystem;User Id=narendran;Password=Admin@123;TrustServerCertificate=True;
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
@@ -69,6 +51,22 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - rabbitmq
+    networks:
+      - ss-network
+
+  ss-auth-server-api:
+    image: narendransekar/ss-auth-server-api:latest
+    build:
+      context: .
+      dockerfile: SS.Auth.Server.API/Dockerfile
+   
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - *db-connection   # same database as ss-user-api
+      - Logging__Console__FormatterName=json
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+    ports:
+      - "5223:8080"
     networks:
       - ss-network
 

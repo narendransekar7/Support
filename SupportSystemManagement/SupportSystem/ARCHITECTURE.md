@@ -9,9 +9,9 @@ This system follows **Clean Architecture** for its core business logic (users, t
 | `SS.Base.Domain` | **Domain** | *(nothing but MassTransit's abstractions — see note below)* | Entities, repository interfaces, DTOs, cross-service message contracts. The center of the system. |
 | `SS.Base.Application` | **Application** | `SS.Base.Domain` | Use cases: MediatR commands/queries + handlers (CQRS), plus the ticket-creation saga state machine and its MassTransit consumers. Orchestrates domain objects via repository interfaces it doesn't implement. |
 | `SS.Base.Infrastructure` | **Infrastructure** | `SS.Base.Domain` | EF Core `DbContext`, repository implementations, `IUnitOfWork`, migrations. Implements the interfaces Domain declares, including saga-state persistence. |
-| `SS.User.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure` | Owns `UserController`. `/api/user/me` validates the caller's access token itself (either sign-in option); the endpoints the Auth Server calls are protected by an `X-Api-Key` header. |
+| `SS.User.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure` | Owns `UserController` (user profiles: `me`, `fetchuser`, `createuser`). `/api/user/me` validates the caller's access token itself (either sign-in option). |
 | `SS.Ticket.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure` | Owns `TicketController`/`TicketUpdateController`/`NotificationController`, plus the RabbitMQ/MassTransit wiring for the ticket-creation saga (see below). |
-| `SS.Auth.Server.API` | Edge service | *(none — HTTP client only)* | Email/password sign-in (one of the two options, see [Authentication](#authentication)): issues HS256 JWTs, mints refresh tokens. Talks to `SS.User.API` over HTTP as a plain client, not via project references. |
+| `SS.Auth.Server.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure` | Email/password sign-in (one of the two options, see [Authentication](#authentication)): checks credentials, stores/rotates/revokes refresh tokens and issues HS256 JWTs — all in-process via the Application handlers, no calls to `SS.User.API`. |
 | `SS.Gateway.API` | Edge service | *(none — Ocelot only)* | Ocelot reverse proxy (`ocelot.json`). Single entry point for the frontend; validates bearer tokens from either sign-in option (Auth Server JWT or Microsoft Entra ID) on protected routes before forwarding to `SS.User.API`/`SS.Ticket.API`. |
 | `SS.Base.Authentication` | Cross-cutting | *(none — ASP.NET Core JwtBearer only)* | Shared bearer-token setup (`AddSupportSystemAuthentication`) used by the Gateway and User API: accepts either sign-in option's tokens — see [Authentication](#authentication). |
 | `SS.Email.API` | Edge service | *(none)* | Standalone worker that drains an Azure Service Bus queue (user-created emails) **and** consumes RabbitMQ messages from the ticket-creation saga (ticket-received / ticket-creation-failed emails). Decoupled from the rest of the system by messaging, not by reference. |
@@ -57,7 +57,7 @@ flowchart LR
     GW -->|/api/auth/* password login| AUTH
     GW -->|/api/user/*| UAPI
     GW -->|/api/ticket/*, /api/notification/*| TAPI
-    AUTH -->|X-Api-Key| UAPI
+    AUTH --> APP
     UAPI --> APP
     TAPI --> APP
     SAGA --> APP
@@ -80,11 +80,13 @@ flowchart LR
     App[SS.Base.Application] --> Domain
     UserAPI[SS.User.API] --> App
     UserAPI --> Infra
+    AuthAPI[SS.Auth.Server.API] --> App
+    AuthAPI --> Infra
     TicketAPI[SS.Ticket.API] --> App
     TicketAPI --> Infra
 ```
 
-`SS.Base.Domain` has no project references onto Application or Infrastructure — it's pure C# (entities, `Role`/`TicketStatus`/`TicketVisibility` enums, `I*Repository` interfaces, `IUnitOfWork`, message contracts). Both `SS.Base.Application` and `SS.Base.Infrastructure` reference *only* `SS.Base.Domain`, never each other. `SS.User.API` and `SS.Ticket.API` are each a composition root wiring both together (`ApplicationStartup.AddApplicationServices` + `Infrastructure.DependencyInjection.AddInfrastructureServices`, called from their respective `Program.cs`) — there are now two composition roots instead of one, since Users and Tickets are split into separate deployable services. They still share one SQL Server database/schema and one `MSSQLDbContext`/migration history — this is a host-process split, not a database-per-service split.
+`SS.Base.Domain` has no project references onto Application or Infrastructure — it's pure C# (entities, `Role`/`TicketStatus`/`TicketVisibility` enums, `I*Repository` interfaces, `IUnitOfWork`, message contracts). Both `SS.Base.Application` and `SS.Base.Infrastructure` reference *only* `SS.Base.Domain`, never each other. `SS.User.API`, `SS.Ticket.API` and `SS.Auth.Server.API` are each a composition root wiring both together (`ApplicationStartup.AddApplicationServices` + `Infrastructure.DependencyInjection.AddInfrastructureServices`, called from their respective `Program.cs`) — Users, Tickets and sign-in are separate deployable services. They still share one SQL Server database/schema and one `MSSQLDbContext`/migration history — this is a host-process split, not a database-per-service split.
 
 ## Layer details
 
@@ -113,15 +115,15 @@ Handlers and consumers depend only on the Domain repository interfaces (e.g. `To
 - `Migrations/`: EF Core migration history (SQL Server).
 - `DependencyInjection.cs`: DI extension (`AddInfrastructureServices`) — registers the `DbContext` (SQL Server, connection string from config) and every repository/`IUnitOfWork` implementation.
 
-### Presentation / composition roots — `SS.User.API` and `SS.Ticket.API`
-- `SS.User.API/Controllers/UserController.cs` (thin — deserialize request, `_mediator.Send(...)`, return the result). `Middlewares/ApiKeyMiddleware.cs` gates `validate`/`saverefreshtoken`/`logout` behind a shared `X-Api-Key` header, since this API is only ever called server-to-server (by the Auth Server or the Gateway), never directly by the browser.
+### Presentation / composition roots — `SS.User.API`, `SS.Ticket.API` and `SS.Auth.Server.API`
+- `SS.User.API/Controllers/UserController.cs` (thin — deserialize request, `_mediator.Send(...)`, return the result).
+- `SS.Auth.Server.API/Controllers/AuthController.cs`: the email/password sign-in option. `login`/`logout`/`refresh-token` send `ValidateUserQuery`/`LoginSuccessCommand`/`LogOutCommand`/`TokenRefreshCommand` through MediatR, then sign the JWT with `Jwt:SigningKey` (`GenerateJwtToken`). It never publishes messages, so `Program.cs` registers an in-memory MassTransit bus only to satisfy `CreateTicketHandler`'s `IPublishEndpoint` (picked up by the MediatR scan) — sign-in does not depend on RabbitMQ.
 - `SS.Ticket.API/Controllers/TicketController.cs`, `TicketUpdateController.cs`, `NotificationController.cs` — same thin-controller style. `Program.cs` additionally calls `AddMassTransit(...)` to register the saga (EF Core-persisted) and its consumers, and connects to RabbitMQ using the `RabbitMq` section of `appsettings.json`.
-- Both call `AddApplicationServices` + `AddInfrastructureServices` — each is a place in the solution where Application and Infrastructure are both referenced and wired together.
+- All three call `AddApplicationServices` + `AddInfrastructureServices` — each is a place in the solution where Application and Infrastructure are both referenced and wired together.
 
 ### Edge services (outside the Clean Architecture core)
-These are intentionally **not** part of the layered core — they have no project references to Domain/Application/Infrastructure and talk to `SS.User.API`/`SS.Ticket.API` purely over HTTP or messaging, so they can be deployed, scaled, and reasoned about independently:
+These are intentionally **not** part of the layered core — they have no project references to Domain/Application/Infrastructure and talk to the composition roots purely over HTTP or messaging, so they can be deployed, scaled, and reasoned about independently:
 
-- **`SS.Auth.Server.API`**: the email/password sign-in option. Signs JWTs with `Jwt:SigningKey` (`GenerateJwtToken`). `login`/`logout`/`refresh-token` all proxy to `SS.User.API` (with an `X-Api-Key` header) for the actual data operation, then mint/return the token.
 - **`SS.Gateway.API`**: Ocelot-based reverse proxy (`ocelot.json`). Single public entry point (`:44345`) for the SPA. Validates the bearer token — an Auth Server JWT (`Jwt:SigningKey`) or a Microsoft Entra ID access token (tenant's published keys, issuer, audience) — on `/api/user/*`, `/api/ticket/*`, `/api/ticketupdate/*` and `/api/notification/*` before forwarding to `:44335` (User) or `:44336` (Ticket); `/api/auth/*` routes are unauthenticated (that's where a client with an expired/no token needs to reach). See [Authentication](#authentication). Rate-limits every `/api/*` request with counters in Redis before it reaches Ocelot — see [Rate limiting](#rate-limiting).
 - **`SS.Email.API`**: Azure Service Bus consumer (user-created emails, existing) **and** RabbitMQ consumer (`TicketCreatedEmailConsumer`, `TicketCreationFailedEmailConsumer` — ticket-creation saga emails, new). Reacts to events published by `SS.Base.Application` — a messaging seam, not a Clean Architecture layer.
 
@@ -137,7 +139,7 @@ React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/
 ## Request flow examples
 
 **Login (email/password):**
-`SPA → Gateway (/api/auth/login, no auth) → Auth Server → User API (/api/user/validate, X-Api-Key) → ValidateUserHandler → UserRepository → SQL Server`. On success the Auth Server calls `SS.User.API`'s `saverefreshtoken` (→ `LoginSuccessHandler`, persists a `RefreshToken`), mints a JWT, and returns `{ token, refreshToken }` to the SPA.
+`SPA → Gateway (/api/auth/login, no auth) → Auth Server → ValidateUserHandler → UserRepository → SQL Server`. On success the Auth Server sends `LoginSuccessCommand` (→ `LoginSuccessHandler`, persists a `RefreshToken`), mints a JWT, and returns `{ token, refreshToken }` to the SPA.
 
 **Login (Microsoft Entra ID):**
 `SPA "Sign in with Microsoft" → Microsoft Entra ID sign-in page → redirect back to the SPA with an authorization code → MSAL redeems it (with the PKCE verifier) for an ID token, access token and refresh token`.
@@ -145,7 +147,7 @@ React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/
 Either way the SPA then calls `GET /api/user/me` (Gateway → User API), which reads the email claim from the validated token and returns the user's Support System `UserId`/`Role`/name. A signed-in account without a matching `Users` row gets a 403 and a "not registered" page.
 
 **Token refresh (email/password):**
-`SPA → Gateway (/api/auth/refresh-token, no auth — token may be expired) → Auth Server → User API (/api/user/refresh-token, X-Api-Key) → TokenRefreshHandler` validates and rotates the `RefreshToken` via `IRefreshTokenRepository`/`IUnitOfWork`, returns the user's email/role → Auth Server mints a new JWT → SPA's axios interceptor retries the original request.
+`SPA → Gateway (/api/auth/refresh-token, no auth — token may be expired) → Auth Server → TokenRefreshHandler` validates and rotates the `RefreshToken` via `IRefreshTokenRepository`/`IUnitOfWork`, returns the user's email/role → Auth Server mints a new JWT → SPA's axios interceptor retries the original request.
 
 **Token refresh (Microsoft Entra ID):**
 Handled entirely by MSAL in the browser: `acquireTokenSilent` returns the cached access token or redeems the refresh token with Entra ID shortly before expiry. If Entra needs the user again (session ended, MFA, consent), it falls back to a sign-in redirect.
@@ -265,7 +267,6 @@ builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Appl
 
 - The password login's `Jwt:SigningKey` has a development default committed in `appsettings.json` (the value that used to be hardcoded) — every real deployment must override it with a secret, then rotate it.
 - `ValidateUserHandler` compares passwords in plain text (the `IPasswordHasher<User>` check is commented out), and the password option's tokens live in `localStorage`.
-- `SS.User.API`'s inter-service auth (`X-Api-Key`) is a single shared string in code, not a rotated secret.
 - `SS.Ticket.API` trusts the Gateway's token check rather than validating the token itself, and still takes `CreatedBy` from the request body instead of the token.
 - No `Application`-layer input validation pipeline (e.g. FluentValidation + MediatR behavior) yet — the `Validators/` folder exists but is empty.
 - `SS.Gateway.API/ocelot.json` still has leftover routes pointing at `localhost:3000` (`/`, `/static/{everything}`, `/user/{everything}`, `/ticket/{everything}`) that predate the current API-only gateway usage.

@@ -16,7 +16,6 @@ data:
   # The browser only talks to the ingress (same origin), so no CORS/gateway URL is needed for the UI.
   # Set to the ingress URL if you also want to call the APIs from another origin.
   CORS_REACT_UI_ORIGIN: "http://localhost:3000"
-  AUTH_USER_API_BASE_URL: "http://ss-user-api:8080"
   GATEWAY_BASE_URL: "http://ss-gateway-api:8080"
   # Logging (all .NET services): "json" = one structured line per entry on stdout, which is what
   # `kubectl logs` and cluster log collectors read. Level can be changed here without rebuilding images.
@@ -286,11 +285,11 @@ spec:
                   optional: true   # absent = the development default in appsettings.json
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
-            - name: UserApi__BaseUrl
+            - name: ConnectionStrings__DefaultConnection
               valueFrom:
-                configMapKeyRef:
-                  name: supportsystem-config
-                  key: AUTH_USER_API_BASE_URL
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: DB_CONNECTION_STRING
 ---
 apiVersion: v1
 kind: Service

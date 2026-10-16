@@ -5,7 +5,6 @@ using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using SS.Base.Observability;
 using System;
-using SS.User.API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,8 +93,6 @@ app.UseCors("ReactUICorsPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseMiddleware<ApiKeyMiddleware>();
 
 app.MapControllers();
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });

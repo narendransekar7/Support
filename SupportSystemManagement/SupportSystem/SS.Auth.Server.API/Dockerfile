@@ -1,16 +1,22 @@
 # Use the official .NET 8.0 SDK image to build the application
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-# Build context is the solution root (SS.Auth.Server.API depends on SS.Base.Observability as a sibling)
+# Build context is the solution root (SS.Auth.Server.API depends on the SS.Base.* projects as siblings)
 WORKDIR /src
 
 # Copy csproj files first and restore (better layer caching)
 COPY SS.Auth.Server.API/SS.Auth.Server.API.csproj SS.Auth.Server.API/
+COPY SS.Base.Application/SS.Base.Application.csproj SS.Base.Application/
+COPY SS.Base.Infrastructure/SS.Base.Infrastructure.csproj SS.Base.Infrastructure/
+COPY SS.Base.Domain/SS.Base.Domain.csproj SS.Base.Domain/
 COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
 RUN dotnet restore SS.Auth.Server.API/SS.Auth.Server.API.csproj
 
 # Copy the rest of the source
 COPY SS.Auth.Server.API/ SS.Auth.Server.API/
+COPY SS.Base.Application/ SS.Base.Application/
+COPY SS.Base.Infrastructure/ SS.Base.Infrastructure/
+COPY SS.Base.Domain/ SS.Base.Domain/
 COPY SS.Base.Observability/ SS.Base.Observability/
 
 # Build the application

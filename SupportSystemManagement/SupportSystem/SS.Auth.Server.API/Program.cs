@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using MassTransit;
+using SS.Base.Application;
+using SS.Base.Infrastructure.Persistance.MSSQL;
 using SS.Base.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,12 +16,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Added to the
-var userApiBaseUrl = builder.Configuration["UserApi:BaseUrl"] ?? "https://localhost:44335";
-builder.Services.AddHttpClient("WebAPI", client =>
-{
-    client.BaseAddress = new Uri(userApiBaseUrl);
-});
+// Credential checks and refresh-token storage go through the shared Application handlers
+// (ValidateUser / LoginSuccess / TokenRefresh / LogOut) against the Support System database.
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
+// AddApplicationServices' MediatR scan also registers CreateTicketHandler, which depends on
+// IPublishEndpoint. This host never publishes, so an in-memory bus satisfies that dependency
+// without tying sign-in to RabbitMQ's availability.
+builder.Services.AddMassTransit(x => x.UsingInMemory((context, cfg) => cfg.ConfigureEndpoints(context)));
 
 
 // Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
