@@ -6,14 +6,15 @@ import useSignedIn from "../auth/useSignedIn";
 import { isAuthConfigured } from "../auth/authConfig";
 
 // Two ways in: email/password (SS.Auth.Server.API) or Microsoft Entra ID (OpenID Connect,
-// authorization code + PKCE - the button redirects to the Microsoft sign-in page and back here).
+// authorization code + PKCE - the button redirects to the Microsoft sign-in page and back here, where index.js
+// exchanges the Microsoft token for the same kind of Support System session).
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const dispatch = useDispatch();
-  const { isLoading, error } = useSelector((state) => state.auth);
-  const { signedIn, pending } = useSignedIn();
+  const { isLoading, redirectingToMicrosoft, error } = useSelector((state) => state.auth);
+  const { signedIn } = useSignedIn();
 
   if (signedIn) {
     return <Navigate to="/user/add" replace />;
@@ -21,11 +22,11 @@ function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // On success passwordSignedIn flips and the <Navigate> above takes over.
+    // On success signedIn flips and the <Navigate> above takes over.
     dispatch(loginUser({ email, password }));
   };
 
-  const busy = isLoading || pending;
+  const busy = isLoading || redirectingToMicrosoft;
 
   return (
     <div style={styles.container}>
@@ -69,7 +70,7 @@ function Login() {
               disabled={busy}
               style={styles.microsoftButton}
             >
-              {pending ? 'Signing in...' : 'Sign in with Microsoft'}
+              {redirectingToMicrosoft ? 'Signing in...' : 'Sign in with Microsoft'}
             </button>
           </>
         )}

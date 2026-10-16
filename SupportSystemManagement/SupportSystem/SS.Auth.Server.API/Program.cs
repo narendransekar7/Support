@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MassTransit;
 using SS.Base.Application;
+using SS.Base.Authentication;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using SS.Base.Observability;
 
@@ -26,6 +27,10 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 // without tying sign-in to RabbitMQ's availability.
 builder.Services.AddMassTransit(x => x.UsingInMemory((context, cfg) => cfg.ConfigureEndpoints(context)));
 
+// "Sign in with Microsoft": validates the Entra ID access token that POST /api/auth/entra exchanges for a
+// Support System session (config section "AzureAd") - see SS.Base.Authentication.
+builder.Services.AddEntraIdTokenValidation(builder.Configuration);
+
 
 // Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
 // doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
@@ -49,6 +54,7 @@ app.UseSupportSystemMetrics();
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

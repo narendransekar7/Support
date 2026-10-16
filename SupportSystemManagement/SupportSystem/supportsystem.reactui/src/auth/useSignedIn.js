@@ -1,16 +1,8 @@
 import { useSelector } from "react-redux";
-import { useIsAuthenticated, useMsal } from "@azure/msal-react";
-import { InteractionStatus } from "@azure/msal-browser";
 
-// Signed in with either option: a password-login session or a Microsoft Entra ID account in MSAL.
-// `pending` is true while MSAL is still processing a sign-in/out redirect, so callers don't redirect too early.
+// Signed in with either option: both end in the same Support System session (see session.js). index.js finishes
+// any Microsoft sign-in redirect and restores the session before the first render, so there is no pending state.
 export default function useSignedIn() {
-  const { inProgress } = useMsal();
-  const isEntraSignedIn = useIsAuthenticated();
-  const passwordSignedIn = useSelector((state) => state.auth.passwordSignedIn);
-
-  return {
-    signedIn: passwordSignedIn || isEntraSignedIn,
-    pending: inProgress !== InteractionStatus.None,
-  };
+  const signedIn = useSelector((state) => state.auth.signedIn);
+  return { signedIn };
 }

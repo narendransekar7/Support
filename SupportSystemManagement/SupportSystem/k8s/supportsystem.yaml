@@ -261,6 +261,17 @@ spec:
               value: "http://+:9464"
             - name: Metrics__Port
               value: "9464"
+            # Validates the Entra ID access token that "Sign in with Microsoft" exchanges at /api/auth/entra.
+            - name: AzureAd__TenantId
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_TENANT_ID
+            - name: AzureAd__ClientId
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: ENTRA_API_CLIENT_ID
             - name: Logging__Console__FormatterName
               valueFrom:
                 configMapKeyRef:
@@ -437,16 +448,6 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: CORS_REACT_UI_ORIGIN
-            - name: AzureAd__TenantId
-              valueFrom:
-                configMapKeyRef:
-                  name: supportsystem-config
-                  key: ENTRA_TENANT_ID
-            - name: AzureAd__ClientId
-              valueFrom:
-                configMapKeyRef:
-                  name: supportsystem-config
-                  key: ENTRA_API_CLIENT_ID
 ---
 apiVersion: v1
 kind: Service
@@ -841,16 +842,6 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: GATEWAY_BASE_URL
-            - name: AzureAd__TenantId
-              valueFrom:
-                configMapKeyRef:
-                  name: supportsystem-config
-                  key: ENTRA_TENANT_ID
-            - name: AzureAd__ClientId
-              valueFrom:
-                configMapKeyRef:
-                  name: supportsystem-config
-                  key: ENTRA_API_CLIENT_ID
             - name: Redis__ConnectionString
               valueFrom:
                 secretKeyRef:

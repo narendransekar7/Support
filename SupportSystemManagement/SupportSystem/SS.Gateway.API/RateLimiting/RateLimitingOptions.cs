@@ -13,7 +13,7 @@ public sealed class RateLimitingOptions
     // /api/auth/* (login, refresh-token, logout) - per client IP, kept low to slow down password guessing.
     public RateLimitPolicy Auth { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
 
-    // Every other /api/* route - per signed-in user (Entra "oid" / password login "UserId"), per client IP otherwise.
+    // Every other /api/* route - per signed-in user (the token's "UserId"), per client IP otherwise.
     public RateLimitPolicy Api { get; set; } = new() { PermitLimit = 300, WindowSeconds = 60 };
 }
 

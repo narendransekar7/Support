@@ -85,6 +85,18 @@
       "UpstreamHttpMethod": [ "GET", "POST" ]
     },
     {
+      "DownstreamPathTemplate": "/api/auth/entra",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 44338
+        }
+      ],
+      "UpstreamPathTemplate": "/api/auth/entra",
+      "UpstreamHttpMethod": [ "POST" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/user/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [

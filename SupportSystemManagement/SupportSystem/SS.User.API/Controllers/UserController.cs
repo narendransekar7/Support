@@ -31,16 +31,14 @@ namespace SS.User.API.Controllers
             return Ok("User created successfully");
         }
 
-        // The signed-in user (Microsoft Entra ID or password login), matched to a Support System account by email.
+        // The signed-in user (either sign-in option), matched to a Support System account by email.
         // Identity comes from the validated token, never from the request, so a caller can only read itself.
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            // Password-login tokens and Entra's optional "email" claim (needed for guest accounts) carry "email";
-            // otherwise Entra's preferred_username is the UPN/sign-in name.
-            var email = User.FindFirstValue("email") ?? User.FindFirstValue(ClaimTypes.Email)
-                ?? User.FindFirstValue("preferred_username") ?? User.FindFirstValue("upn");
+            // SS.Auth.Server.API writes the account's email into every Support System token.
+            var email = User.FindFirstValue("email");
             if (string.IsNullOrEmpty(email))
             {
                 return StatusCode(StatusCodes.Status403Forbidden, "The access token has no email claim.");
@@ -53,8 +51,8 @@ namespace SS.User.API.Controllers
             }
             catch (KeyNotFoundException)
             {
-                // Email deliberately not logged (PII); the Entra object id identifies who tried (absent for password logins).
-                _logger.LogWarning("Signed-in user {ObjectId} has no Support System account", User.FindFirstValue("oid"));
+                // Email deliberately not logged (PII); the token's UserId identifies who tried (e.g. a since-deleted account).
+                _logger.LogWarning("Signed-in user {UserId} has no Support System account", User.FindFirstValue("UserId"));
                 return StatusCode(StatusCodes.Status403Forbidden, "Your account is not registered in the Support System.");
             }
 

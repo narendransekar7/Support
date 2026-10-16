@@ -41,8 +41,6 @@ services:
       - RabbitMq__Username=guest
       - RabbitMq__Password=guest
       - Cors__ReactUIOrigin=http://localhost:5145
-      - AzureAd__TenantId=${ENTRA_TENANT_ID:-}
-      - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
@@ -63,6 +61,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - *db-connection   # same database as ss-user-api
+      # Validates the Entra ID access token that "Sign in with Microsoft" exchanges at /api/auth/entra.
+      - AzureAd__TenantId=${ENTRA_TENANT_ID:-}
+      - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:
@@ -126,8 +127,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Docker # selects ocelot.Docker.json (container hostnames, plain HTTP)
       - BaseUrl=http://ss-gateway-api:8080
       - Redis__ConnectionString=redis:6379,connectTimeout=2000,syncTimeout=500,asyncTimeout=500
-      - AzureAd__TenantId=${ENTRA_TENANT_ID:-}
-      - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     ports:

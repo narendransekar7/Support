@@ -202,7 +202,9 @@ apis:
     cors: false
     jwt: true
     redis: false
-    configEnv: {}
+    configEnv:   # Entra ID token exchange at /api/auth/entra ("Sign in with Microsoft")
+      AzureAd__TenantId: ENTRA_TENANT_ID
+      AzureAd__ClientId: ENTRA_API_CLIENT_ID
     extraEnv: []
     resources: {}
     replicaCount: 2
@@ -225,9 +227,7 @@ apis:
     cors: true
     jwt: true
     redis: false
-    configEnv:
-      AzureAd__TenantId: ENTRA_TENANT_ID
-      AzureAd__ClientId: ENTRA_API_CLIENT_ID
+    configEnv: {}
     extraEnv: []
     resources: {}
     replicaCount: 2
@@ -301,8 +301,6 @@ apis:
     redis: true     # rate limiting (rateLimiting.* above)
     configEnv:
       BaseUrl: GATEWAY_BASE_URL
-      AzureAd__TenantId: ENTRA_TENANT_ID
-      AzureAd__ClientId: ENTRA_API_CLIENT_ID
       RateLimiting__Enabled: RATE_LIMIT_ENABLED
       RateLimiting__Auth__PermitLimit: RATE_LIMIT_AUTH_PERMIT_LIMIT
       RateLimiting__Auth__WindowSeconds: RATE_LIMIT_AUTH_WINDOW_SECONDS

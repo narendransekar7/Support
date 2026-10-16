@@ -1,9 +1,10 @@
-import { PublicClientApplication, EventType } from "@azure/msal-browser";
+import { PublicClientApplication } from "@azure/msal-browser";
 
 // Microsoft Entra ID (OpenID Connect) sign-in: MSAL runs the authorization code flow with PKCE in the
-// browser - there is no client secret, and Entra issues the ID token (who signed in) and the access token
-// the gateway validates. Values come from config.js at runtime (written from env vars by
-// docker-entrypoint.d/40-app-config.sh), falling back to REACT_APP_* in .env.local for `npm start`.
+// browser - there is no client secret. Entra only proves who the user is: the access token it issues for the
+// API scope is exchanged once for a Support System session (see session.js), and the gateway never sees it.
+// Values come from config.js at runtime (written from env vars by docker-entrypoint.d/40-app-config.sh),
+// falling back to REACT_APP_* in .env.local for `npm start`.
 const appConfig = window.__APP_CONFIG__ || {};
 const tenantId = appConfig.entraTenantId || process.env.REACT_APP_ENTRA_TENANT_ID || "";
 const clientId = appConfig.entraSpaClientId || process.env.REACT_APP_ENTRA_SPA_CLIENT_ID || "";
@@ -21,31 +22,20 @@ export const msalInstance = new PublicClientApplication({
     postLogoutRedirectUri: `${window.location.origin}/`,
   },
   cache: {
-    // Tokens survive a page reload but not closing the tab, and aren't shared across tabs.
+    // Kept only so sign-out can end the Entra session too; cleared whenever there is no Support System session.
     cacheLocation: "sessionStorage",
   },
 });
 
-// Scopes for the access token sent to the gateway.
-export const apiRequest = { scopes: [apiScope] };
+// Sign-in: OpenID Connect scopes (the ID token) plus the API scope, so the redirect also returns the access token
+// to exchange. select_account lets a user whose account isn't registered try a different one.
+export const loginRequest = { scopes: ["openid", "profile", "email", apiScope], prompt: "select_account" };
 
-// Sign-in: OpenID Connect scopes (the ID token) plus consent for the API scope in one round trip.
-export const loginRequest = { scopes: ["openid", "profile", "email", apiScope] };
-
-// Must run before rendering or acquiring tokens; keeps the signed-in account as the active one.
+// Must run before rendering. Completes a sign-in redirect coming back from Entra (#code=... in the URL), if there
+// is one, and returns its result (result.accessToken is for the API scope); otherwise null.
 export async function initializeAuth() {
   await msalInstance.initialize();
 
-  msalInstance.addEventCallback((event) => {
-    if (
-      (event.eventType === EventType.LOGIN_SUCCESS || event.eventType === EventType.ACQUIRE_TOKEN_SUCCESS) &&
-      event.payload?.account
-    ) {
-      msalInstance.setActiveAccount(event.payload.account);
-    }
-  });
-
-  // Completes a sign-in redirect coming back from Entra (#code=... in the URL), if there is one.
   const result = await msalInstance.handleRedirectPromise();
   if (result?.account) {
     msalInstance.setActiveAccount(result.account);
@@ -53,4 +43,11 @@ export async function initializeAuth() {
     const [account] = msalInstance.getAllAccounts();
     if (account) msalInstance.setActiveAccount(account);
   }
+  return result;
+}
+
+// Drops MSAL's accounts and tokens from this tab (it doesn't sign out of Entra ID).
+export async function forgetMicrosoftAccount() {
+  if (!isAuthConfigured) return;
+  await msalInstance.clearCache();
 }

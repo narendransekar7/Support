@@ -108,12 +108,11 @@ public sealed class RateLimitingMiddleware
     // AuthenticateAsync's result is cached for the request, so Ocelot's own token check later doesn't validate it twice.
     private static async Task<string> ClientKeyAsync(HttpContext context)
     {
-        // Entra ID sends a Bearer header; the password login sends its token in the ss_access cookie.
+        // The Support System token normally comes in the ss_access cookie; a Bearer header is accepted as well.
         if (context.Request.Headers.Authorization.Count > 0 || context.Request.Cookies.ContainsKey(AuthCookies.AccessToken))
         {
             var result = await context.AuthenticateAsync(JwtBearerDefaults.AuthenticationScheme);
-            var userId = result.Principal?.FindFirst("oid")?.Value        // Microsoft Entra ID
-                         ?? result.Principal?.FindFirst("UserId")?.Value; // SS.Auth.Server.API password login
+            var userId = result.Principal?.FindFirst("UserId")?.Value; // SS.Auth.Server.API, either sign-in option
             if (!string.IsNullOrEmpty(userId))
             {
                 return $"user:{userId}";

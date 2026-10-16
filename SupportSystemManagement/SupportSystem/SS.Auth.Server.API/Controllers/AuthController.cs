@@ -1,8 +1,10 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using SS.Base.Application.Commands;
 using SS.Base.Application.Commands.User.LogOut;
+using SS.Base.Application.Queries;
 using SS.Base.Authentication;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -10,10 +12,10 @@ using System.Text;
 
 namespace SS.Auth.Server.API.Controllers
 {
-    // Owns the email/password sign-in end to end: checks credentials and stores/rotates/revokes refresh tokens
-    // through the SS.Base.Application handlers (same database as SS.User.API), then mints the JWT.
-    // Both tokens are returned only as HttpOnly cookies (AuthCookies), never in the response body, so the SPA's
-    // JavaScript can't read them.
+    // Owns every Support System session: checks the email/password, or exchanges a Microsoft Entra ID access token,
+    // and stores/rotates/revokes refresh tokens through the SS.Base.Application handlers (same database as
+    // SS.User.API), then mints the JWT with the role from the Users table. Both tokens are returned only as HttpOnly
+    // cookies (AuthCookies), never in the response body, so the SPA's JavaScript can't read them.
     [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
@@ -46,15 +48,38 @@ namespace SS.Auth.Server.API.Controllers
             if (user == null)
                 return Unauthorized("Invalid credentials.");
 
-            var role = user.Role.ToString();
+            await StartSessionAsync(user, "password");
+            return Ok(new { message = "Login successful." });
+        }
 
-            // Persist the refresh token for the user so refresh-token/logout can find it later.
-            var refreshToken = Guid.NewGuid();
-            await _mediator.Send(new LoginSuccessCommand { Token = refreshToken, UserId = user.UserId.ToString() });
+        // "Sign in with Microsoft": the SPA signs the user in with Entra ID (OpenID Connect) and sends the Entra
+        // access token here once, as a Bearer header. Entra only proves who the user is - the account and its role
+        // come from the Users table, and from here on the session is the same as a password login's.
+        [Authorize(AuthenticationSchemes = AuthenticationExtensions.EntraIdScheme)]
+        [HttpPost("entra")]
+        public async Task<IActionResult> EntraSignIn()
+        {
+            if (!AuthCookies.HasCsrfHeader(Request))
+                return MissingCsrfHeader();
 
-            WriteSessionCookies(user.PrimaryEmail, user.UserId.ToString(), role, refreshToken);
-            _logger.LogInformation("Issued JWT for user {UserId} with role {Role}", user.UserId, role);
+            // Entra's optional "email" claim (needed for guest accounts) or else preferred_username, the UPN/sign-in name.
+            var email = User.FindFirstValue("email") ?? User.FindFirstValue("preferred_username") ?? User.FindFirstValue("upn");
+            if (string.IsNullOrEmpty(email))
+                return StatusCode(StatusCodes.Status403Forbidden, "The Microsoft access token has no email claim.");
 
+            SS.Base.Domain.Entities.User user;
+            try
+            {
+                user = await _mediator.Send(new GetUserByEmailQuery(email));
+            }
+            catch (KeyNotFoundException)
+            {
+                // Email deliberately not logged (PII); the Entra object id identifies who tried.
+                _logger.LogWarning("Microsoft account {ObjectId} has no Support System account", User.FindFirstValue("oid"));
+                return StatusCode(StatusCodes.Status403Forbidden, "Your account is not registered in the Support System. Ask an administrator to add you.");
+            }
+
+            await StartSessionAsync(user, "entra");
             return Ok(new { message = "Login successful." });
         }
 
@@ -92,6 +117,18 @@ namespace SS.Auth.Server.API.Controllers
 
             WriteSessionCookies(result.Email, result.UserId, result.Role, result.NewRefreshToken);
             return Ok(new { message = "Token refreshed." });
+        }
+
+        private async Task StartSessionAsync(SS.Base.Domain.Entities.User user, string method)
+        {
+            var role = user.Role.ToString();
+
+            // Persist the refresh token for the user so refresh-token/logout can find it later.
+            var refreshToken = Guid.NewGuid();
+            await _mediator.Send(new LoginSuccessCommand { Token = refreshToken, UserId = user.UserId.ToString() });
+
+            WriteSessionCookies(user.PrimaryEmail, user.UserId.ToString(), role, refreshToken);
+            _logger.LogInformation("Issued JWT for user {UserId} with role {Role} ({Method} sign-in)", user.UserId, role, method);
         }
 
         private bool TryReadRefreshToken(out Guid refreshToken)
