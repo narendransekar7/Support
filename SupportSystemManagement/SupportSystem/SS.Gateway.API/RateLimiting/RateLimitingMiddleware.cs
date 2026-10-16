@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using SS.Base.Authentication;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -107,7 +108,8 @@ public sealed class RateLimitingMiddleware
     // AuthenticateAsync's result is cached for the request, so Ocelot's own token check later doesn't validate it twice.
     private static async Task<string> ClientKeyAsync(HttpContext context)
     {
-        if (context.Request.Headers.Authorization.Count > 0)
+        // Entra ID sends a Bearer header; the password login sends its token in the ss_access cookie.
+        if (context.Request.Headers.Authorization.Count > 0 || context.Request.Cookies.ContainsKey(AuthCookies.AccessToken))
         {
             var result = await context.AuthenticateAsync(JwtBearerDefaults.AuthenticationScheme);
             var userId = result.Principal?.FindFirst("oid")?.Value        // Microsoft Entra ID

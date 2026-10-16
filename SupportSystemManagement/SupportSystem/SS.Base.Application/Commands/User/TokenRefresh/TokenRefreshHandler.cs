@@ -27,29 +27,29 @@ namespace SS.Base.Application.Commands.User.TokenRefresh
         {
             var existingToken = await _refreshTokenRepository.GetByIdAsync(request.RefreshToken);
 
-            if (existingToken == null || existingToken.UserId != request.UserId.ToString())
+            if (existingToken == null)
             {
-                _logger.LogWarning("Token refresh rejected for user {UserId}: invalid refresh token", request.UserId);
+                _logger.LogWarning("Token refresh rejected: unknown refresh token");
                 return new TokenRefreshResult { Success = false, ErrorMessage = "Invalid refresh token." };
             }
 
             if (existingToken.IsRevoked)
             {
-                _logger.LogWarning("Token refresh rejected for user {UserId}: token revoked", request.UserId);
+                _logger.LogWarning("Token refresh rejected for user {UserId}: token revoked", existingToken.UserId);
                 return new TokenRefreshResult { Success = false, ErrorMessage = "Refresh token has been revoked." };
             }
 
             if (existingToken.IsUsed)
             {
                 // Reuse of an already-rotated token can mean a stolen token is being replayed.
-                _logger.LogWarning("Token refresh rejected for user {UserId}: token already used (possible replay)", request.UserId);
+                _logger.LogWarning("Token refresh rejected for user {UserId}: token already used (possible replay)", existingToken.UserId);
                 return new TokenRefreshResult { Success = false, ErrorMessage = "Refresh token has already been used." };
             }
 
             if (existingToken.ExpiryDate < DateTime.UtcNow)
             {
                 existingToken.IsExpired = true;
-                _logger.LogInformation("Token refresh rejected for user {UserId}: token expired", request.UserId);
+                _logger.LogInformation("Token refresh rejected for user {UserId}: token expired", existingToken.UserId);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
                 return new TokenRefreshResult { Success = false, ErrorMessage = "Refresh token has expired." };
             }

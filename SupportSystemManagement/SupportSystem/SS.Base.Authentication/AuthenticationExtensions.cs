@@ -11,7 +11,8 @@ namespace SS.Base.Authentication;
 // (SS.Gateway.API, SS.User.API). Two sign-in options issue tokens, so both are accepted:
 //   - Microsoft Entra ID (OpenID Connect, authorization code + PKCE in the SPA): RS256 tokens,
 //     validated against the tenant's published signing keys - config section "AzureAd".
-//   - SS.Auth.Server.API email/password login: HS256 tokens signed with "Jwt:SigningKey".
+//   - SS.Auth.Server.API email/password login: HS256 tokens signed with "Jwt:SigningKey", sent by the browser
+//     in the HttpOnly ss_access cookie (AuthCookies).
 // "Bearer" is a policy scheme that forwards to one of the two by the token's issuer, so Ocelot routes
 // (AuthenticationProviderKey "Bearer") and [Authorize] accept either token type.
 public static class AuthenticationExtensions
@@ -68,6 +69,21 @@ public static class AuthenticationExtensions
             })
             .AddJwtBearer(LocalScheme, options =>
             {
+                // The SPA doesn't hold this token: it comes from the HttpOnly ss_access cookie (see AuthCookies),
+                // accepted only with the CSRF header. An Authorization header, if present, is used as before.
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        if (string.IsNullOrEmpty(context.Request.Headers.Authorization) &&
+                            AuthCookies.HasCsrfHeader(context.Request) &&
+                            context.Request.Cookies.TryGetValue(AuthCookies.AccessToken, out var cookieToken))
+                        {
+                            context.Token = cookieToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
                 options.MapInboundClaims = false; // claims as SS.Auth.Server.API writes them: email, UserId, role
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
