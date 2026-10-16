@@ -17,6 +17,16 @@ services:
     networks:
       - ss-network
 
+  # Rate-limit counters for ss-gateway-api (shared by all its replicas). No persistence needed:
+  # losing the counters on restart only resets the current window.
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "volatile-ttl"]
+    ports:
+      - "6379:6379"
+    networks:
+      - ss-network
+
   ss-auth-server-api:
     image: narendransekar/ss-auth-server-api:latest
     build:
@@ -117,6 +127,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker # selects ocelot.Docker.json (container hostnames, plain HTTP)
       - BaseUrl=http://ss-gateway-api:8080
+      - Redis__ConnectionString=redis:6379,connectTimeout=2000,syncTimeout=500,asyncTimeout=500
       - AzureAd__TenantId=${ENTRA_TENANT_ID:-}
       - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
@@ -124,6 +135,7 @@ services:
     ports:
       - "5145:8080"
     depends_on:
+      - redis
       - ss-auth-server-api
       - ss-user-api
       - ss-ticket-api

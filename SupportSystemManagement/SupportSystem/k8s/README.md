@@ -117,7 +117,7 @@ Inside the cluster, the gateway and APIs reach each other by Service name (`ss-u
     --from-literal=DB_CONNECTION_STRING='...' \
     --from-literal=RABBITMQ_USERNAME='...' \
     --from-literal=RABBITMQ_PASSWORD='...' \
-    --from-literal=APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=...;IngestionEndpoint=...'
+    --from-literal=APPLICATIONINSIGHTS_CONNECTION_STRING='InstrumentationKey=...;IngestionEndpoint=...'     --from-literal=REDIS_CONNECTION_STRING='redis:6379,connectTimeout=2000,syncTimeout=500,asyncTimeout=500'
   ```
   then delete the `Secret` block from `supportsystem.yaml` (or `kubectl apply` will overwrite it
   with the placeholders) before running `kubectl apply -f k8s/supportsystem.yaml`.

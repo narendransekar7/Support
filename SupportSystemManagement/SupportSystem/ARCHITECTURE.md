@@ -122,7 +122,7 @@ Handlers and consumers depend only on the Domain repository interfaces (e.g. `To
 These are intentionally **not** part of the layered core — they have no project references to Domain/Application/Infrastructure and talk to `SS.User.API`/`SS.Ticket.API` purely over HTTP or messaging, so they can be deployed, scaled, and reasoned about independently:
 
 - **`SS.Auth.Server.API`**: the email/password sign-in option. Signs JWTs with `Jwt:SigningKey` (`GenerateJwtToken`). `login`/`logout`/`refresh-token` all proxy to `SS.User.API` (with an `X-Api-Key` header) for the actual data operation, then mint/return the token.
-- **`SS.Gateway.API`**: Ocelot-based reverse proxy (`ocelot.json`). Single public entry point (`:44345`) for the SPA. Validates the bearer token — an Auth Server JWT (`Jwt:SigningKey`) or a Microsoft Entra ID access token (tenant's published keys, issuer, audience) — on `/api/user/*`, `/api/ticket/*`, `/api/ticketupdate/*` and `/api/notification/*` before forwarding to `:44335` (User) or `:44336` (Ticket); `/api/auth/*` routes are unauthenticated (that's where a client with an expired/no token needs to reach). See [Authentication](#authentication).
+- **`SS.Gateway.API`**: Ocelot-based reverse proxy (`ocelot.json`). Single public entry point (`:44345`) for the SPA. Validates the bearer token — an Auth Server JWT (`Jwt:SigningKey`) or a Microsoft Entra ID access token (tenant's published keys, issuer, audience) — on `/api/user/*`, `/api/ticket/*`, `/api/ticketupdate/*` and `/api/notification/*` before forwarding to `:44335` (User) or `:44336` (Ticket); `/api/auth/*` routes are unauthenticated (that's where a client with an expired/no token needs to reach). See [Authentication](#authentication). Rate-limits every `/api/*` request with counters in Redis before it reaches Ocelot — see [Rate limiting](#rate-limiting).
 - **`SS.Email.API`**: Azure Service Bus consumer (user-created emails, existing) **and** RabbitMQ consumer (`TicketCreatedEmailConsumer`, `TicketCreationFailedEmailConsumer` — ticket-creation saga emails, new). Reacts to events published by `SS.Base.Application` — a messaging seam, not a Clean Architecture layer.
 
 ### Client — `supportsystem.reactui`
@@ -206,6 +206,34 @@ Without these settings the app still runs with the email/password option only (n
 
 **HTTPS is required outside localhost:** Entra ID only redirects to `https://` URIs (except `localhost`), and PKCE needs the browser's Web Crypto API, which only exists in a secure context. On AKS, serve the ingress on a host name with TLS (`ingress.host` + `ingress.tls`) — sign-in will not work over `http://<load-balancer-ip>`.
 
+## Rate limiting
+
+`SS.Gateway.API` limits every `/api/*` request **before** Ocelot forwards it (`SS.Gateway.API/RateLimiting/`), so a throttled client never costs the downstream APIs or the database anything. Counters live in **Redis**, so the limit is shared by all gateway replicas (the HPA runs 2–10) instead of each pod allowing its own budget.
+
+| Policy | Routes | Counted per | Default |
+|---|---|---|---|
+| `auth` | `/api/auth/*` (login, refresh-token, logout) | client IP — slows down password guessing / credential stuffing | 20 requests / 60 s |
+| `api` | every other `/api/*` route | signed-in user (Entra `oid` or the password login's `UserId` claim); client IP for anonymous or invalid tokens | 300 requests / 60 s |
+
+**Algorithm — sliding-window counter.** Each client has one Redis counter per fixed window (`ss:ratelimit:{policy:client}:<window#>`, expiring after two windows). A request counts against *current window + the still-overlapping share of the previous window*, which avoids the 2× burst a plain fixed window allows at the boundary, at the cost of only two keys per client. Check and increment run in **one Lua script**, so concurrent requests on different pods can't both slip under the limit. The `{…}` hash tag keeps both keys in one slot, so it also works on a Redis Cluster / Azure Cache for Redis cluster tier.
+
+**Responses.** Allowed requests get `X-RateLimit-Limit` / `X-RateLimit-Remaining`; over the limit the gateway answers **`429 Too Many Requests`** with `Retry-After` (seconds) and an RFC 7807 problem body, and logs a warning.
+
+**Client IP.** The gateway always sits behind a reverse proxy (nginx in docker-compose, ingress-nginx on AKS), so `UseForwardedHeaders` takes the client IP from the last `X-Forwarded-For` entry — the one the proxy appended.
+
+**Fails open.** If Redis is down or slower than the 500 ms timeout, requests are let through (no limiting), a warning is logged at most every 30 s, and the request is counted as `result="unavailable"`. Redis being down never takes the API down, and the gateway's readiness doesn't depend on it.
+
+**Metrics.** `ss_gateway_rate_limit_requests_total{policy="auth|api", result="allowed|rejected|unavailable"}` on `/metrics` (meter `SS.Gateway.RateLimiting`). For example, `sum(rate(ss_gateway_rate_limit_requests_total{result="rejected"}[5m])) by (policy)`.
+
+**Configuration** (gateway `appsettings.json`, override with env vars):
+
+| Setting | Env var | docker-compose | k8s / Helm |
+|---|---|---|---|
+| `Redis:ConnectionString` (empty = limiting off) | `Redis__ConnectionString` | `redis` service | Secret key `REDIS_CONNECTION_STRING` / `secrets.redisConnectionString` (in-cluster `redis` Deployment by default; point it at Azure Cache for Redis with `redis.enabled: false`) |
+| `RateLimiting:Enabled`, `RateLimiting:Auth:*`, `RateLimiting:Api:*` (`PermitLimit`, `WindowSeconds`) | `RateLimiting__Api__PermitLimit`, … | appsettings defaults | ConfigMap `RATE_LIMIT_*` / chart values `rateLimiting.*` |
+
+The in-cluster Redis has no persistence on purpose: the counters are short-lived, so a restart only resets the current window.
+
 ## Observability
 
 Logging, distributed tracing and metrics use **OpenTelemetry**, exported to **Azure Application Insights** via Microsoft's Azure Monitor OpenTelemetry Distro (`Azure.Monitor.OpenTelemetry.AspNetCore`). Every .NET host calls one extension from `SS.Base.Observability`:
@@ -241,4 +269,5 @@ builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Appl
 - `SS.Ticket.API` trusts the Gateway's token check rather than validating the token itself, and still takes `CreatedBy` from the request body instead of the token.
 - No `Application`-layer input validation pipeline (e.g. FluentValidation + MediatR behavior) yet — the `Validators/` folder exists but is empty.
 - `SS.Gateway.API/ocelot.json` still has leftover routes pointing at `localhost:3000` (`/`, `/static/{everything}`, `/user/{everything}`, `/ticket/{everything}`) that predate the current API-only gateway usage.
+- The in-cluster/docker-compose Redis (rate-limit counters only) has no password or TLS; use Azure Cache for Redis (`ssl=True,password=…`) or add `requirepass` + a NetworkPolicy for production. docker-compose also publishes the gateway directly on `:5145`, where a client could forge `X-Forwarded-For` to dodge the per-IP limit — only the ingress path is trustworthy.
 - RabbitMQ has no auth/TLS hardening for local dev (`guest`/`guest`, matching the broker's own defaults) — fine for `docker-compose.rabbitmq.yml` locally, not production-ready as-is.

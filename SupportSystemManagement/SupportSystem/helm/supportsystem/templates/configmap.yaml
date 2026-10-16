@@ -17,3 +17,8 @@ data:
   ENTRA_API_CLIENT_ID: {{ .Values.entra.apiClientId | quote }}
   ENTRA_SPA_CLIENT_ID: {{ .Values.entra.spaClientId | quote }}
   ENTRA_API_SCOPE: {{ .Values.entra.apiScope | quote }}
+  RATE_LIMIT_ENABLED: {{ .Values.rateLimiting.enabled | quote }}
+  RATE_LIMIT_AUTH_PERMIT_LIMIT: {{ .Values.rateLimiting.auth.permitLimit | quote }}
+  RATE_LIMIT_AUTH_WINDOW_SECONDS: {{ .Values.rateLimiting.auth.windowSeconds | quote }}
+  RATE_LIMIT_API_PERMIT_LIMIT: {{ .Values.rateLimiting.api.permitLimit | quote }}
+  RATE_LIMIT_API_WINDOW_SECONDS: {{ .Values.rateLimiting.api.windowSeconds | quote }}

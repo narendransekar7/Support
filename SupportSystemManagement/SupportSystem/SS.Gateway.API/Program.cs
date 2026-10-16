@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using SS.Base.Authentication;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using SS.Base.Observability;
+using SS.Gateway.API.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +33,19 @@ builder.Services.AddOcelot(builder.Configuration);
 // The "Bearer" scheme name is what ocelot*.json routes reference as AuthenticationProviderKey.
 builder.Services.AddSupportSystemAuthentication(builder.Configuration);
 
+// Redis-backed rate limiting of /api/* (config "RateLimiting" + "Redis:ConnectionString") - see RateLimiting/.
+builder.Services.AddSupportSystemRateLimiting(builder.Configuration);
+
+// The gateway always sits behind a reverse proxy (nginx in docker-compose, ingress-nginx in k8s), whose
+// address changes with every pod - so trust the proxy's X-Forwarded-For for the client IP the rate
+// limiter keys anonymous requests by. ForwardLimit 1 = only the entry the proxy itself appended.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    options.ForwardLimit = 1;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 
 
@@ -58,6 +73,10 @@ if (app.Environment.IsDevelopment())
 app.UseTraceIdResponseHeader();
 // Prometheus /metrics - middleware, so it runs ahead of the terminal Ocelot pipeline.
 app.UseSupportSystemMetrics();
+
+app.UseForwardedHeaders();
+// Ahead of Ocelot (terminal), so a throttled request never reaches the downstream APIs.
+app.UseSupportSystemRateLimiting();
 
 app.UseHttpsRedirection();
 
