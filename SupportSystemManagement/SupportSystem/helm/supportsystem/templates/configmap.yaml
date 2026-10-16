@@ -9,7 +9,6 @@ data:
   RABBITMQ_HOST: {{ .Values.config.rabbitmqHost | quote }}
   RABBITMQ_VHOST: {{ .Values.config.rabbitmqVhost | quote }}
   CORS_REACT_UI_ORIGIN: {{ .Values.config.corsReactUiOrigin | quote }}
-  AUTH_USER_API_BASE_URL: {{ .Values.config.authUserApiBaseUrl | quote }}
   GATEWAY_BASE_URL: {{ .Values.config.gatewayBaseUrl | quote }}
   LOG_CONSOLE_FORMAT: {{ .Values.config.logConsoleFormat | quote }}
   LOG_LEVEL_DEFAULT: {{ .Values.config.logLevelDefault | quote }}

@@ -32,7 +32,6 @@ config:
   # The browser only talks to the ingress (same origin), so no CORS/gateway URL is needed for the UI.
   # Set to the ingress URL if you also want to call the APIs from another origin.
   corsReactUiOrigin: "http://localhost:3000"
-  authUserApiBaseUrl: "http://ss-user-api:8080"
   gatewayBaseUrl: "http://ss-gateway-api:8080"
   # Logging (all .NET services): "json" = one structured line per entry on stdout.
   logConsoleFormat: "json"
@@ -198,13 +197,12 @@ apis:
       repository: ss-auth-server-api
       tag: ""
     aspnetcoreEnvironment: Development
-    database: false
+    database: true
     rabbitmq: false
     cors: false
     jwt: true
     redis: false
-    configEnv:
-      UserApi__BaseUrl: AUTH_USER_API_BASE_URL
+    configEnv: {}
     extraEnv: []
     resources: {}
     replicaCount: 2
