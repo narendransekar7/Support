@@ -2,30 +2,24 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace SS.Base.Authentication;
 
-// Shared bearer-token validation for every service that accepts the SPA's access token
-// (SS.Gateway.API, SS.User.API). Two sign-in options issue tokens, so both are accepted:
-//   - Microsoft Entra ID (OpenID Connect, authorization code + PKCE in the SPA): RS256 tokens,
-//     validated against the tenant's published signing keys - config section "AzureAd".
-//   - SS.Auth.Server.API email/password login: HS256 tokens signed with "Jwt:SigningKey", sent by the browser
-//     in the HttpOnly ss_access cookie (AuthCookies).
-// "Bearer" is a policy scheme that forwards to one of the two by the token's issuer, so Ocelot routes
-// (AuthenticationProviderKey "Bearer") and [Authorize] accept either token type.
+// Every session - email/password or Microsoft Entra ID - ends up with the same token: an HS256 JWT minted by
+// SS.Auth.Server.API (claims email, UserId, role from the Users table) and kept in the HttpOnly ss_access cookie
+// (AuthCookies). Microsoft sign-in only proves who the user is: the SPA sends its Entra access token once to
+// SS.Auth.Server.API (POST /api/auth/entra), which validates it with AddEntraIdTokenValidation and swaps it for
+// a Support System session. So the gateway and the APIs only ever see Support System tokens, and roles always
+// come from the Support System's own data.
 public static class AuthenticationExtensions
 {
     public const string EntraIdScheme = "EntraId";
-    public const string LocalScheme = "SupportSystem";
 
+    // SS.Gateway.API, SS.User.API: the Support System token, as the default "Bearer" scheme - the name ocelot*.json
+    // routes reference as AuthenticationProviderKey. [Authorize(Roles = "Admin")] works off its "role" claim.
     public static IServiceCollection AddSupportSystemAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var azureAd = configuration.GetSection("AzureAd");
-        var instance = (azureAd["Instance"] ?? "https://login.microsoftonline.com/").TrimEnd('/');
-        var entraClientId = azureAd["ClientId"];
-
         var signingKey = configuration["Jwt:SigningKey"];
         if (string.IsNullOrEmpty(signingKey))
         {
@@ -33,41 +27,7 @@ public static class AuthenticationExtensions
         }
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddPolicyScheme(JwtBearerDefaults.AuthenticationScheme, "Entra ID or Support System token", options =>
-            {
-                options.ForwardDefaultSelector = context =>
-                {
-                    var header = context.Request.Headers.Authorization.ToString();
-                    var token = header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? header["Bearer ".Length..].Trim() : null;
-                    var handler = new JsonWebTokenHandler();
-                    if (token is not null && handler.CanReadToken(token))
-                    {
-                        // Entra v2 tokens: https://login.microsoftonline.com/<tenant>/v2.0, v1: https://sts.windows.net/<tenant>/
-                        var issuer = handler.ReadJsonWebToken(token).Issuer ?? "";
-                        if (issuer.StartsWith(instance, StringComparison.OrdinalIgnoreCase) ||
-                            issuer.StartsWith("https://sts.windows.net/", StringComparison.OrdinalIgnoreCase))
-                        {
-                            return EntraIdScheme;
-                        }
-                    }
-                    return LocalScheme;
-                };
-            })
-            .AddJwtBearer(EntraIdScheme, options =>
-            {
-                options.Authority = $"{instance}/{azureAd["TenantId"]}/v2.0";
-                options.MapInboundClaims = false; // keep Entra claim names (oid, preferred_username, email, scp)
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    // v2 tokens carry the API's client id as aud, v1 tokens its App ID URI.
-                    ValidAudiences = new[] { entraClientId, azureAd["Audience"] ?? $"api://{entraClientId}" },
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true
-                };
-            })
-            .AddJwtBearer(LocalScheme, options =>
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 // The SPA doesn't hold this token: it comes from the HttpOnly ss_access cookie (see AuthCookies),
                 // accepted only with the CSRF header. An Authorization header, if present, is used as before.
@@ -93,6 +53,35 @@ public static class AuthenticationExtensions
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     RoleClaimType = "role"
+                };
+            });
+
+        services.AddAuthorization();
+        return services;
+    }
+
+    // SS.Auth.Server.API only: validates the Microsoft Entra ID access token the SPA exchanges at /api/auth/entra
+    // (RS256, checked against the tenant's published signing keys - config section "AzureAd"). Not a default
+    // scheme: only endpoints with [Authorize(AuthenticationSchemes = EntraIdScheme)] use it.
+    public static IServiceCollection AddEntraIdTokenValidation(this IServiceCollection services, IConfiguration configuration)
+    {
+        var azureAd = configuration.GetSection("AzureAd");
+        var instance = (azureAd["Instance"] ?? "https://login.microsoftonline.com/").TrimEnd('/');
+        var entraClientId = azureAd["ClientId"];
+
+        services.AddAuthentication()
+            .AddJwtBearer(EntraIdScheme, options =>
+            {
+                options.Authority = $"{instance}/{azureAd["TenantId"]}/v2.0";
+                options.MapInboundClaims = false; // keep Entra claim names (oid, preferred_username, email, scp)
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    // v2 tokens carry the API's client id as aud, v1 tokens its App ID URI.
+                    ValidAudiences = new[] { entraClientId, azureAd["Audience"] ?? $"api://{entraClientId}" },
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true
                 };
             });
 

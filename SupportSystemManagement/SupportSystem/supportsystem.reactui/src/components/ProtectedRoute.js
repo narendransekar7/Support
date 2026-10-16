@@ -7,12 +7,11 @@ import useSignedIn from "../auth/useSignedIn";
 // Requires a session (password login or Microsoft Entra ID) and a matching Support System account.
 const ProtectedRoute = ({ children }) => {
     const dispatch = useDispatch();
-    const { signedIn, pending } = useSignedIn();
+    const { signedIn } = useSignedIn();
     const { profileStatus } = useSelector((state) => state.auth);
 
     if (!signedIn) {
-        // While MSAL is still processing a redirect, don't bounce the user to the login page.
-        return pending ? <p style={styles.message}>Signing in...</p> : <Navigate to="/" replace />;
+        return <Navigate to="/" replace />;
     }
 
     if (profileStatus === "notRegistered") {

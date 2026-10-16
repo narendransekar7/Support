@@ -35,7 +35,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Same bearer-token validation as SS.Gateway.API (Entra ID or password-login tokens) - only endpoints
+// Same Support System token validation as SS.Gateway.API (either sign-in option) - only endpoints
 // marked [Authorize] use it, e.g. /api/user/me, which needs the caller's identity from the token itself.
 builder.Services.AddSupportSystemAuthentication(builder.Configuration);
 

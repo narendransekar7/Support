@@ -28,8 +28,8 @@ var ocelotFile = builder.Environment.IsEnvironment("Docker") ? "ocelot.Docker.js
 builder.Configuration.AddJsonFile(ocelotFile, optional: false, reloadOnChange: true).AddEnvironmentVariables();
 builder.Services.AddOcelot(builder.Configuration);
 
-// Bearer tokens from either sign-in option - Microsoft Entra ID (OpenID Connect, validated against the
-// tenant's signing keys) or the SS.Auth.Server.API password login (Jwt:SigningKey) - see SS.Base.Authentication.
+// The Support System token (ss_access cookie, Jwt:SigningKey) that SS.Auth.Server.API issues for both sign-in
+// options - a Microsoft Entra ID token is exchanged for one at /api/auth/entra - see SS.Base.Authentication.
 // The "Bearer" scheme name is what ocelot*.json routes reference as AuthenticationProviderKey.
 builder.Services.AddSupportSystemAuthentication(builder.Configuration);
 
