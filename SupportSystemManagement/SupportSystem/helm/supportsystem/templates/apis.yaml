@@ -122,6 +122,14 @@ spec:
                   key: JWT_SIGNING_KEY
                   optional: true   # absent = appsettings.json development default
             {{- end }}
+            {{- if $svc.redis }}
+            - name: Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: REDIS_CONNECTION_STRING
+                  optional: true   # absent = appsettings.json default (localhost) - the rate limiter then fails open
+            {{- end }}
             {{- if $svc.cors }}
             - name: Cors__ReactUIOrigin
               valueFrom:

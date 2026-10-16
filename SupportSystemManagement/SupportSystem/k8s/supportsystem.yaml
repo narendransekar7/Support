@@ -28,6 +28,13 @@ data:
   ENTRA_API_CLIENT_ID: ""    # Client id of the "Support System API" app registration
   ENTRA_SPA_CLIENT_ID: ""    # Client id of the "Support System SPA" app registration
   ENTRA_API_SCOPE: ""        # e.g. api://<ENTRA_API_CLIENT_ID>/access_as_user
+  # Gateway rate limiting (Redis-backed, shared by all ss-gateway-api replicas). See ARCHITECTURE.md "Rate limiting".
+  #   AUTH: /api/auth/* per client IP.  API: every other /api/* route per signed-in user (per IP if anonymous).
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_AUTH_PERMIT_LIMIT: "20"
+  RATE_LIMIT_AUTH_WINDOW_SECONDS: "60"
+  RATE_LIMIT_API_PERMIT_LIMIT: "300"
+  RATE_LIMIT_API_WINDOW_SECONDS: "60"
 
 ---
 # Sensitive values - placeholders only, no credentials are committed. Set real values (same ones
@@ -47,6 +54,9 @@ stringData:
   # Leave the key out entirely to use the development default in appsettings.json - an empty value would
   # override it with "". For real deployments set a long random value:
   # JWT_SIGNING_KEY: "<random 32+ byte base64 string>"
+  # Gateway rate limiter's Redis - the in-cluster redis below. For Azure Cache for Redis instead:
+  # "<name>.redis.cache.windows.net:6380,password=<access-key>,ssl=True,abortConnect=False"
+  REDIS_CONNECTION_STRING: "redis:6379,connectTimeout=2000,syncTimeout=500,asyncTimeout=500"
   # Application Insights connection string (Azure portal -> Application Insights -> Overview).
   # Leave empty to disable OpenTelemetry export; logs still go to stdout either way.
   APPLICATIONINSIGHTS_CONNECTION_STRING: ""
@@ -114,6 +124,63 @@ spec:
     - name: management
       port: 15672
       targetPort: 15672
+
+---
+# ---------------------------------------------------------------------------
+# redis - the gateway's rate-limit counters. Deliberately single replica and not persisted: the counters
+# expire within two windows anyway, and while redis is away the gateway fails open (no limiting).
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: supportsystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          # No RDB/AOF persistence; evict the soonest-expiring counters if memory ever runs out.
+          args: ["--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "volatile-ttl"]
+          ports:
+            - containerPort: 6379
+              name: redis
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: supportsystem
+spec:
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
 
 ---
 # ---------------------------------------------------------------------------
@@ -785,6 +852,37 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: ENTRA_API_CLIENT_ID
+            - name: Redis__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: REDIS_CONNECTION_STRING
+                  optional: true   # absent = appsettings.json default (localhost) - the rate limiter then fails open
+            - name: RateLimiting__Enabled
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RATE_LIMIT_ENABLED
+            - name: RateLimiting__Auth__PermitLimit
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RATE_LIMIT_AUTH_PERMIT_LIMIT
+            - name: RateLimiting__Auth__WindowSeconds
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RATE_LIMIT_AUTH_WINDOW_SECONDS
+            - name: RateLimiting__Api__PermitLimit
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RATE_LIMIT_API_PERMIT_LIMIT
+            - name: RateLimiting__Api__WindowSeconds
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RATE_LIMIT_API_WINDOW_SECONDS
 ---
 apiVersion: v1
 kind: Service
