@@ -1,8 +1,9 @@
 import React, { useEffect } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { fetchUser } from "./features/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchUser, passwordSessionEnded } from "./features/authSlice";
 import useSignedIn from "./auth/useSignedIn";
+import { onPasswordSessionEnded } from "./auth/passwordAuth";
 import API from "./api/axios";
 import MasterLayout from "./components/MasterLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -15,13 +16,18 @@ import TicketDetails from './components/TicketDetails';
 const AuthenticatedApp = () => {
   const dispatch = useDispatch();
   const { signedIn } = useSignedIn();
+  const profileStatus = useSelector((state) => state.auth.profileStatus);
 
-  // Once signed in (password login or Microsoft Entra ID), load the Support System profile (id, role).
+  // Once signed in (password login or Microsoft Entra ID), load the Support System profile (id, role) -
+  // unless restorePasswordSession already did at start-up.
   useEffect(() => {
-    if (signedIn) {
+    if (signedIn && profileStatus === "idle") {
       dispatch(fetchUser());
     }
-  }, [dispatch, signedIn]);
+  }, [dispatch, signedIn, profileStatus]);
+
+  // A password session that can no longer be refreshed ends here; ProtectedRoute then shows the login page.
+  useEffect(() => onPasswordSessionEnded(() => dispatch(passwordSessionEnded())), [dispatch]);
 /*
   const router = createBrowserRouter([
     { path: "/login", element: <Login /> },

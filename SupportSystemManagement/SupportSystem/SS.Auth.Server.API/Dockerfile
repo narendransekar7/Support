@@ -10,6 +10,7 @@ COPY SS.Base.Application/SS.Base.Application.csproj SS.Base.Application/
 COPY SS.Base.Infrastructure/SS.Base.Infrastructure.csproj SS.Base.Infrastructure/
 COPY SS.Base.Domain/SS.Base.Domain.csproj SS.Base.Domain/
 COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
+COPY SS.Base.Authentication/SS.Base.Authentication.csproj SS.Base.Authentication/
 RUN dotnet restore SS.Auth.Server.API/SS.Auth.Server.API.csproj
 
 # Copy the rest of the source
@@ -18,6 +19,7 @@ COPY SS.Base.Application/ SS.Base.Application/
 COPY SS.Base.Infrastructure/ SS.Base.Infrastructure/
 COPY SS.Base.Domain/ SS.Base.Domain/
 COPY SS.Base.Observability/ SS.Base.Observability/
+COPY SS.Base.Authentication/ SS.Base.Authentication/
 
 # Build the application
 RUN dotnet publish SS.Auth.Server.API/SS.Auth.Server.API.csproj -c Release -o /app/publish

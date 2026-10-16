@@ -7,6 +7,8 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import ErrorBoundary from './components/ErrorBoundary';
 import { initializeAuth, isAuthConfigured } from './auth/authConfig';
+import store from './app/store';
+import { restorePasswordSession } from './features/authSlice';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -18,13 +20,15 @@ const render = (content) =>
     </React.StrictMode>
   );
 
-// MSAL must be initialized (and any sign-in redirect from Entra ID processed) before the app renders.
+// Before the first render: MSAL must be initialized (and any sign-in redirect from Entra ID processed), and an
+// existing password-login session (HttpOnly cookies) restored, so protected pages don't bounce to the login page.
 // Without Entra ID settings only the email/password login is offered.
 if (!isAuthConfigured) {
   logger.warn("Microsoft Entra ID sign-in is not configured (entraTenantId / entraSpaClientId / entraApiScope); only password login is available");
 }
 initializeAuth()
   .catch((error) => logger.error("Microsoft Entra ID sign-in initialization failed", error))
+  .then(() => store.dispatch(restorePasswordSession()))
   .finally(() => render(<App />));
 
 // If you want to start measuring performance in your app, pass a function

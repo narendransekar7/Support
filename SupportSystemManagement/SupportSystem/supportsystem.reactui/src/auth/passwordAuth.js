@@ -1,68 +1,57 @@
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 
 // Email/password sign-in through SS.Auth.Server.API (the alternative to Microsoft Entra ID, see authConfig.js).
-// It returns an HS256 access token + a rotating refresh token, kept in localStorage as before.
-// Plain axios on purpose: the shared API instance (api/axios.js) attaches tokens and would loop back here.
+// The Auth Server returns both tokens only as HttpOnly cookies - ss_access (sent with every /api call) and
+// ss_refresh (sent only to /api/auth) - so this code never sees a token and an injected script can't steal one.
+// Plain axios on purpose: the shared API instance (api/axios.js) refreshes on 401 and would loop back here.
 const AUTH_URL = `${process.env.REACT_APP_GATEWAY_URL || ""}/api/auth`;
-const TOKEN_KEY = "token";
-const REFRESH_TOKEN_KEY = "refreshToken";
 
-export const getPasswordToken = () => localStorage.getItem(TOKEN_KEY);
-export const isPasswordSignedIn = () => Boolean(getPasswordToken());
+// CSRF guard: the APIs only accept the cookies on requests carrying this header, which a page on another
+// site can't add to a request.
+export const CSRF_HEADERS = { "X-Requested-With": "XMLHttpRequest" };
 
-// The Auth Server's tokens carry the user id as a "UserId" claim; decoding works even once the token has expired.
-function userIdFromToken(token) {
-  try {
-    return jwtDecode(token).UserId ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export function clearPasswordSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem("email"); // written by older versions of the app
-}
+const post = (path, body) => axios.post(`${AUTH_URL}/${path}`, body, { headers: CSRF_HEADERS });
 
 export async function signInWithPassword(email, password) {
-  const { data } = await axios.post(`${AUTH_URL}/login`, { email, password });
-  localStorage.setItem(TOKEN_KEY, data.token);
-  localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+  await post("login", { email, password });
 }
 
 // Concurrent 401s share one refresh: the refresh token is single-use (rotated by the server),
-// so a second parallel refresh with the same token would be rejected as a replay.
+// so a second parallel refresh with the same cookie would be rejected as a replay.
 let refreshInFlight = null;
 
-export function refreshPasswordToken() {
+export function refreshPasswordSession() {
   if (!refreshInFlight) {
-    refreshInFlight = (async () => {
-      const token = getPasswordToken();
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!token || !refreshToken) throw new Error("No refresh token found");
-
-      const { data } = await axios.post(`${AUTH_URL}/refresh-token`, { userId: userIdFromToken(token), refreshToken });
-      localStorage.setItem(TOKEN_KEY, data.token);
-      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-      return data.token;
-    })().finally(() => {
+    refreshInFlight = post("refresh-token").finally(() => {
       refreshInFlight = null;
     });
   }
   return refreshInFlight;
 }
 
-// Revokes the refresh token on the server; the local session is cleared even if that call fails.
+// Revokes the refresh token on the server, which also deletes both cookies.
 export async function signOutPassword() {
-  const token = getPasswordToken();
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-  try {
-    if (token && refreshToken) {
-      await axios.post(`${AUTH_URL}/logout`, { userId: userIdFromToken(token), refreshToken });
-    }
-  } finally {
-    clearPasswordSession();
-  }
+  await post("logout");
+}
+
+// Older versions kept the tokens in localStorage - remove any leftovers.
+export function clearLegacyTokens() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("email");
+}
+
+// The session can end outside of any component (the refresh cookie expired or was revoked while an API call
+// was being retried); AuthenticatedApp registers a handler that updates the Redux state.
+let sessionEndedHandler = null;
+
+export function onPasswordSessionEnded(handler) {
+  sessionEndedHandler = handler;
+  return () => {
+    if (sessionEndedHandler === handler) sessionEndedHandler = null;
+  };
+}
+
+export function notifyPasswordSessionEnded() {
+  sessionEndedHandler?.();
 }

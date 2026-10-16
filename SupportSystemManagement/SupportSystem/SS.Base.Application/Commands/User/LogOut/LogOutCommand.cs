@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace SS.Base.Application.Commands.User.LogOut
 {
+    // Identified by the refresh token alone (see TokenRefreshCommand).
     public class LogOutCommand: IRequest
     {
-        public Guid UserId { get; set; }
         public Guid RefreshToken { get; set; }
     }
 }

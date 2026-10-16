@@ -129,9 +129,9 @@ These are intentionally **not** part of the layered core — they have no projec
 
 ### Client — `supportsystem.reactui`
 React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/api`):
-- `src/auth/passwordAuth.js`: email/password sign-in through the Auth Server — access + refresh token in `localStorage`, single-flight refresh, logout.
+- `src/auth/passwordAuth.js`: email/password sign-in through the Auth Server — the tokens are HttpOnly cookies the code never sees; login, single-flight refresh, logout, and the CSRF header (`X-Requested-With`) every call carries.
 - `src/auth/authConfig.js`: the MSAL `PublicClientApplication` (Microsoft Entra ID, authorization code + PKCE, token cache in `sessionStorage`), configured at runtime from `config.js`. The "Sign in with Microsoft" button is shown only when it is configured.
-- `src/features/authSlice.js`: `loginUser` (password), `loginWithMicrosoft`, `logoutUser` (whichever session is active) and the signed-in user's Support System profile (`fetchUser` → `/api/user/me`).
+- `src/features/authSlice.js`: `loginUser` (password), `loginWithMicrosoft`, `logoutUser` (whichever session is active), `restorePasswordSession` (start-up: asks `/api/user/me` whether the cookies still make a session) and the signed-in user's Support System profile (`fetchUser` → `/api/user/me`).
 - `src/api/axios.js`: shared axios instance — attaches the password-login token (refreshing it on a 401 before retrying) or else an Entra access token from MSAL (`acquireTokenSilent`, which renews it as needed).
 - `src/components/`, `src/pages/`: screens (ticket list/create/detail, user list/create). `TicketCreateForm.js` no longer sends `AssignedTo` — engineer assignment is now server/saga-driven.
 - `src/app/store.js`: Redux store.
@@ -139,7 +139,7 @@ React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/
 ## Request flow examples
 
 **Login (email/password):**
-`SPA → Gateway (/api/auth/login, no auth) → Auth Server → ValidateUserHandler → UserRepository → SQL Server`. On success the Auth Server sends `LoginSuccessCommand` (→ `LoginSuccessHandler`, persists a `RefreshToken`), mints a JWT, and returns `{ token, refreshToken }` to the SPA.
+`SPA → Gateway (/api/auth/login, no auth) → Auth Server → ValidateUserHandler → UserRepository → SQL Server`. On success the Auth Server sends `LoginSuccessCommand` (→ `LoginSuccessHandler`, persists a `RefreshToken`), mints a JWT, and sets both as HttpOnly cookies (`ss_access`, `ss_refresh` — see [Authentication](#authentication)); the response body carries no token.
 
 **Login (Microsoft Entra ID):**
 `SPA "Sign in with Microsoft" → Microsoft Entra ID sign-in page → redirect back to the SPA with an authorization code → MSAL redeems it (with the PKCE verifier) for an ID token, access token and refresh token`.
@@ -147,7 +147,7 @@ React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/
 Either way the SPA then calls `GET /api/user/me` (Gateway → User API), which reads the email claim from the validated token and returns the user's Support System `UserId`/`Role`/name. A signed-in account without a matching `Users` row gets a 403 and a "not registered" page.
 
 **Token refresh (email/password):**
-`SPA → Gateway (/api/auth/refresh-token, no auth — token may be expired) → Auth Server → TokenRefreshHandler` validates and rotates the `RefreshToken` via `IRefreshTokenRepository`/`IUnitOfWork`, returns the user's email/role → Auth Server mints a new JWT → SPA's axios interceptor retries the original request.
+An API call returns 401 (access cookie expired) → `SPA → Gateway (/api/auth/refresh-token, no auth — the browser sends the ss_refresh cookie) → Auth Server → TokenRefreshHandler` looks the `RefreshToken` up by its value, validates and rotates it via `IRefreshTokenRepository`/`IUnitOfWork`, returns the user's email/role → Auth Server mints a new JWT and sets fresh cookies → SPA's axios interceptor retries the original request. The same happens at start-up when only the refresh cookie is left.
 
 **Token refresh (Microsoft Entra ID):**
 Handled entirely by MSAL in the browser: `acquireTokenSilent` returns the cached access token or redeems the refresh token with Entra ID shortly before expiry. If Entra needs the user again (session ended, MFA, consent), it falls back to a sign-in redirect.
@@ -169,16 +169,29 @@ RabbitMQ's default convention-based topology means all three subscribers receive
 
 There are two sign-in options, side by side on the login page:
 
-1. **Email/password** — `SS.Auth.Server.API` checks the password against the `Users` table and issues an **HS256 JWT** (claims `email`, `UserId`, `role`; 1 h) plus a rotating refresh token. The signing key is `Jwt:SigningKey`.
+1. **Email/password** — `SS.Auth.Server.API` checks the password against the `Users` table and issues an **HS256 JWT** (claims `email`, `UserId`, `role`; 1 h) plus a rotating refresh token (7 days), both as **HttpOnly cookies**. The signing key is `Jwt:SigningKey`.
 2. **Microsoft Entra ID** — **OpenID Connect** sign-in with Entra ID as the identity provider and **OAuth 2.0** access tokens for the API. The SPA is a public client using the authorization code flow with **PKCE** (no client secret in the browser).
 
 | Piece | Role | How |
 |---|---|---|
-| React SPA | OAuth *public client* | Password: `auth/passwordAuth.js`. Entra: `@azure/msal-browser`/`@azure/msal-react` get an **ID token** (who signed in — OpenID Connect) and an **access token** for the API scope (OAuth 2.0). |
-| `SS.Base.Authentication` | shared validation | `AddSupportSystemAuthentication`: a `Bearer` policy scheme that looks at the token's issuer and forwards to one of two `JwtBearer` schemes — `EntraId` (`Authority = https://login.microsoftonline.com/<tenant>/v2.0`: OpenID metadata + signing keys; validates signature, issuer, audience, lifetime) or `SupportSystem` (Auth Server tokens: `Jwt:SigningKey`, lifetime). |
+| React SPA | OAuth *public client* | Password: `auth/passwordAuth.js` (no token handling — the browser sends the cookies). Entra: `@azure/msal-browser`/`@azure/msal-react` get an **ID token** (who signed in — OpenID Connect) and an **access token** for the API scope (OAuth 2.0). |
+| `SS.Base.Authentication` | shared validation | `AddSupportSystemAuthentication`: a `Bearer` policy scheme that looks at the token's issuer and forwards to one of two `JwtBearer` schemes — `EntraId` (`Authority = https://login.microsoftonline.com/<tenant>/v2.0`: OpenID metadata + signing keys; validates signature, issuer, audience, lifetime) or `SupportSystem` (Auth Server tokens from the `ss_access` cookie, or an `Authorization` header: `Jwt:SigningKey`, lifetime). |
 | `SS.Gateway.API` | OAuth *resource server* | Ocelot routes with `AuthenticationProviderKey: "Bearer"` reject requests without a valid token of either kind. |
 | `SS.User.API` | resource server | Same validation, used by `[Authorize] GET /api/user/me` so the user's identity comes from the token, not from the request. |
 | SQL `Users` table | authorization | Both options identify the user by email; the Support System `Role` (Admin/Agent/Customer) comes from the database. |
+
+### Password-login cookies
+
+| Cookie | Holds | Path | Lifetime | Flags |
+|---|---|---|---|---|
+| `ss_access` | the JWT | `/api` (every API call) | 1 h | `HttpOnly; Secure; SameSite=Strict` |
+| `ss_refresh` | the refresh token | `/api/auth` (Auth Server only) | 7 days | `HttpOnly; Secure; SameSite=Strict` |
+
+Written and deleted by `SS.Auth.Server.API` (`AuthCookies` in `SS.Base.Authentication`); no response body carries a token, so no JavaScript — including an injected script — can read or exfiltrate one. This relies on the SPA and the API sharing one origin (dev proxy, docker-compose nginx, k8s ingress). `Secure` cookies still work on `http://localhost`; anywhere else the app is served over HTTPS.
+
+**CSRF:** because the browser attaches the cookies by itself, the services accept `ss_access` — and the Auth Server its endpoints — only on requests carrying `X-Requested-With: XMLHttpRequest`, which the SPA's axios instances always send and a page on another site can't add. `SameSite=Strict` additionally keeps browsers from attaching the cookies to cross-site requests.
+
+**Rotation:** refresh tokens are single-use. If two tabs refresh at the same instant, the second one's (already used) token is rejected and that tab shows the login page.
 
 The Entra side needs no shared secret (only the tenant id and the API's client id, both public). The password side shares `Jwt:SigningKey` between the Auth Server, Gateway and User API: `appsettings.json` holds a development default, override it per environment with `Jwt__SigningKey` (k8s/Helm: `JWT_SIGNING_KEY` in the `supportsystem-secrets` Secret / `secrets.jwtSigningKey`). Leave the setting out rather than empty — an empty env var would override the default with `""`.
 
@@ -266,7 +279,8 @@ builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Appl
 ## Known gaps / technical debt
 
 - The password login's `Jwt:SigningKey` has a development default committed in `appsettings.json` (the value that used to be hardcoded) — every real deployment must override it with a secret, then rotate it.
-- `ValidateUserHandler` compares passwords in plain text (the `IPasswordHasher<User>` check is commented out), and the password option's tokens live in `localStorage`.
+- `ValidateUserHandler` compares passwords in plain text (the `IPasswordHasher<User>` check is commented out).
+- MSAL keeps the Entra tokens in `sessionStorage` (MSAL can't use HttpOnly cookies), so unlike the password login they're readable by scripts on the page.
 - `SS.Ticket.API` trusts the Gateway's token check rather than validating the token itself, and still takes `CreatedBy` from the request body instead of the token.
 - No `Application`-layer input validation pipeline (e.g. FluentValidation + MediatR behavior) yet — the `Validators/` folder exists but is empty.
 - `SS.Gateway.API/ocelot.json` still has leftover routes pointing at `localhost:3000` (`/`, `/static/{everything}`, `/user/{everything}`, `/ticket/{everything}`) that predate the current API-only gateway usage.
