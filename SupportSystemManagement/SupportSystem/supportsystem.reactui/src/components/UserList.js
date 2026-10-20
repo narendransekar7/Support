@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import API from '../api/axios';
 import logger from "../telemetry/logger";
 
+// SS.User.API sends Role as the enum's number (SS.Base.Domain.Entities.Role).
+const ROLE_NAMES = { 0: 'Admin', 1: 'Agent', 2: 'Customer' };
+
 const UserList = () => {
   // State to store user data
   const [users, setUsers] = useState([]);
@@ -12,12 +15,19 @@ const UserList = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await API.get('/user/getallusers'); // Update with your correct API endpoint
-	   setUsers(response.data); // Set fetched data to state
+        const response = await API.get('/user/getallusers'); // Admin-only: [Authorize(Roles = "Admin")]
+        setUsers(response.data); // [{ userId, name, email, role }]
         setLoading(false);
       } catch (err) {
-        logger.error("Loading the user list failed", err);
-        setError(err.message);
+        const status = err.response?.status;
+        if (status === 403) {
+          setError('Only administrators can view the user list.');
+        } else if (status === 401) {
+          setError('Your session has expired. Please sign in again.');
+        } else {
+          logger.error("Loading the user list failed", err);
+          setError(`Could not load the user list: ${err.message}`);
+        }
         setLoading(false);
       }
     };
@@ -31,7 +41,7 @@ const UserList = () => {
   }
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return <p>{error}</p>;
   }
 
  const tableStyle = {
@@ -65,29 +75,17 @@ const UserList = () => {
       <table style={tableStyle}>
         <thead>
           <tr>
-		  
-		
-            <th style={thStyle}>UserName</th>
-            <th style={thStyle}>FirstName</th>
-            <th style={thStyle}>LastName</th>
-            <th style={thStyle}>DisplayName</th>
-            <th style={thStyle}>PrimaryEmail</th>
-            <th style={thStyle}>PrimaryPhoneNumber</th>
-            <th style={thStyle}>Gender</th>
-            <th style={thStyle}>Company</th>
+            <th style={thStyle}>Name</th>
+            <th style={thStyle}>Email</th>
+            <th style={thStyle}>Role</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user, index) => (
-            <tr key={index} style={index % 2 === 0 ? trHoverStyle : {}}>
-              <td style={tdStyle}>{user.userName}</td>
-              <td style={tdStyle}>{user.firstName}</td>
-              <td style={tdStyle}>{user.lastName}</td>
-              <td style={tdStyle}>{user.displayName}</td>
-              <td style={tdStyle}>{user.primaryEmail}</td>
-              <td style={tdStyle}>{user.primaryPhoneNumber}</td>
-              <td style={tdStyle}>{user.gender}</td>
-              <td style={tdStyle}>{user.company}</td>
+            <tr key={user.userId} style={index % 2 === 0 ? trHoverStyle : {}}>
+              <td style={tdStyle}>{user.name}</td>
+              <td style={tdStyle}>{user.email}</td>
+              <td style={tdStyle}>{ROLE_NAMES[user.role] ?? user.role}</td>
             </tr>
           ))}
         </tbody>

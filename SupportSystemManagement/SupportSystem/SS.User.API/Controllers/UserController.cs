@@ -64,6 +64,15 @@ namespace SS.User.API.Controllers
             });
         }
 
+        // Admin screen (React /user/list): every account's id, name, email and role.
+        [Authorize(Roles = "Admin")]
+        [HttpGet("getallusers")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _mediator.Send(new GetAllUsersQuery());
+            return Ok(users);
+        }
+
         [HttpGet("fetchuser/{id}")]
         public async Task<IActionResult> FetchUserByEmail(string id)
         {
