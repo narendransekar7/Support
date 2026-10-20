@@ -103,6 +103,17 @@ spec:
                 configMapKeyRef:
                   name: {{ $configMap }}
                   key: KAFKA_BOOTSTRAP_SERVERS
+            - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $configMap }}
+                  key: AZURE_SERVICE_BUS_NAMESPACE
+            - name: Messaging__AzureServiceBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: AZURE_SERVICE_BUS_CONNECTION_STRING
+                  optional: true
             {{- end }}
             {{- if $svc.rabbitmq }}
             - name: RabbitMq__Host

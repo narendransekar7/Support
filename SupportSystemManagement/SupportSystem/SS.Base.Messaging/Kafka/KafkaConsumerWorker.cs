@@ -46,9 +46,9 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
         _topics = topics;
         _producer = producer;
         _groupId = groupId;
-        _handlerName = KafkaTopics.ToKebabCase(typeof(THandler));
+        _handlerName = MessageNaming.ToKebabCase(typeof(THandler));
         _logger = loggerFactory.CreateLogger($"SS.Base.Messaging.Kafka.Consumer.{_handlerName}");
-        _topic = KafkaTopics.For(typeof(TMessage), factory.Options.TopicPrefix);
+        _topic = MessageNaming.Topic(typeof(TMessage), factory.Options.TopicPrefix);
         _deadLetterTopic = KafkaTopics.DeadLetterFor(_topic);
     }
 
@@ -140,7 +140,7 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
         TMessage? message;
         try
         {
-            message = JsonSerializer.Deserialize<TMessage>(result.Message.Value, KafkaTopics.Json);
+            message = JsonSerializer.Deserialize<TMessage>(result.Message.Value, MessageNaming.Json);
             if (message == null)
                 throw new JsonException("Message value was null.");
         }

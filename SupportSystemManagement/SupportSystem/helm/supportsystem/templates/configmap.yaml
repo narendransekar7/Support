@@ -8,6 +8,7 @@ metadata:
 data:
   MESSAGING_PROVIDER: {{ .Values.config.messagingProvider | quote }}
   KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafkaBootstrapServers | quote }}
+  AZURE_SERVICE_BUS_NAMESPACE: {{ .Values.config.azureServiceBusNamespace | quote }}
   RABBITMQ_HOST: {{ .Values.config.rabbitmqHost | quote }}
   RABBITMQ_VHOST: {{ .Values.config.rabbitmqVhost | quote }}
   CORS_REACT_UI_ORIGIN: {{ .Values.config.corsReactUiOrigin | quote }}

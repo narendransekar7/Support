@@ -12,7 +12,7 @@ internal static class KafkaRegistration
     public static void AddKafkaMessaging(this IServiceCollection services, IConfigurationSection section, MessagingBuilder builder)
     {
         services.Configure<KafkaOptions>(section);
-        services.AddSingleton(new KafkaServiceName(builder.ServiceName));
+        services.AddSingleton(new MessagingServiceName(builder.ServiceName));
         services.AddSingleton<KafkaClientFactory>();
         services.AddSingleton<KafkaTopicManager>();
 
@@ -33,9 +33,9 @@ internal static class KafkaRegistration
 
         foreach (var subscription in builder.Subscriptions)
         {
-            var groupId = subscription.ConsumerGroup ?? $"{groupPrefix}.{KafkaTopics.ToKebabCase(subscription.HandlerType)}";
+            var groupId = subscription.ConsumerGroup ?? $"{groupPrefix}.{MessageNaming.ToKebabCase(subscription.HandlerType)}";
             if (subscription.ConsumerGroup == null && handlersWithSeveralMessages.Contains(subscription.HandlerType))
-                groupId += "." + KafkaTopics.ToKebabCase(subscription.MessageType);
+                groupId += "." + MessageNaming.ToKebabCase(subscription.MessageType);
             subscription.AddKafkaWorker(services, groupId);
         }
 

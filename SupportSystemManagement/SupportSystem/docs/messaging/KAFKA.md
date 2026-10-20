@@ -1,14 +1,14 @@
 # Kafka in the Support System
 
 This guide explains how the Support System uses Kafka, with pointers into the code and experiments
-you can run. RabbitMQ (the original broker) and Azure Service Bus (planned) sit behind the same
+you can run. RabbitMQ (the original broker) and Azure Service Bus sit behind the same
 switch, so you can compare them on the same workflow.
 
 ## The switch
 
 ```jsonc
 "Messaging": {
-  "Provider": "Kafka",                 // Kafka | RabbitMq | AzureServiceBus (placeholder)
+  "Provider": "Kafka",                 // Kafka (default) | RabbitMq | AzureServiceBus
   "Kafka": { "BootstrapServers": "localhost:9092" }
 }
 ```
@@ -135,4 +135,4 @@ dotnet ef database update --project SS.Base.Infrastructure --startup-project SS.
 
 - **Transactional outbox:** write the message to an outbox table in the same DB transaction as the ticket, and relay it to Kafka. Today a failed publish leaves a ticket without a saga.
 - **Schema evolution:** Avro/Protobuf with a schema registry instead of plain JSON.
-- **Azure Service Bus provider:** fill in `SS.Base.Messaging/AzureServiceBus/`. Each Kafka topic becomes an ASB topic, each consumer group a subscription, and `.dlt` topics become ASB's dead-letter sub-queue.
+- **Compare with Azure Service Bus:** the same workflow runs on Service Bus (`Messaging:Provider = AzureServiceBus`). Each Kafka topic is a Service Bus topic, each consumer group a subscription, and the `.dlt` topics are the built-in dead-letter sub-queue. See [AZURE-SERVICE-BUS.md](AZURE-SERVICE-BUS.md).

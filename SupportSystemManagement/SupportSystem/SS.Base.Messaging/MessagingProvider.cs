@@ -9,9 +9,9 @@ public enum MessagingProvider
     /// <summary>MassTransit over RabbitMQ (the original transport, incl. the MassTransit saga state machine).</summary>
     RabbitMq,
 
-    /// <summary>Apache Kafka through Confluent.Kafka (topics + consumer groups, provider-neutral orchestrator).</summary>
+    /// <summary>Apache Kafka through Confluent.Kafka (topics + consumer groups, provider-neutral orchestrator). The default.</summary>
     Kafka,
 
-    /// <summary>Azure Service Bus - reserved for a later phase; selecting it fails at startup.</summary>
+    /// <summary>Azure Service Bus through Azure.Messaging.ServiceBus (topics + subscriptions, provider-neutral orchestrator).</summary>
     AzureServiceBus
 }

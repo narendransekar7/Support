@@ -1,0 +1,30 @@
+# Azure Service Bus emulator for local development (services run from Visual Studio / `dotnet run` with
+# Messaging:Provider=AzureServiceBus and this connection string, AutoCreateEntities false):
+#   Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+#
+#   docker compose -f docker-compose.servicebus.yml up -d
+#
+# Topics/subscriptions come from servicebus-emulator/Config.json. Health: http://localhost:5300/health
+# Uses host port 5672 - don't run it next to docker-compose.rabbitmq.yml (same port).
+services:
+  servicebus-sql:
+    image: mcr.microsoft.com/mssql/server:2022-CU16-ubuntu-22.04
+    container_name: supportsystem-servicebus-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SERVICEBUS_SQL_PASSWORD:-ServiceBus_Emulator1!}   # local throwaway emulator store
+
+  servicebus-emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:1.1.2
+    container_name: supportsystem-servicebus-emulator
+    volumes:
+      - ./servicebus-emulator/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+    ports:
+      - "5672:5672"   # AMQP
+      - "5300:5300"   # health
+    environment:
+      SQL_SERVER: servicebus-sql
+      MSSQL_SA_PASSWORD: ${SERVICEBUS_SQL_PASSWORD:-ServiceBus_Emulator1!}
+      ACCEPT_EULA: "Y"
+    depends_on:
+      - servicebus-sql

@@ -26,11 +26,15 @@ imagePullSecrets: []
 # Non-secret config shared across services -> ConfigMap "supportsystem-config"
 # ---------------------------------------------------------------------------
 config:
-  # Message broker for every service: "Kafka" or "RabbitMq" (env Messaging__Provider). Both brokers are
-  # deployed by default (kafka.enabled / rabbitmq.enabled); turn off the one you don't use.
+  # Message broker for every service: "Kafka" (default), "RabbitMq" or "AzureServiceBus" (env Messaging__Provider).
+  # Kafka and RabbitMQ are deployed by default (kafka.enabled / rabbitmq.enabled); turn off the ones you don't use.
+  # Azure Service Bus is a namespace in Azure (Standard tier or higher): set secrets.azureServiceBusConnectionString
+  # or, with Microsoft Entra ID (workload identity), azureServiceBusNamespace below.
   messagingProvider: "Kafka"
   # Service name of the in-cluster Kafka (kafka.enabled) or an external cluster's bootstrap servers
   kafkaBootstrapServers: "kafka:9092"
+  # "<namespace>.servicebus.windows.net" - only when no connection string is used
+  azureServiceBusNamespace: ""
   # Service name of the in-cluster broker (rabbitmq.enabled) or the host of an external one
   rabbitmqHost: "rabbitmq"
   rabbitmqVhost: "/"
@@ -76,7 +80,8 @@ entra:
 #     - create the Secret yourself (kubectl create secret ..., Key Vault CSI, sealed-secrets, ...)
 #       and set existingSecret to its name - the chart then doesn't create one.
 #   The Secret must contain the keys DB_CONNECTION_STRING, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
-#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING, JWT_SIGNING_KEY and REDIS_CONNECTION_STRING.
+#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING, JWT_SIGNING_KEY, REDIS_CONNECTION_STRING and
+#   AZURE_SERVICE_BUS_CONNECTION_STRING.
 # ---------------------------------------------------------------------------
 secrets:
   existingSecret: ""
@@ -91,6 +96,9 @@ secrets:
   # StackExchange.Redis connection string for the gateway's rate limiter. Default = the in-cluster redis below;
   # for Azure Cache for Redis: "<name>.redis.cache.windows.net:6380,password=<key>,ssl=True,abortConnect=False"
   redisConnectionString: "redis:6379,connectTimeout=2000,syncTimeout=500,asyncTimeout=500"
+  # Azure Service Bus (config.messagingProvider: AzureServiceBus): a shared access policy's connection string with
+  # Manage rights - the services create their topics/subscriptions. Empty = use config.azureServiceBusNamespace.
+  azureServiceBusConnectionString: ""
 
 # ---------------------------------------------------------------------------
 # RabbitMQ (single replica, no persistence - see k8s/README.md "Known gap")
@@ -201,7 +209,7 @@ autoscalingBehavior:
 #     image.repository/tag    image name (prefixed with image.registry); tag defaults to image.tag
 #     aspnetcoreEnvironment   ASPNETCORE_ENVIRONMENT
 #     database                inject ConnectionStrings__DefaultConnection from the Secret
-#     messaging               inject Messaging__Provider and Messaging__Kafka__BootstrapServers (the broker switch)
+#     messaging               inject Messaging__Provider and the Kafka / Azure Service Bus settings (the broker switch)
 #     rabbitmq                inject RabbitMq__Host/VirtualHost/Username/Password
 #     cors                    inject Cors__ReactUIOrigin
 #     jwt                     inject Jwt__SigningKey from the Secret's JWT_SIGNING_KEY (if present)
