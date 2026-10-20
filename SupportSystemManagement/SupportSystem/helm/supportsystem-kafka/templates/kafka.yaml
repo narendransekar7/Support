@@ -1,0 +1,128 @@
+{{- $k := .Values.kafka }}
+{{- $s := $k.scheduling }}
+# The brokers: one node pool whose pods are both KRaft controllers and brokers. Strimzi turns this into a
+# StrimziPodSet (pods <cluster>-dual-0..N), one PersistentVolumeClaim each, and a PodDisruptionBudget.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: dual
+  labels:
+    {{- include "supportsystem-kafka.clusterLabel" . | nindent 4 }}
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+spec:
+  replicas: {{ $k.replicas }}
+  roles:
+    {{- toYaml $k.roles | nindent 4 }}
+  resources:
+    {{- toYaml $k.resources | nindent 4 }}
+  jvmOptions:
+    {{- toYaml $k.jvmOptions | nindent 4 }}
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: {{ $k.storage.size }}
+        {{- with $k.storage.class }}
+        class: {{ . }}
+        {{- end }}
+        deleteClaim: {{ $k.storage.deleteClaim }}
+        kraftMetadata: shared
+  {{- if or $s.nodeSelector $s.tolerations $s.spreadAcrossZones }}
+  template:
+    pod:
+      {{- with $s.nodeSelector }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  {{- range $key, $value := . }}
+                  - key: {{ $key }}
+                    operator: In
+                    values: [{{ $value | quote }}]
+                  {{- end }}
+      {{- end }}
+      {{- with $s.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $s.spreadAcrossZones }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              strimzi.io/cluster: {{ .Values.clusterName }}
+              strimzi.io/pool-name: dual
+      {{- end }}
+  {{- end }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: {{ .Values.clusterName }}
+  labels:
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+spec:
+  kafka:
+    version: {{ $k.version }}
+    metadataVersion: {{ $k.metadataVersion }}
+    listeners:
+      # The only listener: TLS on 9093, every client logs in with SCRAM-SHA-512 (one KafkaUser per service).
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: scram-sha-512
+    # ACLs from the KafkaUser resources decide who may read/write which topic and group.
+    authorization:
+      type: simple
+    {{- with $k.rack.topologyKey }}
+    rack:
+      type: topology-label
+      topologyKey: {{ . }}
+    {{- end }}
+    config:
+      {{- toYaml $k.config | nindent 6 }}
+    {{- if .Values.metrics.enabled }}
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: {{ .Values.clusterName }}-metrics
+          key: kafka-metrics-config.yml
+    {{- end }}
+  entityOperator:
+    topicOperator:
+      resources:
+        {{- toYaml .Values.entityOperator.topicOperator.resources | nindent 8 }}
+    userOperator:
+      resources:
+        {{- toYaml .Values.entityOperator.userOperator.resources | nindent 8 }}
+  {{- if .Values.cruiseControl.enabled }}
+  cruiseControl:
+    resources:
+      {{- toYaml .Values.cruiseControl.resources | nindent 6 }}
+  {{- end }}
+  {{- if .Values.kafkaExporter.enabled }}
+  kafkaExporter:
+    topicRegex: {{ printf "%s\\..*" (.Values.topics.prefix | replace "." "\\.") | quote }}
+    groupRegex: ".*"
+    resources:
+      {{- toYaml .Values.kafkaExporter.resources | nindent 6 }}
+  {{- end }}
+{{- if .Values.metrics.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.clusterName }}-metrics
+  labels:
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+data:
+  kafka-metrics-config.yml: |
+    {{- .Files.Get "files/kafka-metrics-config.yml" | nindent 4 }}
+{{- end }}

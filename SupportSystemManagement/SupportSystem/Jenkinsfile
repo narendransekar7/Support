@@ -42,7 +42,12 @@ pipeline {
         // Values that define the release - used by BOTH 'Render Manifest' and 'Deploy to AKS', so the
         // archived manifest matches what is deployed. Add release overrides here, not in one stage only.
         // pullPolicy IfNotPresent is safe: every build has its own tag.
-        HELM_RELEASE_ARGS     = "--set-string image.tag=${env.BUILD_NUMBER} --set image.pullPolicy=IfNotPresent"
+        // values.production.yaml: Kafka from the Strimzi release (kafka.mode=strimzi) - see 'Deploy Kafka'.
+        HELM_RELEASE_ARGS     = "-f helm/supportsystem/values.production.yaml --set-string image.tag=${env.BUILD_NUMBER} --set image.pullPolicy=IfNotPresent"
+        // Production Kafka (Strimzi operator + helm/supportsystem-kafka release) - installed before the app.
+        STRIMZI_VERSION       = '1.2.0'
+        KAFKA_RELEASE         = 'supportsystem-kafka'
+        KAFKA_CHART           = 'helm/supportsystem-kafka'
         // Helm revisions kept in the cluster = how far back you can roll back
         HELM_HISTORY_MAX      = '20'
     }
@@ -84,6 +89,7 @@ pipeline {
                 dir('SupportSystemManagement/SupportSystem') {
                     // existingSecret only so linting doesn't need the real secret values
                     sh 'helm lint "$CHART" --strict --set secrets.existingSecret=lint-only $HELM_RELEASE_ARGS'
+                    sh 'helm lint "$KAFKA_CHART" --strict'
                 }
             }
         }
@@ -152,6 +158,21 @@ pipeline {
                           > "rendered-$IMAGE_TAG.yaml"
                     '''
                     archiveArtifacts artifacts: "rendered-${IMAGE_TAG}.yaml"
+                }
+            }
+        }
+
+        // Kafka first: the app pods read the per-service passwords and the CA that Strimzi creates, so the cluster
+        // and its users must be Ready before 'Deploy to AKS' (whose --wait would otherwise time out and roll back).
+        // A separate release - app deploys and rollbacks never touch Kafka.
+        stage('Deploy Kafka (Strimzi)') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS)]) {
+                        sh aksLogin()
+                        sh 'bash scripts/deploy-kafka.sh "$NAMESPACE"'
+                    }
                 }
             }
         }

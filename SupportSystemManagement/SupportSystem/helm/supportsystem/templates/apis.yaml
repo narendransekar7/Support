@@ -5,6 +5,7 @@ One Deployment + Service (+ HPA / PDB) per entry in .Values.apis - the .NET serv
 {{- $defaults := .Values.apiDefaults }}
 {{- $configMap := include "supportsystem.configMapName" . }}
 {{- $secretName := include "supportsystem.secretName" . }}
+{{- $kafkaMode := include "supportsystem.kafkaMode" . }}
 {{- range $name, $svc := .Values.apis }}
 {{- if $svc.enabled }}
 ---
@@ -103,6 +104,61 @@ spec:
                 configMapKeyRef:
                   name: {{ $configMap }}
                   key: KAFKA_BOOTSTRAP_SERVERS
+            {{- if eq $kafkaMode "strimzi" }}
+            {{- $kafkaCluster := $root.Values.kafka.strimzi.clusterName }}
+            # Strimzi: TLS + SCRAM-SHA-512 as this service's own KafkaUser (helm/supportsystem-kafka users.<name>).
+            - name: Messaging__Kafka__SecurityProtocol
+              value: SaslSsl
+            - name: Messaging__Kafka__SaslMechanism
+              value: ScramSha512
+            - name: Messaging__Kafka__SaslUsername
+              value: {{ $name }}
+            - name: Messaging__Kafka__SaslPassword
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}                 # written by Strimzi's User Operator
+                  key: password
+            - name: Messaging__Kafka__SslCaPem
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $kafkaCluster }}-cluster-ca-cert   # written by Strimzi's Cluster Operator
+                  key: ca.crt
+            - name: Messaging__Kafka__AutoCreateTopics
+              value: "false"
+            - name: Messaging__Kafka__Partitions
+              value: {{ $root.Values.kafka.strimzi.partitions | quote }}
+            - name: Messaging__Kafka__ReplicationFactor
+              value: {{ $root.Values.kafka.strimzi.replicationFactor | quote }}
+            {{- else if eq $kafkaMode "external" }}
+            {{- with $root.Values.kafka.external }}
+            {{- with .securityProtocol }}
+            - name: Messaging__Kafka__SecurityProtocol
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .saslMechanism }}
+            - name: Messaging__Kafka__SaslMechanism
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .saslUsername }}
+            - name: Messaging__Kafka__SaslUsername
+              value: {{ . | quote }}
+            {{- end }}
+            - name: Messaging__Kafka__AutoCreateTopics
+              value: {{ .autoCreateTopics | quote }}
+            {{- end }}
+            - name: Messaging__Kafka__SaslPassword
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: KAFKA_SASL_PASSWORD
+                  optional: true
+            - name: Messaging__Kafka__SslCaPem
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: KAFKA_SSL_CA_PEM
+                  optional: true
+            {{- end }}
             - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
               valueFrom:
                 configMapKeyRef:

@@ -1,0 +1,48 @@
+{{- /*
+Azure Monitor managed Prometheus scrape config for Kafka (same CRD as the app chart's monitoring.podMonitors).
+Off by default: the azmonitoring.coreos.com CRD only exists once the AKS metrics add-on is enabled.
+Alert on: kafka_consumergroup_lag (Kafka Exporter) and kafka_server_replicamanager_underreplicatedpartitions (brokers).
+*/ -}}
+{{- if .Values.monitoring.podMonitors.enabled }}
+{{- if .Values.metrics.enabled }}
+# Brokers - JMX exporter on Strimzi's tcp-prometheus port (9404)
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Values.clusterName }}-brokers
+  labels:
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/cluster: {{ .Values.clusterName }}
+      strimzi.io/kind: Kafka
+      strimzi.io/name: {{ .Values.clusterName }}-kafka
+  podMetricsEndpoints:
+    - port: tcp-prometheus
+      path: /metrics
+      interval: {{ .Values.monitoring.podMonitors.interval }}
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+{{- end }}
+{{- if .Values.kafkaExporter.enabled }}
+---
+# Kafka Exporter - consumer-group lag per topic/partition, topic offsets
+apiVersion: azmonitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Values.clusterName }}-kafka-exporter
+  labels:
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/cluster: {{ .Values.clusterName }}
+      strimzi.io/name: {{ .Values.clusterName }}-kafka-exporter
+  podMetricsEndpoints:
+    - port: tcp-prometheus
+      path: /metrics
+      interval: {{ .Values.monitoring.podMonitors.interval }}
+{{- end }}
+{{- end }}

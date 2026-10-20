@@ -1,0 +1,27 @@
+# Staging: the same cluster shape (3 brokers, replication 3, TLS + SCRAM, ACLs) but smaller, on the regular app
+# nodes, in the "supportsystem-staging" namespace of the same AKS cluster:
+#   helm upgrade --install supportsystem-kafka ./helm/supportsystem-kafka -n supportsystem-staging --create-namespace \
+#     -f helm/supportsystem-kafka/values.staging.yaml
+# (the Strimzi operator must watch that namespace too: --set watchNamespaces="{supportsystem,supportsystem-staging}")
+kafka:
+  resources:
+    requests: { cpu: 250m, memory: 1536Mi }
+    limits: { memory: 1536Mi }
+  jvmOptions:
+    "-Xms": 768m
+    "-Xmx": 768m
+  storage:
+    size: 20Gi
+    class: managed-csi-premium   # AKS built-in Premium SSD (LRS) - the ZRS class belongs to the production release
+  rack:
+    topologyKey: ""              # app nodes may not be zonal
+  scheduling:
+    nodeSelector: null           # null, not {}: Helm merges maps, so {} would keep production's workload=kafka
+    tolerations: []
+    spreadAcrossZones: false
+
+storageClass:
+  create: false                  # cluster-scoped; the production release owns kafka-premium-zrs
+
+cruiseControl:
+  enabled: false

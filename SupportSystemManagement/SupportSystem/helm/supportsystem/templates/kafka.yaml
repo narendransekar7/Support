@@ -1,4 +1,4 @@
-{{- if .Values.kafka.enabled }}
+{{- if eq .Values.kafka.mode "dev" }}
 # kafka - single broker in KRaft mode (no ZooKeeper); deliberately not autoscaled: extra replicas
 # would be separate brokers with the same node id. Not persisted (emptyDir) - see values.yaml.
 apiVersion: apps/v1

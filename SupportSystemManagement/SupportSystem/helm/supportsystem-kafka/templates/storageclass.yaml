@@ -1,0 +1,18 @@
+{{- if .Values.storageClass.create }}
+# Zone-redundant Premium SSD for the broker disks (Azure Disk CSI). Cluster-scoped, and kept when the release is
+# uninstalled (helm.sh/resource-policy) - removing it while disks still use it would only confuse things.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ .Values.storageClass.name }}
+  labels:
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+provisioner: {{ .Values.storageClass.provisioner }}
+parameters:
+  {{- toYaml .Values.storageClass.parameters | nindent 2 }}
+reclaimPolicy: {{ .Values.storageClass.reclaimPolicy }}
+volumeBindingMode: {{ .Values.storageClass.volumeBindingMode }}
+allowVolumeExpansion: {{ .Values.storageClass.allowVolumeExpansion }}
+{{- end }}

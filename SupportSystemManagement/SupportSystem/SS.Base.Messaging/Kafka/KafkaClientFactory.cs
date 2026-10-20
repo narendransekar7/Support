@@ -80,6 +80,8 @@ internal sealed class KafkaClientFactory
             config.SaslUsername = _options.SaslUsername;
         if (!string.IsNullOrWhiteSpace(_options.SaslPassword))
             config.SaslPassword = _options.SaslPassword;
+        if (!string.IsNullOrWhiteSpace(_options.SslCaPem))
+            config.SslCaPem = _options.SslCaPem;
 
         return config;
     }

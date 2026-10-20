@@ -1,0 +1,72 @@
+{{- /*
+One SCRAM-SHA-512 user per service with least-privilege ACLs. Strimzi's User Operator creates the user in
+Kafka and a Secret of the same name holding "password" (and "sasl.jaas.config"); the app chart's pods read it.
+Rotate a password by deleting that Secret (Strimzi issues a new one), then restart the service's pods.
+*/ -}}
+{{- $prefix := .Values.topics.prefix }}
+{{- range $user, $access := .Values.users }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaUser
+metadata:
+  name: {{ $user }}
+  labels:
+    {{- include "supportsystem-kafka.clusterLabel" $ | nindent 4 }}
+    {{- include "supportsystem-kafka.labels" $ | nindent 4 }}
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      {{- range $access.produces }}
+      - resource: { type: topic, name: {{ printf "%s.%s" $prefix . }}, patternType: literal }
+        operations: [Write, Describe]
+        host: "*"
+      {{- end }}
+      {{- range $access.consumes }}
+      - resource: { type: topic, name: {{ printf "%s.%s" $prefix . }}, patternType: literal }
+        operations: [Read, Describe]
+        host: "*"
+      # a message that keeps failing is copied to the dead-letter topic
+      - resource: { type: topic, name: {{ printf "%s.%s.dlt" $prefix . }}, patternType: literal }
+        operations: [Write, Describe]
+        host: "*"
+      {{- end }}
+      {{- if $access.consumes }}
+      # the service's consumer groups are all named "<service>.<handler>..." (SS.Base.Messaging)
+      - resource: { type: group, name: {{ printf "%s." $user }}, patternType: prefix }
+        operations: [Read]
+        host: "*"
+      {{- end }}
+      # the services' readiness check lists brokers (metadata request)
+      - resource: { type: cluster }
+        operations: [Describe]
+        host: "*"
+{{- end }}
+{{- if .Values.ui.enabled }}
+---
+# Kafka UI: read everything, inspect configs, and manage consumer groups (offset resets for replays).
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaUser
+metadata:
+  name: {{ .Values.clusterName }}-ui
+  labels:
+    {{- include "supportsystem-kafka.clusterLabel" . | nindent 4 }}
+    {{- include "supportsystem-kafka.labels" . | nindent 4 }}
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource: { type: topic, name: "*", patternType: literal }
+        operations: [Read, Describe, DescribeConfigs]
+        host: "*"
+      - resource: { type: group, name: "*", patternType: literal }
+        operations: [Read, Describe, Delete]
+        host: "*"
+      - resource: { type: cluster }
+        operations: [Describe, DescribeConfigs]
+        host: "*"
+{{- end }}

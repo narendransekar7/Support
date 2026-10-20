@@ -61,7 +61,12 @@ variables:
   # Values that define the release - used by BOTH 'Render manifest' and 'Deploy to AKS', so the
   # published manifest matches what is deployed. Add release overrides here, not in one step only.
   # pullPolicy IfNotPresent is safe: every run has its own tag.
-  HELM_RELEASE_ARGS: --set-string image.tag=$(Build.BuildId) --set image.pullPolicy=IfNotPresent
+  # values.production.yaml: Kafka from the Strimzi release (kafka.mode=strimzi) - see the 'Deploy Kafka' step.
+  HELM_RELEASE_ARGS: -f helm/supportsystem/values.production.yaml --set-string image.tag=$(Build.BuildId) --set image.pullPolicy=IfNotPresent
+  # Production Kafka (Strimzi operator + helm/supportsystem-kafka release) - installed before the app.
+  STRIMZI_VERSION: '1.2.0'
+  KAFKA_RELEASE: supportsystem-kafka
+  KAFKA_CHART: helm/supportsystem-kafka
   # Helm revisions kept in the cluster = how far back you can roll back
   HELM_HISTORY_MAX: '20'
 
@@ -83,7 +88,10 @@ stages:
 
             # First, before the slow image builds: a broken chart fails the run in seconds.
             # existingSecret only so linting doesn't need the real secret values
-            - bash: helm lint "$CHART" --strict --set secrets.existingSecret=lint-only $HELM_RELEASE_ARGS
+            - bash: |
+                set -e
+                helm lint "$CHART" --strict --set secrets.existingSecret=lint-only $HELM_RELEASE_ARGS
+                helm lint "$KAFKA_CHART" --strict
               displayName: Helm lint
               workingDirectory: $(APP_DIR)
 
@@ -176,6 +184,21 @@ stages:
                     displayName: Download values.secret.yaml
                     inputs:
                       secureFile: ${{ variables.HELM_SECRET_VALUES }}
+
+                  # Kafka first: the app pods read the per-service passwords and the CA that Strimzi creates, so
+                  # the cluster and its users must be Ready before the app's --wait. A separate release - app
+                  # deploys and rollbacks never touch Kafka.
+                  - task: AzureCLI@2
+                    displayName: Deploy Kafka (Strimzi)
+                    inputs:
+                      azureSubscription: ${{ variables.AZURE_SERVICE_CONNECTION }}
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      workingDirectory: $(APP_DIR)
+                      inlineScript: |
+                        set -e
+                        az aks get-credentials -g "$RESOURCE_GROUP" -n "$AKS_CLUSTER" --overwrite-existing
+                        bash scripts/deploy-kafka.sh "$NAMESPACE"
 
                   # --rollback-on-failure (Helm 4; use --atomic on Helm 3): if the new pods don't pass
                   # their readiness probes within the timeout, Helm restores the previous revision itself.

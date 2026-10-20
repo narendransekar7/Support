@@ -1,0 +1,10 @@
+apiVersion: v2
+name: supportsystem-kafka
+description: >-
+  Production Kafka for the Support System, run by the Strimzi operator: a zone-spread KRaft cluster with
+  persistent disks, TLS + SCRAM-SHA-512 logins, one least-privilege user per service, the topics, and
+  monitoring. Installed as its own Helm release (before the app chart) so app deploys and rollbacks never
+  touch Kafka. Needs the Strimzi Cluster Operator 1.2.x (CRD API kafka.strimzi.io/v1) watching the namespace.
+type: application
+version: 0.1.0
+appVersion: "4.3.1"   # Apache Kafka

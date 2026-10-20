@@ -1,0 +1,44 @@
+# Local test on minikube / kind (one node, no zones, small). Same security and topic setup as production:
+#   minikube start -p strimzi --cpus 4 --memory 6g
+#   helm upgrade --install strimzi-kafka-operator oci://quay.io/strimzi-helm/strimzi-kafka-operator --version 1.2.0 \
+#     -n kafka-operator --create-namespace --set watchNamespaces="{supportsystem}"
+#   helm upgrade --install supportsystem-kafka ./helm/supportsystem-kafka -n supportsystem --create-namespace \
+#     -f helm/supportsystem-kafka/values.local.yaml
+kafka:
+  resources:
+    requests: { cpu: 200m, memory: 768Mi }
+    limits: { memory: 768Mi }
+  jvmOptions:
+    "-Xms": 384m
+    "-Xmx": 384m
+  storage:
+    size: 1Gi
+    class: ""                    # the cluster's default StorageClass
+    deleteClaim: true
+  rack:
+    topologyKey: ""
+  scheduling:
+    nodeSelector: null           # null, not {}: Helm merges maps, so {} would keep production's workload=kafka
+    tolerations: []
+    spreadAcrossZones: false
+
+storageClass:
+  create: false
+
+entityOperator:
+  topicOperator:
+    resources:
+      requests: { cpu: 50m, memory: 192Mi }
+      limits: { memory: 384Mi }
+  userOperator:
+    resources:
+      requests: { cpu: 50m, memory: 192Mi }
+      limits: { memory: 384Mi }
+
+cruiseControl:
+  enabled: false
+
+ui:
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 512Mi }

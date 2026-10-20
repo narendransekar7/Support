@@ -1,0 +1,27 @@
+# Staging - the app in the "supportsystem-staging" namespace of the same AKS cluster, against the staging Kafka
+# release (helm/supportsystem-kafka/values.staging.yaml). Smaller and without its own public entry point:
+#   helm upgrade --install supportsystem-staging ./helm/supportsystem -n supportsystem-staging --create-namespace \
+#     -f helm/supportsystem/values.staging.yaml -f <staging secret values>
+#   kubectl -n supportsystem-staging port-forward svc/ss-gateway-api 8080:8080      # API at http://localhost:8080/api
+kafka:
+  mode: strimzi
+
+rabbitmq:
+  enabled: false
+
+# The production release's ingress already matches every host on "/", so staging has none (port-forward instead).
+ingress:
+  enabled: false
+
+apis:
+  ss-auth-server-api:   { autoscaling: { minReplicas: 1, maxReplicas: 2 }, pdb: { enabled: false } }
+  ss-user-api:          { autoscaling: { minReplicas: 1, maxReplicas: 2 }, pdb: { enabled: false } }
+  ss-ticket-api:        { autoscaling: { minReplicas: 1, maxReplicas: 3 }, pdb: { enabled: false } }
+  ss-email-api:         { autoscaling: { minReplicas: 1, maxReplicas: 2 } }
+  ss-notification-api:  { autoscaling: { minReplicas: 1, maxReplicas: 2 } }
+  ss-audit-api:         { autoscaling: { minReplicas: 1, maxReplicas: 2 } }
+  ss-gateway-api:       { autoscaling: { minReplicas: 1, maxReplicas: 2 }, pdb: { enabled: false } }
+
+reactUi:
+  autoscaling: { minReplicas: 1, maxReplicas: 2 }
+  pdb: { enabled: false }

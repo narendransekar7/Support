@@ -84,6 +84,7 @@ only works while the old image tags still exist in the registry. The last 20 rev
 | `apis.<name>.resources` | `apiDefaults.resources` | Per-service requests/limits |
 | `ingress.className` | `nginx` | `webapprouting.kubernetes.azure.com` for the AKS add-on |
 | `ingress.host` / `ingress.tls` | none | Host name and TLS |
+| `kafka.mode` | `dev` | `dev` = one in-cluster broker (learning); `strimzi` = the production cluster from `helm/supportsystem-kafka` (TLS + SCRAM, one user per service - see `values.production.yaml` and k8s/README.md "Kafka in production"); `external` = `config.kafkaBootstrapServers` + `kafka.external.*` + `secrets.kafkaSaslPassword` |
 | `rabbitmq.enabled` | `true` | `false` + `config.rabbitmqHost` to use an external broker |
 | `monitoring.podMonitors.enabled` | `false` | Managed Prometheus PodMonitors (needs the AKS metrics add-on) |
 
