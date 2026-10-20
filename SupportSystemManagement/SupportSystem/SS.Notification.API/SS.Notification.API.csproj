@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SS.Base.Application\SS.Base.Application.csproj" />
+    <ProjectReference Include="..\SS.Base.Domain\SS.Base.Domain.csproj" />
     <ProjectReference Include="..\SS.Base.Infrastructure\SS.Base.Infrastructure.csproj" />
     <ProjectReference Include="..\SS.Base.Messaging\SS.Base.Messaging.csproj" />
     <ProjectReference Include="..\SS.Base.Observability\SS.Base.Observability.csproj" />
