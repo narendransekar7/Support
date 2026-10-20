@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Application", "..\S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Observability", "..\SS.Base.Observability\SS.Base.Observability.csproj", "{84228C6F-E7F4-40C4-8AD9-EC05E7C22D9D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Messaging", "..\SS.Base.Messaging\SS.Base.Messaging.csproj", "{C3DFA4C7-7642-420E-8054-40FC5D7DF66B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{84228C6F-E7F4-40C4-8AD9-EC05E7C22D9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84228C6F-E7F4-40C4-8AD9-EC05E7C22D9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84228C6F-E7F4-40C4-8AD9-EC05E7C22D9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3DFA4C7-7642-420E-8054-40FC5D7DF66B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3DFA4C7-7642-420E-8054-40FC5D7DF66B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3DFA4C7-7642-420E-8054-40FC5D7DF66B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3DFA4C7-7642-420E-8054-40FC5D7DF66B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
