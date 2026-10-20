@@ -21,7 +21,7 @@ namespace SS.Base.Observability;
 /// TraceId/SpanId as a scope, so stdout lines can be matched to a distributed trace.
 ///
 /// When an Application Insights connection string is configured, logs, traces (ASP.NET Core,
-/// HttpClient, SQL, MassTransit/RabbitMQ) and metrics are also exported via OpenTelemetry to
+/// HttpClient, SQL, MassTransit/RabbitMQ, Kafka) and metrics are also exported via OpenTelemetry to
 /// Azure Monitor. Without one, nothing is exported and the service runs exactly as before.
 ///
 /// Metrics are always exposed in Prometheus format at /metrics (see UseSupportSystemMetrics),
@@ -31,6 +31,9 @@ public static class ObservabilityExtensions
 {
     // ActivitySource/Meter name MassTransit emits its publish/consume/saga spans and metrics under.
     private const string MassTransitSource = "MassTransit";
+
+    // ActivitySource SS.Base.Messaging emits its Kafka publish/process spans under (MessagingTelemetry).
+    private const string KafkaMessagingSource = "SS.Base.Messaging";
 
     // Meters built into .NET 8: HTTP server request duration/active requests, Kestrel connections,
     // outgoing HttpClient requests. Registered explicitly so they reach Prometheus even when the
@@ -67,7 +70,7 @@ public static class ObservabilityExtensions
             // service.name becomes the cloud role name in Application Insights (Application Map node);
             // the instance id is the pod/container name so replicas can be told apart.
             .ConfigureResource(r => r.AddService(serviceName, serviceInstanceId: Environment.MachineName))
-            .WithTracing(t => t.AddSource(MassTransitSource))
+            .WithTracing(t => t.AddSource(MassTransitSource, KafkaMessagingSource))
             .WithMetrics(m => m
                 .AddMeter(MassTransitSource)
                 .AddMeter(BuiltInMeters)

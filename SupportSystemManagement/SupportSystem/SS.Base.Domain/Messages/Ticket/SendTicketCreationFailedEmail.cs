@@ -1,6 +1,8 @@
+using SS.Base.Domain.Interfaces.Messaging;
+
 namespace SS.Base.Domain.Messages.Ticket;
 
-public record SendTicketCreationFailedEmail
+public record SendTicketCreationFailedEmail : ITicketMessage
 {
     public Guid TicketId { get; init; }
     public string Title { get; init; }

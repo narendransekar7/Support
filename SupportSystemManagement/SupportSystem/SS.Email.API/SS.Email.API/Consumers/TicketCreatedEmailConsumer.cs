@@ -1,33 +1,19 @@
 using MassTransit;
 using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Messaging.RabbitMq;
+using SS.Email.API.Handlers;
 
 namespace SS.Email.API.Consumers;
 
+/// <summary>
+/// RabbitMQ (MassTransit) entry point; the email itself is sent by <see cref="TicketCreatedEmailHandler"/>.
+/// </summary>
 public class TicketCreatedEmailConsumer : IConsumer<TicketCreated>
 {
-    private readonly EmailService _emailService;
-    private readonly ILogger<TicketCreatedEmailConsumer> _logger;
+    private readonly TicketCreatedEmailHandler _handler;
 
-    public TicketCreatedEmailConsumer(EmailService emailService, ILogger<TicketCreatedEmailConsumer> logger)
-    {
-        _emailService = emailService;
-        _logger = logger;
-    }
+    public TicketCreatedEmailConsumer(TicketCreatedEmailHandler handler) => _handler = handler;
 
-    public async Task Consume(ConsumeContext<TicketCreated> context)
-    {
-        var message = context.Message;
-        if (string.IsNullOrWhiteSpace(message.CreatedByEmail))
-        {
-            _logger.LogWarning("Skipping ticket-received email for ticket {TicketId}: creator has no email address", message.TicketId);
-            return;
-        }
-
-        var subject = $"Ticket received: {message.Title}";
-        var body = $"Hello {message.CreatedByName},<br/><br/>" +
-                   $"We've received your ticket \"{message.Title}\" (priority: {message.Priority}). " +
-                   "We'll assign it to an engineer shortly.";
-
-        await _emailService.SendEmailAsync(message.CreatedByEmail, subject, body);
-    }
+    public Task Consume(ConsumeContext<TicketCreated> context) =>
+        _handler.HandleAsync(context.Message, context.ToEventContext(), context.CancellationToken);
 }

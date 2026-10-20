@@ -1,42 +1,22 @@
 using MassTransit;
-using Microsoft.Extensions.Logging;
-using SS.Base.Domain.Entities;
-using SS.Base.Domain.Interfaces.Repository;
+using SS.Base.Application.EventHandlers;
 using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Messaging.RabbitMq;
 
 namespace SS.Base.Application.Consumers;
 
 /// <summary>
-/// Independent "Create Notification" branch — reacts to TicketCreated directly,
-/// not gated by the assign-engineer saga (see diagram: this runs in parallel
-/// with the Assign Engineer -> Reserve SLA branch).
+/// Independent "Create Notification" branch - reacts to TicketCreated directly, not gated by the
+/// assign-engineer saga. Hosted by SS.Notification.API.
+/// RabbitMQ (MassTransit) entry point; the logic lives in <see cref="CreateNotificationHandler"/>, which the Kafka
+/// provider calls directly. Keeping this class keeps its RabbitMQ queue name ("CreateNotification").
 /// </summary>
 public class CreateNotificationConsumer : IConsumer<TicketCreated>
 {
-    private readonly INotificationRepository _notificationRepository;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<CreateNotificationConsumer> _logger;
+    private readonly CreateNotificationHandler _handler;
 
-    public CreateNotificationConsumer(INotificationRepository notificationRepository, IUnitOfWork unitOfWork, ILogger<CreateNotificationConsumer> logger)
-    {
-        _logger = logger;
-        _notificationRepository = notificationRepository;
-        _unitOfWork = unitOfWork;
-    }
+    public CreateNotificationConsumer(CreateNotificationHandler handler) => _handler = handler;
 
-    public async Task Consume(ConsumeContext<TicketCreated> context)
-    {
-        var notification = new Notification
-        {
-            NotificationId = Guid.NewGuid(),
-            UserId = context.Message.CreatedBy,
-            TicketId = context.Message.TicketId,
-            Message = $"Your ticket \"{context.Message.Title}\" has been created and is being processed.",
-            IsRead = false
-        };
-
-        await _notificationRepository.AddAsync(notification);
-        await _unitOfWork.SaveChangesAsync(context.CancellationToken);
-        _logger.LogInformation("Created notification {NotificationId} for ticket {TicketId}", notification.NotificationId, notification.TicketId);
-    }
+    public Task Consume(ConsumeContext<TicketCreated> context) =>
+        _handler.HandleAsync(context.Message, context.ToEventContext(), context.CancellationToken);
 }

@@ -1,0 +1,67 @@
+using Confluent.Kafka;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+using SS.Base.Domain.Interfaces.Messaging;
+
+namespace SS.Base.Messaging.Kafka;
+
+internal static class KafkaRegistration
+{
+    public static void AddKafkaMessaging(this IServiceCollection services, IConfigurationSection section, MessagingBuilder builder)
+    {
+        services.Configure<KafkaOptions>(section);
+        services.AddSingleton(new KafkaServiceName(builder.ServiceName));
+        services.AddSingleton<KafkaClientFactory>();
+        services.AddSingleton<KafkaTopicManager>();
+
+        // One producer per process: it's thread-safe and batches across callers.
+        services.AddSingleton(sp => sp.GetRequiredService<KafkaClientFactory>()
+            .CreateProducer(sp.GetRequiredService<ILoggerFactory>().CreateLogger("SS.Base.Messaging.Kafka.Producer")));
+        services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+
+        var groupPrefix = section["ConsumerGroup"];
+        if (string.IsNullOrWhiteSpace(groupPrefix))
+            groupPrefix = builder.ServiceName;
+
+        // Default group per handler: "<prefix>.<handler>", e.g. "ss-email-api.ticket-created-email-handler".
+        // A handler subscribed to several messages (the saga orchestrator) gets one group per message,
+        // "<prefix>.<handler>.<message>", so each topic is consumed and rebalanced independently.
+        var handlersWithSeveralMessages = builder.Subscriptions.GroupBy(s => s.HandlerType)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+
+        foreach (var subscription in builder.Subscriptions)
+        {
+            var groupId = subscription.ConsumerGroup ?? $"{groupPrefix}.{KafkaTopics.ToKebabCase(subscription.HandlerType)}";
+            if (subscription.ConsumerGroup == null && handlersWithSeveralMessages.Contains(subscription.HandlerType))
+                groupId += "." + KafkaTopics.ToKebabCase(subscription.MessageType);
+            subscription.AddKafkaWorker(services, groupId);
+        }
+
+        // Readiness fails while no broker answers - the same as MassTransit's bus check does for RabbitMQ.
+        services.AddHealthChecks().AddCheck<KafkaHealthCheck>("kafka", tags: new[] { "ready", "messaging" });
+    }
+}
+
+internal sealed class KafkaHealthCheck : IHealthCheck
+{
+    private readonly KafkaTopicManager _topics;
+
+    public KafkaHealthCheck(KafkaTopicManager topics) => _topics = topics;
+
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var metadata = await Task.Run(() => _topics.Admin.GetMetadata(TimeSpan.FromSeconds(3)), cancellationToken);
+            return metadata.Brokers.Count > 0
+                ? HealthCheckResult.Healthy($"{metadata.Brokers.Count} Kafka broker(s) reachable")
+                : HealthCheckResult.Unhealthy("No Kafka brokers in metadata");
+        }
+        catch (KafkaException ex)
+        {
+            return HealthCheckResult.Unhealthy("Kafka unreachable", ex);
+        }
+    }
+}

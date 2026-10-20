@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Azure.Messaging.ServiceBus;
-using MassTransit;
 using SS.Email.API;
 using SS.Email.API.Consumers;
+using SS.Email.API.Handlers;
+using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Messaging;
 using SS.Base.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -66,28 +68,23 @@ builder.Services.AddSingleton<SS.Email.API.EmailService>(sp =>
 //    return new SS.Email.API.AzureServiceBusQueueReceiver(serviceBusClient,connectionString, queueName, emailService, logger); 
 //});
 
-// Ticket-creation email consumers (RabbitMQ) — additive alongside the existing
-// Azure Service Bus receiver above, which handles the user-created email flow.
-builder.Services.AddMassTransit(x =>
+// Ticket-creation emails on the broker chosen by Messaging:Provider - additive alongside the
+// Azure Service Bus receiver above (commented out), which handles the user-created email flow.
+builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-email-api", messaging =>
 {
-    x.AddConsumer<TicketCreatedEmailConsumer>();
-    x.AddConsumer<TicketCreationFailedEmailConsumer>();
+    messaging
+        .Subscribe<TicketCreated, TicketCreatedEmailHandler>()
+        .Subscribe<SendTicketCreationFailedEmail, TicketCreationFailedEmailHandler>();
 
-    x.UsingRabbitMq((context, cfg) =>
+    messaging.ForRabbitMq(x =>
     {
-        var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
-        cfg.Host(rabbitMqConfig["Host"], rabbitMqConfig["VirtualHost"], h =>
-        {
-            h.Username(rabbitMqConfig["Username"]);
-            h.Password(rabbitMqConfig["Password"]);
-        });
-
-        cfg.ConfigureEndpoints(context);
+        x.AddConsumer<TicketCreatedEmailConsumer>();
+        x.AddConsumer<TicketCreationFailedEmailConsumer>();
     });
 });
 
-// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
-// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a broker outage
+// doesn't restart the pod; /health/ready runs all registered checks (MassTransit's bus check or the Kafka check).
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();

@@ -1,37 +1,21 @@
 using MassTransit;
-using Microsoft.Extensions.Logging;
-using SS.Base.Domain.Interfaces.Repository;
+using SS.Base.Application.EventHandlers;
 using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Messaging.RabbitMq;
 
 namespace SS.Base.Application.Consumers;
 
 /// <summary>
 /// Compensation step: removes a ticket that could not be assigned an engineer.
+/// RabbitMQ (MassTransit) entry point; the logic lives in <see cref="DeleteTicketHandler"/>, which the Kafka
+/// provider calls directly. Keeping this class keeps its RabbitMQ queue name ("DeleteTicket").
 /// </summary>
 public class DeleteTicketConsumer : IConsumer<DeleteTicketCommand>
 {
-    private readonly ITicketRepository _ticketRepository;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<DeleteTicketConsumer> _logger;
+    private readonly DeleteTicketHandler _handler;
 
-    public DeleteTicketConsumer(ITicketRepository ticketRepository, IUnitOfWork unitOfWork, ILogger<DeleteTicketConsumer> logger)
-    {
-        _logger = logger;
-        _ticketRepository = ticketRepository;
-        _unitOfWork = unitOfWork;
-    }
+    public DeleteTicketConsumer(DeleteTicketHandler handler) => _handler = handler;
 
-    public async Task Consume(ConsumeContext<DeleteTicketCommand> context)
-    {
-        var ticket = await _ticketRepository.GetByIdAsync(context.Message.TicketId);
-        if (ticket == null)
-        {
-            _logger.LogWarning("Compensation: ticket {TicketId} already gone, nothing to delete", context.Message.TicketId);
-            return;
-        }
-
-        await _ticketRepository.RemoveAsync(ticket);
-        await _unitOfWork.SaveChangesAsync(context.CancellationToken);
-        _logger.LogWarning("Compensation: deleted ticket {TicketId}", ticket.TicketId);
-    }
+    public Task Consume(ConsumeContext<DeleteTicketCommand> context) =>
+        _handler.HandleAsync(context.Message, context.ToEventContext(), context.CancellationToken);
 }

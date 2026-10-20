@@ -11,6 +11,9 @@ metadata:
   name: supportsystem-config
   namespace: supportsystem
 data:
+  # Message broker for every service: "Kafka" or "RabbitMq" (both brokers are deployed below).
+  MESSAGING_PROVIDER: "Kafka"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
   RABBITMQ_HOST: "rabbitmq"
   RABBITMQ_VHOST: "/"
   # The browser only talks to the ingress (same origin), so no CORS/gateway URL is needed for the UI.
@@ -123,6 +126,98 @@ spec:
     - name: management
       port: 15672
       targetPort: 15672
+
+---
+# ---------------------------------------------------------------------------
+# kafka - single broker in KRaft mode (no ZooKeeper), for learning/dev clusters.
+# Not persisted (emptyDir), like rabbitmq above: a pod restart loses topics, messages and consumer
+# offsets (the services recreate the topics). A production setup would be a 3-broker StatefulSet with
+# persistent volumes (or the Strimzi operator / a managed Kafka such as Confluent Cloud or Event Hubs).
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: supportsystem
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # never two brokers with the same node id
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      enableServiceLinks: false   # otherwise k8s injects KAFKA_PORT=tcp://..., which the image reads as config
+      containers:
+        - name: kafka
+          image: apache/kafka:3.9.1
+          ports:
+            - containerPort: 9092
+              name: kafka
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              value: "broker,controller"
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: "1@localhost:9093"
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            - name: KAFKA_LISTENERS
+              value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: "PLAINTEXT://kafka:9092"   # the Service name below
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+              value: "0"
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "false"   # the services create their topics (SS.Base.Messaging)
+            - name: KAFKA_NUM_PARTITIONS
+              value: "3"
+            - name: KAFKA_LOG_DIRS
+              value: "/var/lib/kafka/data"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: supportsystem
+spec:
+  selector:
+    app: kafka
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 9092
 
 ---
 # ---------------------------------------------------------------------------
@@ -423,6 +518,16 @@ spec:
                 secretKeyRef:
                   name: supportsystem-secrets
                   key: DB_CONNECTION_STRING
+            - name: Messaging__Provider
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: MESSAGING_PROVIDER
+            - name: Messaging__Kafka__BootstrapServers
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -564,6 +669,16 @@ spec:
                 secretKeyRef:
                   name: supportsystem-secrets
                   key: DB_CONNECTION_STRING
+            - name: Messaging__Provider
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: MESSAGING_PROVIDER
+            - name: Messaging__Kafka__BootstrapServers
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -598,6 +713,304 @@ metadata:
 spec:
   selector:
     app: ss-ticket-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-notification-api - in-app notifications (TicketCreated consumer + /api/notification/*)
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-notification-api
+  namespace: supportsystem
+spec:
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
+  selector:
+    matchLabels:
+      app: ss-notification-api
+  template:
+    metadata:
+      labels:
+        app: ss-notification-api
+    spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-notification-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-notification-api
+      containers:
+        - name: ss-notification-api
+          image: narendransekar/ss-notification-api:latest
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
+          env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the public Ingress.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: DB_CONNECTION_STRING
+            - name: Messaging__Provider
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: MESSAGING_PROVIDER
+            - name: Messaging__Kafka__BootstrapServers
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+            - name: RabbitMq__Host
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_HOST
+            - name: RabbitMq__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_VHOST
+            - name: RabbitMq__Username
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-notification-api
+  namespace: supportsystem
+spec:
+  selector:
+    app: ss-notification-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# ---------------------------------------------------------------------------
+# ss-audit-api - audit trail of ticket messages (consumer + Admin-only /api/audit/*)
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ss-audit-api
+  namespace: supportsystem
+spec:
+  # replicas is owned by the HorizontalPodAutoscaler below - setting it here would reset the
+  # replica count on every `kubectl apply`.
+  selector:
+    matchLabels:
+      app: ss-audit-api
+  template:
+    metadata:
+      labels:
+        app: ss-audit-api
+    spec:
+      # Spread replicas over nodes and zones so one node/zone failure can't take out every copy.
+      # ScheduleAnyway: prefer spreading, but still schedule if the cluster can't (e.g. 1 node left).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-audit-api
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ss-audit-api
+      containers:
+        - name: ss-audit-api
+          image: narendransekar/ss-audit-api:latest
+          # Always: with :latest, IfNotPresent leaves old nodes on a stale image while newly scaled
+          # pods pull the new one, so replicas would run different versions.
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9464   # Prometheus /metrics only - not exposed by the Service
+              name: metrics
+          resources:
+            requests:        # reserved for scheduling; the HPA's CPU % is measured against this
+              cpu: 100m
+              memory: 256Mi
+            limits:          # CPU above this is throttled, memory above this is OOMKilled
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:      # gives .NET up to 60s to start before liveness kicks in
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:    # only route traffic to pods that are ready (important while scaling up)
+            httpGet:
+              path: /health/ready
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:     # restart a hung process
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 20
+            failureThreshold: 3
+          env:
+            # Serve the app on 8080 and Prometheus /metrics on a separate 9464 (see UseSupportSystemMetrics),
+            # so metrics aren't reachable through the Services / the public Ingress.
+            - name: Kestrel__Endpoints__Http__Url
+              value: "http://+:8080"
+            - name: Kestrel__Endpoints__Metrics__Url
+              value: "http://+:9464"
+            - name: Metrics__Port
+              value: "9464"
+            - name: Logging__Console__FormatterName
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_CONSOLE_FORMAT
+            - name: Logging__LogLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: LOG_LEVEL_DEFAULT
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: APPLICATIONINSIGHTS_CONNECTION_STRING
+                  optional: true
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: DB_CONNECTION_STRING
+            - name: Messaging__Provider
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: MESSAGING_PROVIDER
+            - name: Messaging__Kafka__BootstrapServers
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+            - name: RabbitMq__Host
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_HOST
+            - name: RabbitMq__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: RABBITMQ_VHOST
+            - name: RabbitMq__Username
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_USERNAME
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: JWT_SIGNING_KEY
+                  optional: true   # absent = the development default in appsettings.json
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ss-audit-api
+  namespace: supportsystem
+spec:
+  selector:
+    app: ss-audit-api
   ports:
     - port: 8080
       targetPort: 8080
@@ -700,6 +1113,16 @@ spec:
                   optional: true
             - name: ASPNETCORE_ENVIRONMENT
               value: "Development"
+            - name: Messaging__Provider
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: MESSAGING_PROVIDER
+            - name: Messaging__Kafka__BootstrapServers
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -1115,7 +1538,7 @@ spec:
           periodSeconds: 60
 
 ---
-# ss-ticket-api: RabbitMQ consumers and the EF saga repository are safe with competing replicas
+# ss-ticket-api: saga consumers (RabbitMQ queues or Kafka consumer groups) and the saga state rows are safe with competing replicas
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -1146,7 +1569,7 @@ spec:
           periodSeconds: 60
 
 ---
-# ss-email-api: RabbitMQ consumer - replicas share the queue as competing consumers
+# ss-email-api: RabbitMQ queue / Kafka consumer group - replicas share the work as competing consumers
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -1189,6 +1612,68 @@ spec:
     name: ss-react-ui
   minReplicas: 2
   maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+# ss-notification-api: Kafka consumer groups - each topic has 3 partitions, so more than 3 replicas would sit idle
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-notification-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-notification-api
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0     # react to spikes immediately
+    scaleDown:
+      stabilizationWindowSeconds: 300   # only scale down after 5 min of consistently lower load
+      policies:
+        - type: Pods
+          value: 1                      # remove at most 1 pod per minute
+          periodSeconds: 60
+
+---
+# ss-audit-api: Kafka consumer groups - each topic has 3 partitions, so more than 3 replicas would sit idle
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ss-audit-api
+  namespace: supportsystem
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ss-audit-api
+  minReplicas: 1
+  maxReplicas: 3
   metrics:
     - type: Resource
       resource:

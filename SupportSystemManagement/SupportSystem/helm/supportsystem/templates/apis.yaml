@@ -92,6 +92,18 @@ spec:
                   name: {{ $secretName }}
                   key: DB_CONNECTION_STRING
             {{- end }}
+            {{- if $svc.messaging }}
+            - name: Messaging__Provider
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $configMap }}
+                  key: MESSAGING_PROVIDER
+            - name: Messaging__Kafka__BootstrapServers
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $configMap }}
+                  key: KAFKA_BOOTSTRAP_SERVERS
+            {{- end }}
             {{- if $svc.rabbitmq }}
             - name: RabbitMq__Host
               valueFrom:

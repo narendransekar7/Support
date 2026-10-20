@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using MassTransit;
 using SS.Base.Application;
 using SS.Base.Application.Consumers;
+using SS.Base.Application.EventHandlers;
 using SS.Base.Application.Sagas;
 using SS.Base.Domain.Entities;
+using SS.Base.Domain.Messages.Ticket;
 using SS.Base.Infrastructure.Persistance.MSSQL;
+using SS.Base.Messaging;
 using SS.Base.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,36 +45,38 @@ builder.Services.AddApplicationServices(builder.Configuration);
 // Added the extension method in the infrastructure layer for SQL Server DB context
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-// Ticket-creation saga (Assign Engineer -> Reserve SLA, with compensation) over RabbitMQ
-builder.Services.AddMassTransit(x =>
+// Ticket-creation saga (Assign Engineer -> Reserve SLA, with compensation) on the broker chosen by
+// Messaging:Provider - see SS.Base.Messaging. Notifications are SS.Notification.API's job now.
+builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-ticket-api", messaging =>
 {
-    x.AddConsumer<AssignEngineerConsumer>();
-    x.AddConsumer<ReserveSlaConsumer>();
-    x.AddConsumer<CreateNotificationConsumer>();
-    x.AddConsumer<DeleteTicketConsumer>();
+    // Kafka (and future providers): the provider-neutral orchestrator + saga steps.
+    messaging
+        .Subscribe<TicketCreated, TicketCreationOrchestrator>()
+        .Subscribe<EngineerAssigned, TicketCreationOrchestrator>()
+        .Subscribe<AssignEngineerFailed, TicketCreationOrchestrator>()
+        .Subscribe<SlaReserved, TicketCreationOrchestrator>()
+        .Subscribe<AssignEngineerCommand, AssignEngineerHandler>()
+        .Subscribe<ReserveSlaCommand, ReserveSlaHandler>()
+        .Subscribe<DeleteTicketCommand, DeleteTicketHandler>();
 
-    x.AddSagaStateMachine<TicketCreationStateMachine, TicketCreationSagaState>()
-        .EntityFrameworkRepository(r =>
-        {
-            r.ExistingDbContext<MSSQLDbContext>();
-            r.UseSqlServer();
-        });
-
-    x.UsingRabbitMq((context, cfg) =>
+    // RabbitMQ: the MassTransit saga state machine (EF Core-persisted) and its consumers, as before.
+    messaging.ForRabbitMq(x =>
     {
-        var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
-        cfg.Host(rabbitMqConfig["Host"], rabbitMqConfig["VirtualHost"], h =>
-        {
-            h.Username(rabbitMqConfig["Username"]);
-            h.Password(rabbitMqConfig["Password"]);
-        });
+        x.AddConsumer<AssignEngineerConsumer>();
+        x.AddConsumer<ReserveSlaConsumer>();
+        x.AddConsumer<DeleteTicketConsumer>();
 
-        cfg.ConfigureEndpoints(context);
+        x.AddSagaStateMachine<TicketCreationStateMachine, TicketCreationSagaState>()
+            .EntityFrameworkRepository(r =>
+            {
+                r.ExistingDbContext<MSSQLDbContext>();
+                r.UseSqlServer();
+            });
     });
 });
 
-// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
-// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a broker outage
+// doesn't restart the pod; /health/ready runs all registered checks (MassTransit's bus check or the Kafka check).
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();

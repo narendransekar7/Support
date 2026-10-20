@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using MassTransit;
+using SS.Base.Messaging;
 using SS.Base.Application;
 using SS.Base.Authentication;
 using SS.Base.Infrastructure.Persistance.MSSQL;
@@ -23,17 +23,16 @@ builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // AddApplicationServices' MediatR scan also registers CreateTicketHandler, which depends on
-// IPublishEndpoint. This host never publishes, so an in-memory bus satisfies that dependency
-// without tying sign-in to RabbitMQ's availability.
-builder.Services.AddMassTransit(x => x.UsingInMemory((context, cfg) => cfg.ConfigureEndpoints(context)));
+// IEventPublisher. This host never publishes, so a no-op publisher satisfies that dependency
+// without tying sign-in to any broker's availability (Kafka or RabbitMQ).
+builder.Services.AddNoOpEventPublisher();
 
 // "Sign in with Microsoft": validates the Entra ID access token that POST /api/auth/entra exchanges for a
 // Support System session (config section "AzureAd") - see SS.Base.Authentication.
 builder.Services.AddEntraIdTokenValidation(builder.Configuration);
 
 
-// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
-// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks; /health/ready runs all registered checks.
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();

@@ -1,6 +1,8 @@
+using SS.Base.Domain.Interfaces.Messaging;
+
 namespace SS.Base.Domain.Messages.Ticket;
 
-public record TicketCreated
+public record TicketCreated : ITicketMessage
 {
     public Guid TicketId { get; init; }
     public string Title { get; init; }

@@ -29,6 +29,8 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
             services.AddScoped<ITicketUpdateRepository, TicketUpdateRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            services.AddScoped<ITicketCreationSagaRepository, TicketCreationSagaRepository>();
             return services;
         }
     }
