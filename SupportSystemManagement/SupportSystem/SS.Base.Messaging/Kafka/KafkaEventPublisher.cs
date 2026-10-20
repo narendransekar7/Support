@@ -35,9 +35,9 @@ internal sealed class KafkaEventPublisher : IEventPublisher
         var topic = MessageNaming.Topic(messageType, _factory.Options.TopicPrefix);
         await _topics.EnsureTopicAsync(topic);
 
-        // Same key -> same partition -> consumed in order. Ticket messages default to their ticket id,
-        // so every step of one ticket's saga stays ordered within its topic.
-        key ??= (message as ITicketMessage)?.TicketId.ToString();
+        // Same key -> same partition -> consumed in order. Ticket messages default to their ticket id (so
+        // every step of one ticket's saga stays ordered within its topic), user messages to their user id.
+        key ??= (message as ITicketMessage)?.TicketId.ToString() ?? (message as IUserMessage)?.UserId.ToString();
 
         using var activity = MessagingTelemetry.Source.StartActivity($"{topic} publish", ActivityKind.Producer);
         activity?.SetTag("messaging.system", "kafka");

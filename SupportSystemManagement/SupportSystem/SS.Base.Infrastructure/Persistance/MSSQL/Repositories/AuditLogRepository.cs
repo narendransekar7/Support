@@ -18,11 +18,13 @@ public class AuditLogRepository : GenericRepository<AuditLog>, IAuditLogReposito
         return _context.AuditLogs.AnyAsync(a => a.EventId == eventId, cancellationToken);
     }
 
-    public async Task<IEnumerable<AuditLog>> GetRecentAsync(Guid? ticketId, int take, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AuditLog>> GetRecentAsync(Guid? ticketId, Guid? userId, int take, CancellationToken cancellationToken = default)
     {
         var query = _context.AuditLogs.AsNoTracking();
         if (ticketId.HasValue)
             query = query.Where(a => a.TicketId == ticketId);
+        if (userId.HasValue)
+            query = query.Where(a => a.UserId == userId);
 
         return await query
             .OrderByDescending(a => a.OccurredAtUtc)

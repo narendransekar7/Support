@@ -32,5 +32,13 @@ namespace SS.Audit.API.Controllers
             var entries = await _mediator.Send(new GetAuditLogsQuery(ticketId, take));
             return Ok(entries);
         }
+
+        /// <summary>One user's history (e.g. UserCreated), newest first.</summary>
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetByUser(Guid userId, [FromQuery] int take = 100)
+        {
+            var entries = await _mediator.Send(new GetAuditLogsQuery(null, take, userId));
+            return Ok(entries);
+        }
     }
 }

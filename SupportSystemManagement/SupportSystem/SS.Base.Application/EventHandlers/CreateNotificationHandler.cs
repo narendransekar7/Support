@@ -36,9 +36,11 @@ public class CreateNotificationHandler : IEventHandler<TicketCreated>
         {
             NotificationId = Guid.NewGuid(),
             UserId = message.CreatedBy,
+            Type = NotificationType.TicketCreated,
             TicketId = message.TicketId,
             Message = $"Your ticket \"{message.Title}\" has been created and is being processed.",
             IsRead = false,
+            CreatedAt = DateTime.UtcNow,
             SourceEventId = context.EventId
         };
 

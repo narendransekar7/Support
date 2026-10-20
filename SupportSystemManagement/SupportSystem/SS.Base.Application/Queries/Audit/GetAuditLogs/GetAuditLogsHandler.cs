@@ -16,6 +16,6 @@ public class GetAuditLogsHandler : IRequestHandler<GetAuditLogsQuery, IEnumerabl
 
     public async Task<IEnumerable<AuditLog>> Handle(GetAuditLogsQuery request, CancellationToken cancellationToken)
     {
-        return await _auditLogRepository.GetRecentAsync(request.TicketId, Math.Clamp(request.Take, 1, MaxTake), cancellationToken);
+        return await _auditLogRepository.GetRecentAsync(request.TicketId, request.UserId, Math.Clamp(request.Take, 1, MaxTake), cancellationToken);
     }
 }

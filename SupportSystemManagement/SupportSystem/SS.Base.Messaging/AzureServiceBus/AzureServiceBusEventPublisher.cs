@@ -40,7 +40,7 @@ internal sealed class AzureServiceBusEventPublisher : IEventPublisher, IAsyncDis
         var topic = MessageNaming.Topic(messageType, _options.TopicPrefix);
         await _entities.EnsureTopicAsync(topic, cancellationToken);
 
-        key ??= (message as ITicketMessage)?.TicketId.ToString();
+        key ??= (message as ITicketMessage)?.TicketId.ToString() ?? (message as IUserMessage)?.UserId.ToString();
 
         using var activity = MessagingTelemetry.Source.StartActivity($"{topic} publish", ActivityKind.Producer);
         activity?.SetTag("messaging.system", "servicebus");

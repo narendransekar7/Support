@@ -15,19 +15,15 @@ namespace SS.Base.Messaging.AzureServiceBus;
 /// - one subscription per handler (= Kafka consumer group), each run by a ServiceBusProcessor that calls
 ///   the same <c>IEventHandler&lt;T&gt;</c>s,
 /// - MaxDeliveryCount + the built-in dead-letter sub-queue instead of client-side retries + a ".dlt" topic.
-/// The user-created email queue (AzureServiceBusQueueSender / SS.Email.API's receiver) is separate and untouched.
 /// </summary>
 internal static class AzureServiceBusRegistration
 {
     // Service Bus limits subscription names to 50 characters.
     private const int MaxSubscriptionNameLength = 50;
 
-    public static void AddAzureServiceBusMessaging(this IServiceCollection services, IConfigurationSection section,
-        string? fallbackConnectionString, MessagingBuilder builder)
+    public static void AddAzureServiceBusMessaging(this IServiceCollection services, IConfigurationSection section, MessagingBuilder builder)
     {
         var options = section.Get<AzureServiceBusOptions>() ?? new AzureServiceBusOptions();
-        if (string.IsNullOrWhiteSpace(options.ConnectionString))
-            options.ConnectionString = fallbackConnectionString;
         if (string.IsNullOrWhiteSpace(options.ConnectionString) && string.IsNullOrWhiteSpace(options.FullyQualifiedNamespace))
             throw new InvalidOperationException(
                 "Messaging:Provider is AzureServiceBus but neither Messaging:AzureServiceBus:ConnectionString " +

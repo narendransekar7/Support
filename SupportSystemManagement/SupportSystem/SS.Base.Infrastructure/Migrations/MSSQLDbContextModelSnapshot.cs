@@ -57,12 +57,17 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<Guid?>("TicketId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("AuditLogId");
 
                     b.HasIndex("EventId")
                         .IsUnique();
 
                     b.HasIndex("TicketId", "OccurredAtUtc");
+
+                    b.HasIndex("UserId", "OccurredAtUtc");
 
                     b.ToTable("AuditLogs");
                 });
@@ -89,8 +94,15 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<Guid?>("SourceEventId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("TicketId")
+                    b.Property<Guid?>("TicketId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("TicketCreated");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -100,6 +112,8 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasIndex("SourceEventId")
                         .IsUnique()
                         .HasFilter("[SourceEventId] IS NOT NULL");
+
+                    b.HasIndex("UserId", "IsRead");
 
                     b.ToTable("Notifications");
                 });

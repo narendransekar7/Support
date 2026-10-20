@@ -5,11 +5,12 @@ using SS.Base.Application.Consumers;
 using SS.Base.Application.EventHandlers;
 using SS.Base.Authentication;
 using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Domain.Messages.User;
 using SS.Base.Infrastructure.Persistance.MSSQL;
 using SS.Base.Messaging;
 using SS.Base.Observability;
 
-// SS.Audit.API: an append-only trail of what happened to tickets, built purely from bus messages
+// SS.Audit.API: an append-only trail of what happened to tickets and users, built purely from bus messages
 // (no other service calls it). Admins read it at /api/audit/* through the gateway.
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,14 +27,15 @@ builder.Services.AddSupportSystemAuthentication(builder.Configuration);
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-// Every fact of the ticket-creation workflow is audited. Auditing another message = one more line in each list.
+// Every fact of the ticket- and user-creation workflows is audited. Auditing another message = one more line in each list.
 builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-audit-api", messaging =>
 {
     messaging
         .Subscribe<TicketCreated, AuditEventHandler<TicketCreated>>()
         .Subscribe<EngineerAssigned, AuditEventHandler<EngineerAssigned>>()
         .Subscribe<AssignEngineerFailed, AuditEventHandler<AssignEngineerFailed>>()
-        .Subscribe<SlaReserved, AuditEventHandler<SlaReserved>>();
+        .Subscribe<SlaReserved, AuditEventHandler<SlaReserved>>()
+        .Subscribe<UserCreated, AuditEventHandler<UserCreated>>();
 
     // RabbitMQ: one queue per audited message type, bound to that type's exchange.
     messaging.ForRabbitMq(x =>
@@ -42,6 +44,7 @@ builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-audit-api"
         x.AddConsumer<AuditConsumer<EngineerAssigned>>().Endpoint(e => e.Name = "audit-engineer-assigned");
         x.AddConsumer<AuditConsumer<AssignEngineerFailed>>().Endpoint(e => e.Name = "audit-assign-engineer-failed");
         x.AddConsumer<AuditConsumer<SlaReserved>>().Endpoint(e => e.Name = "audit-sla-reserved");
+        x.AddConsumer<AuditConsumer<UserCreated>>().Endpoint(e => e.Name = "audit-user-created");
     });
 });
 

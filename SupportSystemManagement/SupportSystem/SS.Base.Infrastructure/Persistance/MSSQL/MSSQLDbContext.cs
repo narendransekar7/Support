@@ -121,6 +121,9 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 entity.HasKey(n => n.NotificationId);
                 entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
                 entity.Property(n => n.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.Property(n => n.Type).IsRequired().HasMaxLength(50).HasDefaultValue(NotificationType.TicketCreated);
+                // The bell's unread count and list are per user, newest first.
+                entity.HasIndex(n => new { n.UserId, n.IsRead });
                 // One notification per source message (at-least-once delivery de-duplication).
                 entity.HasIndex(n => n.SourceEventId).IsUnique().HasFilter("[SourceEventId] IS NOT NULL");
             });
@@ -131,6 +134,7 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 entity.HasKey(a => a.AuditLogId);
                 entity.HasIndex(a => a.EventId).IsUnique();
                 entity.HasIndex(a => new { a.TicketId, a.OccurredAtUtc });
+                entity.HasIndex(a => new { a.UserId, a.OccurredAtUtc });
                 entity.Property(a => a.EventType).IsRequired().HasMaxLength(200);
                 entity.Property(a => a.Provider).IsRequired().HasMaxLength(32);
                 entity.Property(a => a.Payload).IsRequired();

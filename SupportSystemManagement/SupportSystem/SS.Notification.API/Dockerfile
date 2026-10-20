@@ -11,6 +11,7 @@ COPY SS.Base.Infrastructure/SS.Base.Infrastructure.csproj SS.Base.Infrastructure
 COPY SS.Base.Domain/SS.Base.Domain.csproj SS.Base.Domain/
 COPY SS.Base.Messaging/SS.Base.Messaging.csproj SS.Base.Messaging/
 COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
+COPY SS.Base.Authentication/SS.Base.Authentication.csproj SS.Base.Authentication/
 RUN dotnet restore SS.Notification.API/SS.Notification.API.csproj
 
 # Copy the rest of the source
@@ -20,6 +21,7 @@ COPY SS.Base.Infrastructure/ SS.Base.Infrastructure/
 COPY SS.Base.Domain/ SS.Base.Domain/
 COPY SS.Base.Messaging/ SS.Base.Messaging/
 COPY SS.Base.Observability/ SS.Base.Observability/
+COPY SS.Base.Authentication/ SS.Base.Authentication/
 
 # Build the application
 RUN dotnet publish SS.Notification.API/SS.Notification.API.csproj -c Release -o /app/publish

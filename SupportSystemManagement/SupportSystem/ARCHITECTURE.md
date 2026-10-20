@@ -11,12 +11,12 @@ This system follows **Clean Architecture** for its core business logic (users, t
 | `SS.Base.Infrastructure` | **Infrastructure** | `SS.Base.Domain` | EF Core `DbContext`, repository implementations, `IUnitOfWork`, migrations. Implements the interfaces Domain declares, including saga-state persistence. |
 | `SS.User.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure` | Owns `UserController` (user profiles: `me`, `fetchuser`, `createuser`). `/api/user/me` validates the caller's Support System token itself. |
 | `SS.Ticket.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure`, `SS.Base.Messaging` | Owns `TicketController`/`TicketUpdateController`, plus the ticket-creation saga on the selected broker (see below). |
-| `SS.Notification.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure`, `SS.Base.Messaging` | Owns in-app notifications: consumes `TicketCreated` (writes a `Notification` row) and serves `NotificationController` (`/api/notification/*`). |
+| `SS.Notification.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Authentication`, `SS.Base.Infrastructure`, `SS.Base.Messaging` | Owns in-app notifications: consumes `TicketCreated` and `UserCreated` (writes `Notification` rows) and serves each signed-in user their own (`NotificationController`, `/api/notification/*`), shown in the SPA's notification bell. |
 | `SS.Audit.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure`, `SS.Base.Messaging`, `SS.Base.Authentication` | Append-only audit trail built from bus messages (`AuditLogs` table); Admin-only `AuditController` (`/api/audit/*`). |
 | `SS.Auth.Server.API` | **Presentation** (composition root) | `SS.Base.Application`, `SS.Base.Infrastructure` | Owns every session (see [Authentication](#authentication)): checks email/password or exchanges a Microsoft Entra ID access token, stores/rotates/revokes refresh tokens and issues HS256 JWTs with the role from the `Users` table — all in-process via the Application handlers, no calls to `SS.User.API`. |
 | `SS.Gateway.API` | Edge service | *(none — Ocelot only)* | Ocelot reverse proxy (`ocelot.json`). Single entry point for the frontend; validates the Support System token (either sign-in option) on protected routes before forwarding to `SS.User.API`/`SS.Ticket.API`. |
 | `SS.Base.Authentication` | Cross-cutting | *(none — ASP.NET Core JwtBearer only)* | Shared token setup: `AddSupportSystemAuthentication` (Gateway, User API — the Support System token) and `AddEntraIdTokenValidation` (Auth Server — the Entra token it exchanges) — see [Authentication](#authentication). |
-| `SS.Email.API` | Edge service | `SS.Base.Domain`, `SS.Base.Messaging` | Standalone worker that drains an Azure Service Bus queue (user-created emails) **and** consumes the ticket-creation messages (ticket-received / ticket-creation-failed emails) on the selected broker. Decoupled from the rest of the system by messaging, not by reference. |
+| `SS.Email.API` | Edge service | `SS.Base.Domain`, `SS.Base.Messaging` | Standalone worker that consumes `UserCreated` (welcome email) and the ticket-creation messages (ticket-received / ticket-creation-failed emails) on the selected broker. Decoupled from the rest of the system by messaging, not by reference. |
 | `SS.Base.Messaging` | Cross-cutting | `SS.Base.Domain` | The broker switch (`AddSupportSystemMessaging`, `Messaging:Provider`): Kafka (Confluent.Kafka, the default), RabbitMQ (MassTransit) and Azure Service Bus (Azure.Messaging.ServiceBus) behind `IEventPublisher`/`IEventHandler<T>` — see [Messaging providers](#messaging-providers). |
 | `SS.Base.Observability` | Cross-cutting | *(none — ASP.NET Core + OpenTelemetry only)* | Shared logging/tracing/metrics setup (`AddSupportSystemObservability`) referenced by every .NET host — see [Observability](#observability). Knows nothing about the business layers. |
 | `supportsystem.reactui` | Client | *(HTTP only)* | React 18 + Redux Toolkit SPA. Signs users in with email/password or Microsoft Entra ID (MSAL, authorization code + PKCE); calls only the Gateway. |
@@ -45,7 +45,7 @@ flowchart LR
         SAGA[Ticket-creation saga<br/>state machine or orchestrator<br/>+ Assign/Reserve/Delete steps]
     end
 
-    NOTIF[SS.Notification.API<br/>TicketCreated consumer<br/>+ NotificationController]
+    NOTIF[SS.Notification.API<br/>TicketCreated + UserCreated consumers<br/>+ NotificationController]
     AUDIT[SS.Audit.API<br/>audit consumers<br/>+ AuditController]
 
     APP[SS.Base.Application<br/>MediatR Commands/Queries]
@@ -53,9 +53,8 @@ flowchart LR
     INFRA[SS.Base.Infrastructure<br/>EF Core Repositories]
 
     DB[(SQL Server)]
-    ASB[[Azure Service Bus]]
     MQ[[Kafka, RabbitMQ or Azure Service Bus<br/>Messaging:Provider]]
-    EMAIL[SS.Email.API<br/>ASB + broker consumers]
+    EMAIL[SS.Email.API<br/>broker consumers]
 
     UI -->|Microsoft sign-in: auth code + PKCE| ENTRA
     UI -->|HTTPS, ss_access cookie| GW
@@ -80,8 +79,7 @@ flowchart LR
     MQ --> AUDIT
     NOTIF --> APP
     AUDIT --> APP
-    APP -->|publish UserCreatedMessage| ASB
-    ASB --> EMAIL
+    APP -->|publish UserCreated| MQ
 ```
 
 ## The dependency rule
@@ -107,15 +105,15 @@ flowchart LR
 - `Interfaces/Repository/`: `IGenericRepository<T>` (now including `RemoveAsync`), `IUserRepository` (including `GetNextAgentForAssignmentAsync`, the round-robin engineer picker), `ITicketRepository`, `ITicketUpdateRepository`, `IRefreshTokenRepository`, `INotificationRepository`, `IAuditLogRepository`, `ITicketCreationSagaRepository`, `IUnitOfWork` — the ports Application codes against and Infrastructure implements.
 - `Interfaces/Messaging/`: `IEventPublisher` (publish to whichever broker is selected, with an optional partition key), `IEventHandler<T>` + `EventContext` (handle one message type, whatever broker delivered it), `ITicketMessage` (every ticket message exposes `TicketId`). The messaging equivalent of the repository ports — `SS.Base.Messaging` implements them per broker.
 - `Messages/Ticket/`: the ticket-creation saga's cross-service contracts — `TicketCreated`, `AssignEngineerCommand`/`EngineerAssigned`/`AssignEngineerFailed`, `ReserveSlaCommand`/`SlaReserved`, `DeleteTicketCommand` (compensation), `SendTicketCreationFailedEmail` (compensation). Referenced by `SS.Ticket.API`, `SS.Notification.API`, `SS.Audit.API` (via Application) and `SS.Email.API` (direct reference, same as `UserCreatedMessage`).
-- `Dto/`, `Email/`: transport-shape objects (e.g. `UserCreatedMessage` sent over the service bus).
+- `Messages/User/`: `UserCreated` (published after a user is saved; consumed by the welcome email, the welcome notification and the audit trail).
+- `Dto/`: transport-shape objects (e.g. `NotificationFeedDto`, what the notification bell shows).
 
 ### Application — `SS.Base.Application`
 CQRS via MediatR: one folder per use case under `Commands/<Aggregate>/<UseCase>/` and `Queries/<Aggregate>/<UseCase>/`, each with a `*Command`/`*Query` (the `IRequest`) and a `*Handler` (the `IRequestHandler`).
 
 - User: `CreateUser`, `ValidateUser`, `LoginSuccess` (persists a new `RefreshToken` on login), `LogOut` (revokes a `RefreshToken`), `TokenRefresh` (validates + rotates a `RefreshToken`), `GetUserByEmail`, `UpdateUserRole`.
 - Ticket: `CreateTicket` (publishes `TicketCreated` via `IEventPublisher` after saving, keyed by ticket id, starting the saga below), `AddTicketUpdate`, `ModifyTicketUpdate`, `UpdateTicketStatus`, `GetTicketById`.
-- Notification: `GetNotificationsByUser`. Audit: `GetAuditLogs`.
-- `Events/AzureServiceBusQueueSender.cs`: publishes domain events (e.g. user-created) onto Azure Service Bus rather than calling `SS.Email.API` directly.
+- Notification: `GetNotificationsByUser` (unread count + newest items), `MarkNotificationRead`, `MarkAllNotificationsRead`. Audit: `GetAuditLogs` (by ticket or by user).
 - `EventHandlers/`: the broker-neutral message handlers (`IEventHandler<T>`) — `AssignEngineerHandler`, `ReserveSlaHandler`, `DeleteTicketHandler` (saga steps), `CreateNotificationHandler`, `AuditEventHandler<T>`. They take repositories and `IEventPublisher` via DI, same constructor-injection style as the command Handlers, and are idempotent (at-least-once delivery).
 - `Sagas/TicketCreationStateMachine.cs`: a `MassTransitStateMachine<TicketCreationSagaState>` orchestrating ticket creation over RabbitMQ; `Sagas/TicketCreationOrchestrator.cs`: the same workflow as plain `IEventHandler`s for Kafka and Azure Service Bus — see [Ticket-creation saga](#ticket-creation-saga) below.
 - `Consumers/`: `AssignEngineerConsumer`, `ReserveSlaConsumer`, `CreateNotificationConsumer`, `DeleteTicketConsumer`, `AuditConsumer<T>` — thin MassTransit `IConsumer<T>` adapters (RabbitMQ only) that hand the message to the matching handler above. They keep their class names, so the RabbitMQ queue names are unchanged.
@@ -133,7 +131,7 @@ Handlers and consumers depend only on the Domain repository interfaces (e.g. `To
 - `SS.User.API/Controllers/UserController.cs` (thin — deserialize request, `_mediator.Send(...)`, return the result).
 - `SS.Auth.Server.API/Controllers/AuthController.cs`: every Support System session. `login` (email/password) and `entra` (Microsoft sign-in: validates the Entra access token, then `GetUserByEmailQuery`) start one; `login`/`entra`/`logout`/`refresh-token` send `ValidateUserQuery`/`LoginSuccessCommand`/`LogOutCommand`/`TokenRefreshCommand` through MediatR, then sign the JWT with `Jwt:SigningKey` (`GenerateJwtToken`). It never publishes messages, so `Program.cs` registers a no-op `IEventPublisher` (`AddNoOpEventPublisher`) only to satisfy `CreateTicketHandler` (picked up by the MediatR scan) — sign-in does not depend on any broker.
 - `SS.Ticket.API/Controllers/TicketController.cs`, `TicketUpdateController.cs` — same thin-controller style. `Program.cs` additionally calls `AddSupportSystemMessaging(...)`: the orchestrator + saga steps for Kafka, and (in `ForRabbitMq`) the MassTransit state machine (EF Core-persisted) and consumers for RabbitMQ.
-- `SS.Notification.API/Controllers/NotificationController.cs` (moved from the Ticket API) and `SS.Audit.API/Controllers/AuditController.cs` (`[Authorize(Roles = "Admin")]`: `GET /api/audit/recent`, `GET /api/audit/ticket/{ticketId}`); both hosts also subscribe their handlers through `AddSupportSystemMessaging`.
+- `SS.Notification.API/Controllers/NotificationController.cs` (`[Authorize]`, the caller from the token's `UserId` claim: `GET /api/notification/me`, `POST /api/notification/{id}/read`, `POST /api/notification/read-all`) and `SS.Audit.API/Controllers/AuditController.cs` (`[Authorize(Roles = "Admin")]`: `GET /api/audit/recent`, `GET /api/audit/ticket/{ticketId}`, `GET /api/audit/user/{userId}`); both hosts also subscribe their handlers through `AddSupportSystemMessaging`.
 - `SS.User.API` registers the publisher only (`AddSupportSystemMessaging` with no subscriptions).
 - All of them call `AddApplicationServices` + `AddInfrastructureServices` — each is a place in the solution where Application and Infrastructure are both referenced and wired together.
 
@@ -141,7 +139,7 @@ Handlers and consumers depend only on the Domain repository interfaces (e.g. `To
 These are intentionally **not** part of the layered core — they have no project references to Domain/Application/Infrastructure and talk to the composition roots purely over HTTP or messaging, so they can be deployed, scaled, and reasoned about independently:
 
 - **`SS.Gateway.API`**: Ocelot-based reverse proxy (`ocelot.json`). Single public entry point (`:44345`) for the SPA. Validates the Support System token (`ss_access` cookie, `Jwt:SigningKey`) on `/api/user/*`, `/api/ticket/*`, `/api/ticketupdate/*` and `/api/notification/*` before forwarding to `:44335` (User) or `:44336` (Ticket); `/api/auth/*` routes are unauthenticated (that's where a client with an expired/no token needs to reach). See [Authentication](#authentication). Rate-limits every `/api/*` request with counters in Redis before it reaches Ocelot — see [Rate limiting](#rate-limiting).
-- **`SS.Email.API`**: Azure Service Bus consumer (user-created emails, existing) **and** ticket-creation email handlers (`TicketCreatedEmailHandler`, `TicketCreationFailedEmailHandler`; with RabbitMQ through `TicketCreatedEmailConsumer`/`TicketCreationFailedEmailConsumer`). Reacts to events published by `SS.Base.Application` — a messaging seam, not a Clean Architecture layer.
+- **`SS.Email.API`**: welcome and ticket-creation email handlers (`UserCreatedEmailHandler`, `TicketCreatedEmailHandler`, `TicketCreationFailedEmailHandler`; with RabbitMQ through the matching `*Consumer` classes). Reacts to events published by `SS.Base.Application` — a messaging seam, not a Clean Architecture layer.
 
 ### Client — `supportsystem.reactui`
 React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/api`):
@@ -150,7 +148,7 @@ React 18 + Redux Toolkit, talking only to the Gateway (`https://localhost:44345/
 - `src/index.js`: before the first render, completes a Microsoft sign-in redirect (`completeMicrosoftSignIn` → `/api/auth/entra`) and restores the session.
 - `src/features/authSlice.js`: `loginUser` (password), `loginWithMicrosoft`, `completeMicrosoftSignIn`, `logoutUser`, `restoreSession` (start-up: asks `/api/user/me` whether the cookies still make a session) and the signed-in user's Support System profile (`fetchUser` → `/api/user/me`).
 - `src/api/axios.js`: shared axios instance — on a 401, refreshes the session cookies once and retries.
-- `src/components/`, `src/pages/`: screens (ticket list/create/detail, user list/create). `TicketCreateForm.js` no longer sends `AssignedTo` — engineer assignment is now server/saga-driven.
+- `src/components/`, `src/pages/`: screens (ticket list/create/detail, user list/create, notifications). `NotificationBell.js` (header: unread badge + dropdown, polls every 30 s) and `Notifications.js` (`/notifications`) read `src/features/notificationsSlice.js`. `TicketCreateForm.js` no longer sends `AssignedTo` — engineer assignment is now server/saga-driven.
 - `src/app/store.js`: Redux store.
 
 ## Request flow examples
@@ -179,6 +177,16 @@ An API call returns 401 (access cookie expired) → `SPA → Gateway (/api/auth/
 4. **`AuditEventHandler<T>`** (in `SS.Audit.API`) records `TicketCreated`, `EngineerAssigned`, `AssignEngineerFailed` and `SlaReserved` in `AuditLogs`.
 
 Every subscriber gets its own copy of each message: with RabbitMQ through MassTransit's convention-based topology (one fan-out exchange per message type, one queue per consumer), with Kafka through one topic per message type and one consumer group per handler.
+
+### User-creation flow
+
+`SPA → Gateway → User API → UserController (createuser) → CreateUserCommand → CreateUserHandler` saves the `User` and publishes `UserCreated` (keyed by user id) to the selected broker. There's no saga — three consumers react independently:
+
+1. **`UserCreatedEmailHandler`** (in `SS.Email.API`) sends the "Welcome to Support System" email.
+2. **`WelcomeNotificationHandler`** (in `SS.Notification.API`) writes a `Welcome` notification (no ticket), which the new user sees in the notification bell after signing in.
+3. **`AuditEventHandler<UserCreated>`** (in `SS.Audit.API`) records it in `AuditLogs` with `UserId` set (`GET /api/audit/user/{userId}`).
+
+`Notification.Type` (`TicketCreated`, `Welcome`) tells the SPA which icon to show and whether the row links to a ticket (`TicketId` is null for a welcome).
 
 ## Messaging providers
 

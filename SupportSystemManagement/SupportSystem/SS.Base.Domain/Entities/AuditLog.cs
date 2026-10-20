@@ -10,6 +10,7 @@ public class AuditLog
     public Guid EventId { get; set; }
     public string EventType { get; set; }
     public Guid? TicketId { get; set; }
+    public Guid? UserId { get; set; }   // the user the message is about (IUserMessage), e.g. UserCreated
     public Guid? ActorId { get; set; }
     public string Provider { get; set; }
     public string Payload { get; set; }

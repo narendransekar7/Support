@@ -18,7 +18,7 @@ switch, so you can compare them on the same workflow.
 - Business code only ever sees two interfaces from `SS.Base.Domain/Interfaces/Messaging`:
   - `IEventPublisher.PublishAsync(message, key)`
   - `IEventHandler<T>.HandleAsync(message, context)`
-- The provider decides how those become Kafka records, RabbitMQ exchanges or (later) Service Bus topics.
+- The provider decides how those become Kafka records, RabbitMQ exchanges or Service Bus topics.
 
 Override the setting with `Messaging__Provider=RabbitMq`, or `MESSAGING_PROVIDER=RabbitMq docker compose up`.
 
@@ -37,6 +37,17 @@ Ticket API: CreateTicketHandler ──publish──▶ support.ticket-created  (
  support.reserve-sla-command     ─▶ ReserveSlaHandler     ─▶ support.sla-reserved
  support.delete-ticket-command   ─▶ DeleteTicketHandler          (compensation)
  support.send-ticket-creation-failed-email ─▶ SS.Email.API       (compensation)
+```
+
+User creation is simpler, with no saga, just three independent consumer groups on one topic:
+
+```
+User API: CreateUserHandler ──publish──▶ support.user-created  (3 partitions, key = UserId)
+                                                 │
+            ┌────────────────────────────────────┼─────────────────────────────────────┐
+ group ss-email-api.                 group ss-notification-api.            group ss-audit-api.
+ user-created-email-handler          welcome-notification-handler          audit-event-handler.user-created
+     │ welcome email                     │ Welcome notification (bell)         │ AuditLog row (UserId)
 ```
 
 ## Concepts, and where they live in the code
