@@ -142,6 +142,15 @@ dotnet ef database update --project SS.Base.Infrastructure --startup-project SS.
 | Retries / dead letters | Built into MassTransit (`_error` queues). | Built by hand here (`.dlt` topics). |
 | Saga | MassTransit state machine. | Hand-written orchestrator. |
 
+## Production on AKS
+
+The broker above is a single, unauthenticated container. In production the same services connect to a Strimzi-run
+cluster: 3 brokers across availability zones, replication factor 3, persistent zone-redundant disks, a TLS-only
+listener with one SCRAM-SHA-512 user per service (ACLs limit each to its own topics and `<service>.` consumer
+groups), and topics created by Strimzi (`AutoCreateTopics=false`). Nothing changes in the code - it's
+`Messaging:Kafka:SecurityProtocol/SaslMechanism/SaslUsername/SaslPassword/SslCaPem`, set by the Helm chart's
+`kafka.mode: strimzi`. Setup, operations and failure tests: [k8s/README.md, "Kafka in production (Strimzi)"](../../k8s/README.md).
+
 ## Next steps
 
 - **Transactional outbox:** write the message to an outbox table in the same DB transaction as the ticket, and relay it to Kafka. Today a failed publish leaves a ticket without a saga.

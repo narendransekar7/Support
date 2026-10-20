@@ -1,0 +1,15 @@
+Kafka cluster "{{ .Values.clusterName }}" submitted to the Strimzi operator ({{ .Values.kafka.replicas }} brokers, {{ len .Values.topics.names }} topics + dead-letter topics, {{ len .Values.users }} service users).
+
+The operator needs a few minutes on the first install. Wait for it:
+  kubectl -n {{ .Release.Namespace }} wait kafka/{{ .Values.clusterName }} --for=condition=Ready --timeout=20m
+  kubectl -n {{ .Release.Namespace }} wait kafkauser --all --for=condition=Ready --timeout=5m
+
+Then deploy the app chart with kafka.mode=strimzi (helm/supportsystem/values.production.yaml). The services connect to
+  {{ .Values.clusterName }}-kafka-bootstrap:9093   (TLS, SCRAM-SHA-512, one user per service)
+
+Check:
+  kubectl -n {{ .Release.Namespace }} get kafka,kafkanodepool,kafkatopic,kafkauser
+  kubectl -n {{ .Release.Namespace }} get pods -l strimzi.io/cluster={{ .Values.clusterName }} -o wide   # one broker per zone
+{{- if .Values.ui.enabled }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Values.clusterName }}-ui 8085:8080            # Kafka UI at http://localhost:8085
+{{- end }}

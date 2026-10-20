@@ -39,4 +39,10 @@ public sealed class KafkaOptions
     public string? SaslUsername { get; set; }
 
     public string? SaslPassword { get; set; }
+
+    /// <summary>
+    /// PEM certificate(s) of the CA that signed the brokers' TLS certificates, when it isn't a publicly trusted one -
+    /// e.g. Strimzi's cluster CA (the "&lt;cluster&gt;-cluster-ca-cert" Secret, key ca.crt). Empty = the system trust store.
+    /// </summary>
+    public string? SslCaPem { get; set; }
 }

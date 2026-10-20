@@ -27,11 +27,12 @@ imagePullSecrets: []
 # ---------------------------------------------------------------------------
 config:
   # Message broker for every service: "Kafka" (default), "RabbitMq" or "AzureServiceBus" (env Messaging__Provider).
-  # Kafka and RabbitMQ are deployed by default (kafka.enabled / rabbitmq.enabled); turn off the ones you don't use.
+  # Kafka (kafka.mode) and RabbitMQ (rabbitmq.enabled) are deployed by default; turn off the ones you don't use.
   # Azure Service Bus is a namespace in Azure (Standard tier or higher): set secrets.azureServiceBusConnectionString
   # or, with Microsoft Entra ID (workload identity), azureServiceBusNamespace below.
   messagingProvider: "Kafka"
-  # Service name of the in-cluster Kafka (kafka.enabled) or an external cluster's bootstrap servers
+  # Kafka bootstrap servers for kafka.mode dev (the in-cluster broker's Service) or external. Ignored for strimzi,
+  # which uses "<kafka.strimzi.clusterName>-kafka-bootstrap:9093".
   kafkaBootstrapServers: "kafka:9092"
   # "<namespace>.servicebus.windows.net" - only when no connection string is used
   azureServiceBusNamespace: ""
@@ -80,8 +81,8 @@ entra:
 #     - create the Secret yourself (kubectl create secret ..., Key Vault CSI, sealed-secrets, ...)
 #       and set existingSecret to its name - the chart then doesn't create one.
 #   The Secret must contain the keys DB_CONNECTION_STRING, RABBITMQ_USERNAME, RABBITMQ_PASSWORD
-#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING, JWT_SIGNING_KEY, REDIS_CONNECTION_STRING and
-#   AZURE_SERVICE_BUS_CONNECTION_STRING.
+#   and (optionally) APPLICATIONINSIGHTS_CONNECTION_STRING, JWT_SIGNING_KEY, REDIS_CONNECTION_STRING,
+#   AZURE_SERVICE_BUS_CONNECTION_STRING, KAFKA_SASL_PASSWORD and KAFKA_SSL_CA_PEM (kafka.mode external).
 # ---------------------------------------------------------------------------
 secrets:
   existingSecret: ""
@@ -99,6 +100,10 @@ secrets:
   # Azure Service Bus (config.messagingProvider: AzureServiceBus): a shared access policy's connection string with
   # Manage rights - the services create their topics/subscriptions. Empty = use config.azureServiceBusNamespace.
   azureServiceBusConnectionString: ""
+  # kafka.mode external only: the SASL password (Event Hubs: its connection string) and, if the brokers' certificate
+  # isn't publicly trusted, the CA certificate (PEM). kafka.mode strimzi reads both from Strimzi's own Secrets.
+  kafkaSaslPassword: ""
+  kafkaSslCaPem: ""
 
 # ---------------------------------------------------------------------------
 # RabbitMQ (single replica, no persistence - see k8s/README.md "Known gap")
@@ -116,12 +121,26 @@ rabbitmq:
       memory: 1Gi
 
 # ---------------------------------------------------------------------------
-# Kafka (single broker, KRaft mode, no persistence - like RabbitMQ: a restart loses topics, messages
-# and consumer offsets; the services recreate the topics). See docs/messaging/KAFKA.md.
+# Kafka - which cluster the services use (kafka.mode):
+#   dev       one in-cluster broker (templates/kafka.yaml): KRaft, plaintext, no persistence - a restart loses
+#             topics, messages and offsets; the services create their topics. For learning/dev clusters.
+#   strimzi   the production cluster from the separate helm/supportsystem-kafka release (Strimzi operator):
+#             TLS + SCRAM-SHA-512 with one Kafka user per service, topics managed by Strimzi. See k8s/README.md.
+#   external  any other cluster (Confluent Cloud, Azure Event Hubs' Kafka endpoint, ...): config.kafkaBootstrapServers
+#             plus kafka.external.* and secrets.kafkaSaslPassword.
 # ---------------------------------------------------------------------------
 kafka:
-  # Set false to use an external cluster (then point config.kafkaBootstrapServers at it)
-  enabled: true
+  mode: dev
+  strimzi:
+    clusterName: support-kafka   # must match helm/supportsystem-kafka's clusterName
+    partitions: 6                # what the services assume; Strimzi owns the topics (AutoCreateTopics=false)
+    replicationFactor: 3
+  external:
+    securityProtocol: ""         # e.g. SaslSsl
+    saslMechanism: ""            # e.g. Plain (Event Hubs, username "$ConnectionString"), ScramSha512
+    saslUsername: ""
+    autoCreateTopics: false      # create the topics (and their .dlt) up front on a managed cluster
+  # --- mode dev only ---
   image: apache/kafka:3.9.1
   # Partitions of the topics the broker would create itself (the services create theirs with 3)
   numPartitions: 3

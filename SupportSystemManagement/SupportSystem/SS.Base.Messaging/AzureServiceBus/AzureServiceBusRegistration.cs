@@ -48,7 +48,8 @@ internal static class AzureServiceBusRegistration
             subscription.AddServiceBusProcessor(services, FitSubscriptionName(name));
         }
 
-        services.AddHealthChecks().AddCheck<AzureServiceBusHealthCheck>("azure-service-bus", tags: new[] { "ready", "messaging" });
+        // Degraded, not Unhealthy, on an outage - the same reasoning as the Kafka check.
+        services.AddHealthChecks().AddCheck<AzureServiceBusHealthCheck>("azure-service-bus", failureStatus: HealthStatus.Degraded, tags: new[] { "ready", "messaging" });
     }
 
     private static string FitSubscriptionName(string name)
@@ -85,7 +86,7 @@ internal sealed class AzureServiceBusHealthCheck : IHealthCheck
         }
         catch (Exception ex) when (ex is ServiceBusException or OperationCanceledException or Azure.RequestFailedException or UnauthorizedAccessException)
         {
-            return HealthCheckResult.Unhealthy("Service Bus unreachable", ex);
+            return new HealthCheckResult(context.Registration.FailureStatus, "Service Bus unreachable", ex);
         }
     }
 }

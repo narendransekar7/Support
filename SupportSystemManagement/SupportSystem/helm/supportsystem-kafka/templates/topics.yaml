@@ -1,0 +1,24 @@
+{{- /*
+Every message type's topic and its ".dlt" dead-letter topic. Strimzi's Topic Operator creates/updates them in
+Kafka; the services run with Messaging:Kafka:AutoCreateTopics=false and never create topics themselves.
+*/ -}}
+{{- $t := .Values.topics }}
+{{- range $name := $t.names }}
+{{- range $suffix := list "" ".dlt" }}
+{{- $topic := printf "%s.%s%s" $t.prefix $name $suffix }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: {{ $topic }}
+  labels:
+    {{- include "supportsystem-kafka.clusterLabel" $ | nindent 4 }}
+    {{- include "supportsystem-kafka.labels" $ | nindent 4 }}
+spec:
+  partitions: {{ $t.partitions }}
+  replicas: {{ $t.replicas }}
+  config:
+    min.insync.replicas: {{ $t.minInsyncReplicas }}
+    retention.ms: {{ if $suffix }}{{ $t.deadLetterRetentionMs | int64 }}{{ else }}{{ $t.retentionMs | int64 }}{{ end }}
+{{- end }}
+{{- end }}

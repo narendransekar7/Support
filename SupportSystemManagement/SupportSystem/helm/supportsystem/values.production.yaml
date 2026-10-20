@@ -1,0 +1,13 @@
+# Production overrides - used by the Jenkins / Azure DevOps deploy on top of values.yaml and the secret values:
+#   helm upgrade --install supportsystem ./helm/supportsystem -n supportsystem \
+#     -f helm/supportsystem/values.production.yaml -f <secret values>
+# Requires the Kafka release first (helm/supportsystem-kafka, Strimzi) - the pipelines install it in the stage before.
+
+# Messages go through the Strimzi-managed cluster: TLS + SCRAM-SHA-512, one Kafka user per service.
+kafka:
+  mode: strimzi
+
+# RabbitMQ is only needed for config.messagingProvider=RabbitMq. Switching provider later = set this back to true
+# and drain the old broker first (messages aren't shared between brokers).
+rabbitmq:
+  enabled: false

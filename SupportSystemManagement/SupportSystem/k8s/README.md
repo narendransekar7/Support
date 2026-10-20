@@ -281,3 +281,90 @@ publishing fails and the API pods go not-ready. Planned fix, deliberately deferr
   after applying, done while the queues are empty.
 - For zero-downtime messaging: a 3-node cluster with quorum queues (e.g. the
   [RabbitMQ Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview)) or a managed broker.
+
+## Kafka in production (Strimzi)
+
+The `kafka` Deployment in `supportsystem.yaml` (and the Helm chart's default `kafka.mode: dev`) is a single,
+unauthenticated broker without persistence - fine for learning, not for production. Production runs a real cluster
+managed by the [Strimzi](https://strimzi.io) operator, from the separate chart `helm/supportsystem-kafka`:
+
+| | What | Why |
+|---|---|---|
+| Brokers | 3 pods, each a KRaft controller + broker (`KafkaNodePool` "dual"), one per availability zone | survives losing a broker or a whole zone |
+| Data | replication factor 3, `min.insync.replicas` 2; producers use `acks=all` | a write is on 2 zones before it's acknowledged |
+| Disks | 100 GiB Premium SSD **ZRS** per broker (`kafka-premium-zrs` StorageClass, `Retain`, expandable) | a broker's disk survives its zone and can follow it |
+| Nodes | dedicated `kafkapool` node pool (3 × Standard_D4s_v5, zones 1-3, taint `dedicated=kafka:NoSchedule`) | predictable disk/network, app pods can't crowd it out |
+| Security | TLS-only listener on 9093, SCRAM-SHA-512 logins, ACLs; one `KafkaUser` per service | a service can only touch its own topics and consumer groups |
+| Topics | 9 topics + 9 `.dlt` dead-letter topics as `KafkaTopic` resources (6 partitions, 7 / 30 days retention) | reviewed config; the services run with `AutoCreateTopics=false` |
+| Operations | Cruise Control (rebalancing), Kafka Exporter (consumer lag), JMX metrics, Kafka UI (internal) | |
+
+The app chart's `kafka.mode: strimzi` (`helm/supportsystem/values.production.yaml`) points every service at
+`support-kafka-kafka-bootstrap:9093` with its own user: password from the Secret Strimzi creates for it (named like
+the service), CA from `support-kafka-cluster-ca-cert`.
+
+### 1. One-time: the node pool
+
+```bash
+RESOURCE_GROUP=<rg> AKS_CLUSTER=<cluster> scripts/aks-kafka-nodepool.sh
+kubectl get nodes -l workload=kafka -L topology.kubernetes.io/zone     # 3 nodes, zones 1/2/3
+```
+
+### 2. Deploy (the pipelines do this on every `deploy`)
+
+```bash
+bash scripts/deploy-kafka.sh supportsystem            # Strimzi CRDs + operator 1.2.0, Kafka release, waits until Ready
+helm upgrade --install supportsystem ./helm/supportsystem -n supportsystem \
+  -f helm/supportsystem/values.production.yaml -f <secret values>
+```
+
+`deploy-kafka.sh` installs the operator (namespace `kafka-operator`, watching `supportsystem`), applies its CRDs
+(Helm never upgrades CRDs, so the script does), installs `helm/supportsystem-kafka`, then waits for the cluster,
+topics and users. Only then can the app pods start: they need the password and CA Secrets Strimzi creates. The first
+install takes a few minutes. Jenkins and Azure DevOps run it as a step before the app deploy; a `rollback` only rolls
+the app back - Kafka is a separate release and is never touched by it.
+
+**Staging** (same cluster, own namespace, smaller, on the app nodes):
+
+```bash
+STRIMZI_WATCH_NAMESPACES=supportsystem,supportsystem-staging \
+  bash scripts/deploy-kafka.sh supportsystem-staging -f helm/supportsystem-kafka/values.staging.yaml
+helm upgrade --install supportsystem-staging ./helm/supportsystem -n supportsystem-staging --create-namespace \
+  -f helm/supportsystem/values.staging.yaml -f <staging secret values>
+```
+
+**Locally** (minikube/kind - one node, tiny brokers, same security and topics): `values.local.yaml`, see its header.
+
+### 3. Check it
+
+```bash
+kubectl -n supportsystem get kafka,kafkanodepool,kafkatopic,kafkauser          # all READY True
+kubectl -n supportsystem get pods -l strimzi.io/cluster=support-kafka -o wide   # one broker per zone/node
+kubectl -n supportsystem logs deploy/ss-email-api | grep -E "subscribed|assigned partitions"
+kubectl -n supportsystem port-forward svc/support-kafka-ui 8085:8080           # Kafka UI: topics, lag, dead letters
+```
+
+Consumer lag: Kafka UI (Consumers page) or the Kafka Exporter metric `kafka_consumergroup_lag`.
+
+### 4. Day-2 operations
+
+| Task | How |
+|---|---|
+| More disk | raise `kafka.storage.size` in `helm/supportsystem-kafka/values.yaml` and redeploy - Strimzi expands the PVCs online |
+| More brokers | raise `kafka.replicas` (keep a multiple of 3 for even zones), redeploy, then let Cruise Control move partitions: apply a `KafkaRebalance` with `strimzi.io/rebalance-auto-approval: "true"` |
+| More partitions | raise `topics.partitions` (only ever increase; key→partition mapping changes for new messages) - keep consumer HPAs' `maxReplicas` at or below it |
+| New message type | add it to `topics.names` and to the producing/consuming services under `users`, redeploy Kafka before the app |
+| Rotate a service's password | `kubectl -n supportsystem delete secret ss-email-api` (Strimzi issues a new one), then `kubectl -n supportsystem rollout restart deploy/ss-email-api` |
+| Upgrade Strimzi | bump `STRIMZI_VERSION` in the pipelines (the script applies the new CRDs); upgrade Kafka itself by changing `kafka.version`/`metadataVersion` to one the operator supports - Strimzi rolls the brokers one by one |
+| Node pool upgrade / drain | Strimzi's PodDisruptionBudget lets only one broker go at a time; with min ISR 2 producers keep working |
+| Alerts | `kafka_consumergroup_lag` above a threshold for 5 min; any message in a `.dlt` topic; `kafka_server_replicamanager_underreplicatedpartitions > 0`; broker disk usage > 75% (enable `monitoring.podMonitors` in both charts once managed Prometheus is on) |
+
+### 5. Failure tests to run in staging
+
+| Test | How | Expected |
+|---|---|---|
+| Broker dies | `kubectl delete pod support-kafka-dual-1` | producers/consumers continue (2 of 3 replicas), the broker rejoins and catches up |
+| Node drain | `kubectl drain <kafka node> --ignore-daemonsets --delete-emptydir-data` | the PDB lets one broker move at a time |
+| Zone outage | cordon + drain the nodes of one zone | the other two zones keep serving; the moved broker reattaches its ZRS disk |
+| Least privilege | as `ss-email-api`, try producing to `support.ticket-created` | `TOPIC_AUTHORIZATION_FAILED` |
+| Poison message | make one handler fail (e.g. a bad DB setting on ss-notification-api in staging) | 4 attempts, then the message is in `support.ticket-created.dlt` with `dlt-reason` |
+| Load | k6/JMeter against the gateway | lag stays low or drains; HPAs scale the consumers |

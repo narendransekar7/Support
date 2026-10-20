@@ -39,8 +39,9 @@ internal static class KafkaRegistration
             subscription.AddKafkaWorker(services, groupId);
         }
 
-        // Readiness fails while no broker answers - the same as MassTransit's bus check does for RabbitMQ.
-        services.AddHealthChecks().AddCheck<KafkaHealthCheck>("kafka", tags: new[] { "ready", "messaging" });
+        // A broker outage reports Degraded, not Unhealthy: /health/ready still answers 200, so the APIs keep serving
+        // HTTP (reads, sign-in, ...) while consumers reconnect; only publishing fails until the brokers are back.
+        services.AddHealthChecks().AddCheck<KafkaHealthCheck>("kafka", failureStatus: HealthStatus.Degraded, tags: new[] { "ready", "messaging" });
     }
 }
 
@@ -57,11 +58,11 @@ internal sealed class KafkaHealthCheck : IHealthCheck
             var metadata = await Task.Run(() => _topics.Admin.GetMetadata(TimeSpan.FromSeconds(3)), cancellationToken);
             return metadata.Brokers.Count > 0
                 ? HealthCheckResult.Healthy($"{metadata.Brokers.Count} Kafka broker(s) reachable")
-                : HealthCheckResult.Unhealthy("No Kafka brokers in metadata");
+                : new HealthCheckResult(context.Registration.FailureStatus, "No Kafka brokers in metadata");
         }
         catch (KafkaException ex)
         {
-            return HealthCheckResult.Unhealthy("Kafka unreachable", ex);
+            return new HealthCheckResult(context.Registration.FailureStatus, "Kafka unreachable", ex);
         }
     }
 }

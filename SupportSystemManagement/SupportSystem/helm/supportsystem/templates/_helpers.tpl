@@ -40,6 +40,24 @@ Full image reference. Call with (dict "root" $ "image" <svc.image>).
 
 {{- define "supportsystem.configMapName" -}}supportsystem-config{{- end -}}
 
+{{/* kafka.mode, validated: dev | strimzi | external */}}
+{{- define "supportsystem.kafkaMode" -}}
+{{- $mode := .Values.kafka.mode | default "dev" -}}
+{{- if not (has $mode (list "dev" "strimzi" "external")) -}}
+{{- fail (printf "kafka.mode must be dev, strimzi or external - got %q" $mode) -}}
+{{- end -}}
+{{- $mode -}}
+{{- end -}}
+
+{{/* Kafka bootstrap servers for the selected kafka.mode */}}
+{{- define "supportsystem.kafkaBootstrapServers" -}}
+{{- if eq (include "supportsystem.kafkaMode" .) "strimzi" -}}
+{{- printf "%s-kafka-bootstrap:9093" .Values.kafka.strimzi.clusterName -}}
+{{- else -}}
+{{- .Values.config.kafkaBootstrapServers -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "supportsystem.secretName" -}}
 {{- default "supportsystem-secrets" .Values.secrets.existingSecret -}}
 {{- end -}}
