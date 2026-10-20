@@ -1,7 +1,7 @@
-﻿using MassTransit;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Logging;
 using SS.Base.Domain.Entities;
+using SS.Base.Domain.Interfaces.Messaging;
 using SS.Base.Domain.Interfaces.Repository;
 using SS.Base.Domain.Messages.Ticket;
 using System;
@@ -18,16 +18,16 @@ namespace SS.Base.Application.Commands
         private readonly ITicketRepository _ticketRepository;
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IPublishEndpoint _publishEndpoint;
+        private readonly IEventPublisher _publisher;
         private readonly ILogger<CreateTicketHandler> _logger;
 
-        public CreateTicketHandler(ITicketRepository ticketRepository, IUserRepository userRepository, IUnitOfWork unitOfWork, IPublishEndpoint publishEndpoint, ILogger<CreateTicketHandler> logger)
+        public CreateTicketHandler(ITicketRepository ticketRepository, IUserRepository userRepository, IUnitOfWork unitOfWork, IEventPublisher publisher, ILogger<CreateTicketHandler> logger)
         {
             _logger = logger;
             _ticketRepository = ticketRepository;
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
-            _publishEndpoint = publishEndpoint;
+            _publisher = publisher;
         }
 
         public async Task<Unit> Handle(CreateTicketCommand request, CancellationToken cancellationToken)
@@ -63,9 +63,10 @@ namespace SS.Base.Application.Commands
 
             var creator = await _userRepository.GetByIdAsync(request.CreatedBy);
 
-            // Kicks off the ticket-creation saga (Assign Engineer/Reserve SLA)
-            // and the independent notify branch (Send Email/Create Notification).
-            await _publishEndpoint.Publish(new TicketCreated
+            // Kicks off the ticket-creation saga (Assign Engineer/Reserve SLA) and the independent
+            // email/notification/audit consumers, on whichever broker Messaging:Provider selects.
+            // Keyed by ticket id so all of this ticket's messages share a Kafka partition (ordering).
+            await _publisher.PublishAsync(new TicketCreated
             {
                 TicketId = ticket.TicketId,
                 Title = ticket.Title,
@@ -73,7 +74,7 @@ namespace SS.Base.Application.Commands
                 CreatedBy = ticket.CreatedBy,
                 CreatedByEmail = creator?.PrimaryEmail,
                 CreatedByName = creator?.DisplayName
-            }, cancellationToken);
+            }, ticket.TicketId.ToString(), cancellationToken);
             _logger.LogInformation("Published TicketCreated for ticket {TicketId}", ticket.TicketId);
 
             return Unit.Value;

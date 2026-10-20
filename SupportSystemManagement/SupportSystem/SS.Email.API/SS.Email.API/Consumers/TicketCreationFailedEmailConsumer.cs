@@ -1,33 +1,19 @@
 using MassTransit;
 using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Messaging.RabbitMq;
+using SS.Email.API.Handlers;
 
 namespace SS.Email.API.Consumers;
 
+/// <summary>
+/// RabbitMQ (MassTransit) entry point; the email itself is sent by <see cref="TicketCreationFailedEmailHandler"/>.
+/// </summary>
 public class TicketCreationFailedEmailConsumer : IConsumer<SendTicketCreationFailedEmail>
 {
-    private readonly EmailService _emailService;
-    private readonly ILogger<TicketCreationFailedEmailConsumer> _logger;
+    private readonly TicketCreationFailedEmailHandler _handler;
 
-    public TicketCreationFailedEmailConsumer(EmailService emailService, ILogger<TicketCreationFailedEmailConsumer> logger)
-    {
-        _emailService = emailService;
-        _logger = logger;
-    }
+    public TicketCreationFailedEmailConsumer(TicketCreationFailedEmailHandler handler) => _handler = handler;
 
-    public async Task Consume(ConsumeContext<SendTicketCreationFailedEmail> context)
-    {
-        var message = context.Message;
-        if (string.IsNullOrWhiteSpace(message.CreatedByEmail))
-        {
-            _logger.LogWarning("Skipping ticket-creation-failed email for ticket {TicketId}: creator has no email address", message.TicketId);
-            return;
-        }
-
-        var subject = $"We couldn't process your ticket: {message.Title}";
-        var body = $"Hello {message.CreatedByName},<br/><br/>" +
-                   $"Unfortunately we couldn't process your ticket \"{message.Title}\": {message.Reason}. " +
-                   "Please try again or contact support.";
-
-        await _emailService.SendEmailAsync(message.CreatedByEmail, subject, body);
-    }
+    public Task Consume(ConsumeContext<SendTicketCreationFailedEmail> context) =>
+        _handler.HandleAsync(context.Message, context.ToEventContext(), context.CancellationToken);
 }

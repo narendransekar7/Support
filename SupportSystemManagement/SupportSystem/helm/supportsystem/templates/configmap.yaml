@@ -6,6 +6,8 @@ metadata:
   labels:
     {{- include "supportsystem.labels" . | nindent 4 }}
 data:
+  MESSAGING_PROVIDER: {{ .Values.config.messagingProvider | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.kafkaBootstrapServers | quote }}
   RABBITMQ_HOST: {{ .Values.config.rabbitmqHost | quote }}
   RABBITMQ_VHOST: {{ .Values.config.rabbitmqVhost | quote }}
   CORS_REACT_UI_ORIGIN: {{ .Values.config.corsReactUiOrigin | quote }}

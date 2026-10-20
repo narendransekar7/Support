@@ -100,6 +100,8 @@ pipeline {
                             'ss-user-api'       : 'SS.User.API/Dockerfile',
                             'ss-ticket-api'     : 'SS.Ticket.API/Dockerfile',
                             'ss-email-api'      : 'SS.Email.API/SS.Email.API/Dockerfile',
+                            'ss-notification-api': 'SS.Notification.API/Dockerfile',
+                            'ss-audit-api'      : 'SS.Audit.API/Dockerfile',
                             'ss-gateway-api'    : 'SS.Gateway.API/Dockerfile',
                         ]
                         def builds = apis.collectEntries { name, dockerfile ->
@@ -127,7 +129,7 @@ pipeline {
                     sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
                 }
                 sh '''
-                    for img in ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui; do
+                    for img in ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-notification-api ss-audit-api ss-gateway-api ss-react-ui; do
                         docker push "$DOCKER_HUB_REPO/$img:$IMAGE_TAG"
                         docker push "$DOCKER_HUB_REPO/$img:latest"
                     done

@@ -10,8 +10,8 @@ From this folder's parent (`SupportSystemManagement/SupportSystem`, where `docke
 build and push all six images with the names/build contexts already defined in compose:
 
 ```bash
-docker compose build ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui
-docker compose push ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui
+docker compose build ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-notification-api ss-audit-api ss-gateway-api ss-react-ui
+docker compose push ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-notification-api ss-audit-api ss-gateway-api ss-react-ui
 ```
 
 Every .NET image is built from the solution folder (`context: .`) because the APIs reference the

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Hosting (BackgroundService), options, health checks, logging. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Kafka: the official Confluent client (librdkafka) used directly - no MassTransit rider - so the
+         Kafka concepts (topics, partitions, keys, consumer groups, offsets) stay visible in the code. -->
+    <PackageReference Include="Confluent.Kafka" Version="2.8.0" />
+    <!-- RabbitMQ: the existing MassTransit setup, moved here behind the provider switch. -->
+    <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SS.Base.Domain\SS.Base.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

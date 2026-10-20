@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using MassTransit;
 using SS.Base.Authentication;
 using SS.Base.Application;
 using SS.Base.Infrastructure.Persistance.MSSQL;
+using SS.Base.Messaging;
 using SS.Base.Observability;
 using System;
 
@@ -46,27 +46,13 @@ builder.Services.AddApplicationServices(builder.Configuration);
 // Added the extension method in the infrastructure layer for SQL Server DB context
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-// Bus-only MassTransit registration (no consumers here) — SS.Base.Application's
-// MediatR handler scan registers CreateTicketHandler in every host that calls
-// AddApplicationServices, and it depends on IPublishEndpoint. This host doesn't
-// consume anything, it just needs the bus present so that dependency resolves.
-builder.Services.AddMassTransit(x =>
-{
-    x.UsingRabbitMq((context, cfg) =>
-    {
-        var rabbitMqConfig = builder.Configuration.GetSection("RabbitMq");
-        cfg.Host(rabbitMqConfig["Host"], rabbitMqConfig["VirtualHost"], h =>
-        {
-            h.Username(rabbitMqConfig["Username"]);
-            h.Password(rabbitMqConfig["Password"]);
-        });
+// Publisher only (no consumers here) on the broker chosen by Messaging:Provider - SS.Base.Application's
+// MediatR handler scan registers CreateTicketHandler in every host that calls AddApplicationServices,
+// and it depends on IEventPublisher.
+builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-user-api");
 
-        cfg.ConfigureEndpoints(context);
-    });
-});
-
-// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a RabbitMQ outage
-// doesn't restart the pod; /health/ready runs all registered checks (incl. MassTransit's bus check).
+// Kubernetes probes (see k8s/supportsystem.yaml): /health/live runs no checks so a broker outage
+// doesn't restart the pod; /health/ready runs all registered checks (MassTransit's bus check or the Kafka check).
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();

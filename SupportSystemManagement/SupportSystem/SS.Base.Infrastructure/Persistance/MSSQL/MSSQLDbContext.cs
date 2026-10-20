@@ -26,6 +26,7 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<RoundRobinCursor> RoundRobinCursors { get; set; }
         public DbSet<TicketCreationSagaState> TicketCreationSagaStates { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         
         // Seeding method
         public static void Seed(ModelBuilder modelBuilder)
@@ -120,6 +121,19 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 entity.HasKey(n => n.NotificationId);
                 entity.Property(n => n.Message).IsRequired().HasMaxLength(1000);
                 entity.Property(n => n.CreatedAt).HasDefaultValueSql("GETDATE()");
+                // One notification per source message (at-least-once delivery de-duplication).
+                entity.HasIndex(n => n.SourceEventId).IsUnique().HasFilter("[SourceEventId] IS NOT NULL");
+            });
+
+            // Configure AuditLog entity (SS.Audit.API's append-only trail of bus messages)
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasKey(a => a.AuditLogId);
+                entity.HasIndex(a => a.EventId).IsUnique();
+                entity.HasIndex(a => new { a.TicketId, a.OccurredAtUtc });
+                entity.Property(a => a.EventType).IsRequired().HasMaxLength(200);
+                entity.Property(a => a.Provider).IsRequired().HasMaxLength(32);
+                entity.Property(a => a.Payload).IsRequired();
             });
 
             // Configure RoundRobinCursor entity (single row, Id always explicitly 1 — not an auto-increment key)

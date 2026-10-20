@@ -5,4 +5,5 @@ namespace SS.Base.Domain.Interfaces.Repository;
 public interface INotificationRepository : IGenericRepository<Notification>
 {
     Task<IEnumerable<Notification>> GetByUserAsync(Guid userId);
+    Task<bool> ExistsBySourceEventIdAsync(Guid eventId, CancellationToken cancellationToken = default);
 }

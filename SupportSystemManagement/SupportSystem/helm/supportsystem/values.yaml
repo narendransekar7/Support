@@ -26,6 +26,11 @@ imagePullSecrets: []
 # Non-secret config shared across services -> ConfigMap "supportsystem-config"
 # ---------------------------------------------------------------------------
 config:
+  # Message broker for every service: "Kafka" or "RabbitMq" (env Messaging__Provider). Both brokers are
+  # deployed by default (kafka.enabled / rabbitmq.enabled); turn off the one you don't use.
+  messagingProvider: "Kafka"
+  # Service name of the in-cluster Kafka (kafka.enabled) or an external cluster's bootstrap servers
+  kafkaBootstrapServers: "kafka:9092"
   # Service name of the in-cluster broker (rabbitmq.enabled) or the host of an external one
   rabbitmqHost: "rabbitmq"
   rabbitmqVhost: "/"
@@ -98,6 +103,24 @@ rabbitmq:
     requests:
       cpu: 200m
       memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# ---------------------------------------------------------------------------
+# Kafka (single broker, KRaft mode, no persistence - like RabbitMQ: a restart loses topics, messages
+# and consumer offsets; the services recreate the topics). See docs/messaging/KAFKA.md.
+# ---------------------------------------------------------------------------
+kafka:
+  # Set false to use an external cluster (then point config.kafkaBootstrapServers at it)
+  enabled: true
+  image: apache/kafka:3.9.1
+  # Partitions of the topics the broker would create itself (the services create theirs with 3)
+  numPartitions: 3
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
     limits:
       cpu: "1"
       memory: 1Gi
@@ -178,6 +201,7 @@ autoscalingBehavior:
 #     image.repository/tag    image name (prefixed with image.registry); tag defaults to image.tag
 #     aspnetcoreEnvironment   ASPNETCORE_ENVIRONMENT
 #     database                inject ConnectionStrings__DefaultConnection from the Secret
+#     messaging               inject Messaging__Provider and Messaging__Kafka__BootstrapServers (the broker switch)
 #     rabbitmq                inject RabbitMq__Host/VirtualHost/Username/Password
 #     cors                    inject Cors__ReactUIOrigin
 #     jwt                     inject Jwt__SigningKey from the Secret's JWT_SIGNING_KEY (if present)
@@ -198,6 +222,7 @@ apis:
       tag: ""
     aspnetcoreEnvironment: Development
     database: true
+    messaging: false
     rabbitmq: false
     cors: false
     jwt: true
@@ -223,6 +248,7 @@ apis:
       tag: ""
     aspnetcoreEnvironment: Development
     database: true
+    messaging: true
     rabbitmq: true
     cors: true
     jwt: true
@@ -239,7 +265,7 @@ apis:
     pdb:
       enabled: true
 
-  # RabbitMQ consumers and the EF saga repository are safe with competing replicas
+  # Saga consumers (RabbitMQ queues or Kafka consumer groups) and the saga state rows are safe with competing replicas
   ss-ticket-api:
     enabled: true
     image:
@@ -247,6 +273,7 @@ apis:
       tag: ""
     aspnetcoreEnvironment: Development
     database: true
+    messaging: true
     rabbitmq: true
     cors: true
     jwt: false
@@ -263,7 +290,7 @@ apis:
     pdb:
       enabled: true
 
-  # RabbitMQ consumer - replicas share the queue as competing consumers
+  # RabbitMQ queue / Kafka consumer group - replicas share the work as competing consumers
   ss-email-api:
     enabled: true
     image:
@@ -271,9 +298,61 @@ apis:
       tag: ""
     aspnetcoreEnvironment: Development
     database: false
+    messaging: true
     rabbitmq: true
     cors: false
     jwt: false
+    redis: false
+    configEnv: {}
+    extraEnv: []
+    resources: {}
+    replicaCount: 1
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false   # can run a single replica
+
+  # In-app notifications: TicketCreated consumer + /api/notification/*.
+  # Kafka consumer group - each topic has 3 partitions, so more than 3 replicas would sit idle.
+  ss-notification-api:
+    enabled: true
+    image:
+      repository: ss-notification-api
+      tag: ""
+    aspnetcoreEnvironment: Development
+    database: true
+    messaging: true
+    rabbitmq: true
+    cors: false
+    jwt: false
+    redis: false
+    configEnv: {}
+    extraEnv: []
+    resources: {}
+    replicaCount: 1
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false   # can run a single replica
+
+  # Audit trail of the ticket-creation messages + Admin-only /api/audit/*
+  ss-audit-api:
+    enabled: true
+    image:
+      repository: ss-audit-api
+      tag: ""
+    aspnetcoreEnvironment: Development
+    database: true
+    messaging: true
+    rabbitmq: true
+    cors: false
+    jwt: true
     redis: false
     configEnv: {}
     extraEnv: []
@@ -295,6 +374,7 @@ apis:
       tag: ""
     aspnetcoreEnvironment: Docker   # selects ocelot.Docker.json, which routes by these Service names
     database: false
+    messaging: false
     rabbitmq: false
     cors: false
     jwt: true

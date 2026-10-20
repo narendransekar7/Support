@@ -20,4 +20,9 @@ public class NotificationRepository : GenericRepository<Notification>, INotifica
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync();
     }
+
+    public Task<bool> ExistsBySourceEventIdAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        return _context.Notifications.AnyAsync(n => n.SourceEventId == eventId, cancellationToken);
+    }
 }

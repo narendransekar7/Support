@@ -25,6 +25,8 @@ spec:
           - ss-user-api
           - ss-ticket-api
           - ss-email-api
+          - ss-notification-api
+          - ss-audit-api
           - ss-gateway-api
   podMetricsEndpoints:
     - port: metrics

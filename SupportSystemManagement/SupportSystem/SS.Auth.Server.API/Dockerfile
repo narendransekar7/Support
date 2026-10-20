@@ -9,6 +9,7 @@ COPY SS.Auth.Server.API/SS.Auth.Server.API.csproj SS.Auth.Server.API/
 COPY SS.Base.Application/SS.Base.Application.csproj SS.Base.Application/
 COPY SS.Base.Infrastructure/SS.Base.Infrastructure.csproj SS.Base.Infrastructure/
 COPY SS.Base.Domain/SS.Base.Domain.csproj SS.Base.Domain/
+COPY SS.Base.Messaging/SS.Base.Messaging.csproj SS.Base.Messaging/
 COPY SS.Base.Observability/SS.Base.Observability.csproj SS.Base.Observability/
 COPY SS.Base.Authentication/SS.Base.Authentication.csproj SS.Base.Authentication/
 RUN dotnet restore SS.Auth.Server.API/SS.Auth.Server.API.csproj
@@ -18,6 +19,7 @@ COPY SS.Auth.Server.API/ SS.Auth.Server.API/
 COPY SS.Base.Application/ SS.Base.Application/
 COPY SS.Base.Infrastructure/ SS.Base.Infrastructure/
 COPY SS.Base.Domain/ SS.Base.Domain/
+COPY SS.Base.Messaging/ SS.Base.Messaging/
 COPY SS.Base.Observability/ SS.Base.Observability/
 COPY SS.Base.Authentication/ SS.Base.Authentication/
 

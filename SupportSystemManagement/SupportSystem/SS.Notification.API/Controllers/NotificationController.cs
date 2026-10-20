@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using SS.Base.Application.Queries;
 
-namespace SS.Ticket.API.Controllers
+namespace SS.Notification.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

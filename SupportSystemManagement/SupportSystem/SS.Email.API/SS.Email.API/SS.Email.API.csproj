@@ -9,13 +9,13 @@
     <ItemGroup>
         <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
         <PackageReference Include="MailKit" Version="4.10.0" />
-        <PackageReference Include="MassTransit.RabbitMQ" Version="8.5.10" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\SS.Base.Domain\SS.Base.Domain.csproj" />
+      <ProjectReference Include="..\..\SS.Base.Messaging\SS.Base.Messaging.csproj" />
       <ProjectReference Include="..\..\SS.Base.Observability\SS.Base.Observability.csproj" />
     </ItemGroup>
 
