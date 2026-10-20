@@ -3,7 +3,9 @@
 # in your shell or in a .env file next to this compose file (git-ignored) before `docker compose up`.
 # "Sign in with Microsoft" (Entra ID, optional - see ARCHITECTURE.md "Authentication") is configured the same way:
 #   ENTRA_TENANT_ID, ENTRA_API_CLIENT_ID, ENTRA_SPA_CLIENT_ID, ENTRA_API_SCOPE (ids only, no secrets)
-# Message broker: MESSAGING_PROVIDER=Kafka (default) or RabbitMq - both brokers run, the services use the chosen one.
+# Message broker: MESSAGING_PROVIDER=Kafka (default), RabbitMq or AzureServiceBus. Kafka and RabbitMQ always run;
+#   for AzureServiceBus add the emulator with --profile servicebus (or set AZURE_SERVICE_BUS_CONNECTION_STRING to a
+#   real namespace and AZURE_SERVICE_BUS_AUTO_CREATE=true). See docs/messaging/AZURE-SERVICE-BUS.md.
 #   Kafka UI: http://localhost:8085   RabbitMQ management: http://localhost:15672 (guest/guest)
 services:
   rabbitmq:
@@ -64,6 +66,35 @@ services:
     networks:
       - ss-network
 
+  # Azure Service Bus emulator (only with --profile servicebus): the real Service Bus protocol locally, with its
+  # topics/subscriptions declared in servicebus-emulator/Config.json (the emulator has no management API, so the
+  # services run with AutoCreateEntities=false). It stores its state in its own SQL Server container.
+  servicebus-sql:
+    image: mcr.microsoft.com/mssql/server:2022-CU16-ubuntu-22.04
+    profiles: ["servicebus"]
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SERVICEBUS_SQL_PASSWORD:-ServiceBus_Emulator1!}   # local throwaway emulator store
+    networks:
+      - ss-network
+
+  servicebus-emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:1.1.2
+    profiles: ["servicebus"]
+    volumes:
+      - ./servicebus-emulator/Config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+    ports:
+      - "5673:5672"   # AMQP (5672 on the host is RabbitMQ's)
+      - "5300:5300"   # emulator health: http://localhost:5300/health
+    environment:
+      SQL_SERVER: servicebus-sql
+      MSSQL_SA_PASSWORD: ${SERVICEBUS_SQL_PASSWORD:-ServiceBus_Emulator1!}
+      ACCEPT_EULA: "Y"
+    depends_on:
+      - servicebus-sql
+    networks:
+      - ss-network
+
   # Rate-limit counters for ss-gateway-api (shared by all its replicas). No persistence needed:
   # losing the counters on restart only resets the current window.
   redis:
@@ -85,6 +116,8 @@ services:
       - &db-connection ConnectionStrings__DefaultConnection=Server=learningdatanaren.database.windows.net;Database=SupportSystem;User Id=narendran;Password=Admin@123;TrustServerCertificate=True;
       - &messaging-provider Messaging__Provider=${MESSAGING_PROVIDER:-Kafka}
       - &kafka-bootstrap Messaging__Kafka__BootstrapServers=kafka:9092
+      - &asb-connection Messaging__AzureServiceBus__ConnectionString=${AZURE_SERVICE_BUS_CONNECTION_STRING:-Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;}
+      - &asb-auto-create Messaging__AzureServiceBus__AutoCreateEntities=${AZURE_SERVICE_BUS_AUTO_CREATE:-false}
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
@@ -134,6 +167,8 @@ services:
       - ConnectionStrings__DefaultConnection=Server=learningdatanaren.database.windows.net;Database=SupportSystem;User Id=narendran;Password=Admin@123;TrustServerCertificate=True;
       - *messaging-provider
       - *kafka-bootstrap
+      - *asb-connection
+      - *asb-auto-create
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
@@ -163,6 +198,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - *messaging-provider
       - *kafka-bootstrap
+      - *asb-connection
+      - *asb-auto-create
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
@@ -190,6 +227,8 @@ services:
       - *db-connection
       - *messaging-provider
       - *kafka-bootstrap
+      - *asb-connection
+      - *asb-auto-create
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest
@@ -217,6 +256,8 @@ services:
       - *db-connection
       - *messaging-provider
       - *kafka-bootstrap
+      - *asb-connection
+      - *asb-auto-create
       - RabbitMq__Host=rabbitmq
       - RabbitMq__VirtualHost=/
       - RabbitMq__Username=guest

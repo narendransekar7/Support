@@ -16,11 +16,11 @@ internal sealed class KafkaEventPublisher : IEventPublisher
     private readonly IProducer<string, byte[]> _producer;
     private readonly KafkaTopicManager _topics;
     private readonly KafkaClientFactory _factory;
-    private readonly KafkaServiceName _serviceName;
+    private readonly MessagingServiceName _serviceName;
     private readonly ILogger<KafkaEventPublisher> _logger;
 
     public KafkaEventPublisher(IProducer<string, byte[]> producer, KafkaTopicManager topics, KafkaClientFactory factory,
-        KafkaServiceName serviceName, ILogger<KafkaEventPublisher> logger)
+        MessagingServiceName serviceName, ILogger<KafkaEventPublisher> logger)
     {
         _producer = producer;
         _topics = topics;
@@ -32,7 +32,7 @@ internal sealed class KafkaEventPublisher : IEventPublisher
     public async Task PublishAsync<T>(T message, string? key = null, CancellationToken cancellationToken = default) where T : class
     {
         var messageType = message.GetType();
-        var topic = KafkaTopics.For(messageType, _factory.Options.TopicPrefix);
+        var topic = MessageNaming.Topic(messageType, _factory.Options.TopicPrefix);
         await _topics.EnsureTopicAsync(topic);
 
         // Same key -> same partition -> consumed in order. Ticket messages default to their ticket id,
@@ -59,7 +59,7 @@ internal sealed class KafkaEventPublisher : IEventPublisher
         var result = await _producer.ProduceAsync(topic, new Message<string, byte[]>
         {
             Key = key!,
-            Value = JsonSerializer.SerializeToUtf8Bytes(message, messageType, KafkaTopics.Json),
+            Value = JsonSerializer.SerializeToUtf8Bytes(message, messageType, MessageNaming.Json),
             Headers = headers,
         }, cancellationToken);
 

@@ -100,6 +100,8 @@ stages:
                 build ss-user-api        SS.User.API/Dockerfile                . & pids[ss-user-api]=$!
                 build ss-ticket-api      SS.Ticket.API/Dockerfile              . & pids[ss-ticket-api]=$!
                 build ss-email-api       SS.Email.API/SS.Email.API/Dockerfile  . & pids[ss-email-api]=$!
+                build ss-notification-api SS.Notification.API/Dockerfile       . & pids[ss-notification-api]=$!
+                build ss-audit-api       SS.Audit.API/Dockerfile               . & pids[ss-audit-api]=$!
                 build ss-gateway-api     SS.Gateway.API/Dockerfile             . & pids[ss-gateway-api]=$!
                 build ss-react-ui        supportsystem.reactui/Dockerfile supportsystem.reactui & pids[ss-react-ui]=$!
 
@@ -122,7 +124,7 @@ stages:
 
             - bash: |
                 set -e
-                for img in ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-gateway-api ss-react-ui; do
+                for img in ss-auth-server-api ss-user-api ss-ticket-api ss-email-api ss-notification-api ss-audit-api ss-gateway-api ss-react-ui; do
                   docker push "$DOCKER_HUB_REPO/$img:$IMAGE_TAG"
                   docker push "$DOCKER_HUB_REPO/$img:latest"
                 done

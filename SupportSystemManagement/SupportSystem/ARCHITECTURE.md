@@ -17,7 +17,7 @@ This system follows **Clean Architecture** for its core business logic (users, t
 | `SS.Gateway.API` | Edge service | *(none — Ocelot only)* | Ocelot reverse proxy (`ocelot.json`). Single entry point for the frontend; validates the Support System token (either sign-in option) on protected routes before forwarding to `SS.User.API`/`SS.Ticket.API`. |
 | `SS.Base.Authentication` | Cross-cutting | *(none — ASP.NET Core JwtBearer only)* | Shared token setup: `AddSupportSystemAuthentication` (Gateway, User API — the Support System token) and `AddEntraIdTokenValidation` (Auth Server — the Entra token it exchanges) — see [Authentication](#authentication). |
 | `SS.Email.API` | Edge service | `SS.Base.Domain`, `SS.Base.Messaging` | Standalone worker that drains an Azure Service Bus queue (user-created emails) **and** consumes the ticket-creation messages (ticket-received / ticket-creation-failed emails) on the selected broker. Decoupled from the rest of the system by messaging, not by reference. |
-| `SS.Base.Messaging` | Cross-cutting | `SS.Base.Domain` | The broker switch (`AddSupportSystemMessaging`, `Messaging:Provider`): Kafka (Confluent.Kafka), RabbitMQ (MassTransit) and an Azure Service Bus placeholder behind `IEventPublisher`/`IEventHandler<T>` — see [Messaging providers](#messaging-providers). |
+| `SS.Base.Messaging` | Cross-cutting | `SS.Base.Domain` | The broker switch (`AddSupportSystemMessaging`, `Messaging:Provider`): Kafka (Confluent.Kafka, the default), RabbitMQ (MassTransit) and Azure Service Bus (Azure.Messaging.ServiceBus) behind `IEventPublisher`/`IEventHandler<T>` — see [Messaging providers](#messaging-providers). |
 | `SS.Base.Observability` | Cross-cutting | *(none — ASP.NET Core + OpenTelemetry only)* | Shared logging/tracing/metrics setup (`AddSupportSystemObservability`) referenced by every .NET host — see [Observability](#observability). Knows nothing about the business layers. |
 | `supportsystem.reactui` | Client | *(HTTP only)* | React 18 + Redux Toolkit SPA. Signs users in with email/password or Microsoft Entra ID (MSAL, authorization code + PKCE); calls only the Gateway. |
 
@@ -54,7 +54,7 @@ flowchart LR
 
     DB[(SQL Server)]
     ASB[[Azure Service Bus]]
-    MQ[[Kafka or RabbitMQ<br/>Messaging:Provider]]
+    MQ[[Kafka, RabbitMQ or Azure Service Bus<br/>Messaging:Provider]]
     EMAIL[SS.Email.API<br/>ASB + broker consumers]
 
     UI -->|Microsoft sign-in: auth code + PKCE| ENTRA
@@ -117,7 +117,7 @@ CQRS via MediatR: one folder per use case under `Commands/<Aggregate>/<UseCase>/
 - Notification: `GetNotificationsByUser`. Audit: `GetAuditLogs`.
 - `Events/AzureServiceBusQueueSender.cs`: publishes domain events (e.g. user-created) onto Azure Service Bus rather than calling `SS.Email.API` directly.
 - `EventHandlers/`: the broker-neutral message handlers (`IEventHandler<T>`) — `AssignEngineerHandler`, `ReserveSlaHandler`, `DeleteTicketHandler` (saga steps), `CreateNotificationHandler`, `AuditEventHandler<T>`. They take repositories and `IEventPublisher` via DI, same constructor-injection style as the command Handlers, and are idempotent (at-least-once delivery).
-- `Sagas/TicketCreationStateMachine.cs`: a `MassTransitStateMachine<TicketCreationSagaState>` orchestrating ticket creation over RabbitMQ; `Sagas/TicketCreationOrchestrator.cs`: the same workflow as plain `IEventHandler`s for Kafka (and future providers) — see [Ticket-creation saga](#ticket-creation-saga) below.
+- `Sagas/TicketCreationStateMachine.cs`: a `MassTransitStateMachine<TicketCreationSagaState>` orchestrating ticket creation over RabbitMQ; `Sagas/TicketCreationOrchestrator.cs`: the same workflow as plain `IEventHandler`s for Kafka and Azure Service Bus — see [Ticket-creation saga](#ticket-creation-saga) below.
 - `Consumers/`: `AssignEngineerConsumer`, `ReserveSlaConsumer`, `CreateNotificationConsumer`, `DeleteTicketConsumer`, `AuditConsumer<T>` — thin MassTransit `IConsumer<T>` adapters (RabbitMQ only) that hand the message to the matching handler above. They keep their class names, so the RabbitMQ queue names are unchanged.
 - `ApplicationStartup.cs`: DI extension (`AddApplicationServices`) — registers MediatR handlers scanned from this assembly, `IPasswordHasher<User>`, and the queue sender. This is the only place Application registers itself; it takes no dependency on Infrastructure. (Handlers, consumers and the saga are registered by the host that runs them, through `AddSupportSystemMessaging`.)
 
@@ -170,7 +170,7 @@ An API call returns 401 (access cookie expired) → `SPA → Gateway (/api/auth/
 
 `SPA (Bearer JWT) → Gateway → Ticket API → TicketController → CreateTicketCommand → CreateTicketHandler` persists the `Ticket` (unassigned — `AssignedTo`/`ResponseDueDate`/`ResolutionDueDate` are all nullable until the saga fills them in) and publishes `TicketCreated` to the selected broker (see [Messaging providers](#messaging-providers)). Four things react to it independently:
 
-1. **The saga** (in `SS.Ticket.API` — `TicketCreationStateMachine` with RabbitMQ, `TicketCreationOrchestrator` with Kafka; same states, same `TicketCreationSagaStates` table) starts, transitions to `AssigningEngineer`, and publishes `AssignEngineerCommand`.
+1. **The saga** (in `SS.Ticket.API` — `TicketCreationStateMachine` with RabbitMQ, `TicketCreationOrchestrator` with Kafka and Azure Service Bus; same states, same `TicketCreationSagaStates` table) starts, transitions to `AssigningEngineer`, and publishes `AssignEngineerCommand`.
    - `AssignEngineerConsumer` round-robins over `Role.Agent` users (`IUserRepository.GetNextAgentForAssignmentAsync`, cursor persisted in `RoundRobinCursor`). No agents available → publishes `AssignEngineerFailed`; otherwise sets `Ticket.AssignedTo` and publishes `EngineerAssigned`.
    - On `EngineerAssigned`, the saga transitions to `ReservingSla` and publishes `ReserveSlaCommand`. `ReserveSlaConsumer` applies a priority-based SLA policy (High: 4h response/1d resolution, Medium: 1d/3d, Low: 2d/7d), sets `Ticket.Status = InProgress` ("Ticket Ready"), and publishes `SlaReserved` — the saga finalizes.
    - On `AssignEngineerFailed` (compensation path): the saga publishes `DeleteTicketCommand` (→ `DeleteTicketConsumer` removes the ticket) and `SendTicketCreationFailedEmail`, then finalizes as failed. Only this explicit "no agents available" business failure triggers compensation — infrastructure-level consumer faults fall back to MassTransit's default retry/error-queue behavior.
@@ -188,9 +188,9 @@ Which broker carries the messages is a per-deployment setting, `Messaging:Provid
 |---|---|---|---|---|---|
 | `Kafka` (default) | implemented | `KafkaEventPublisher` (Confluent.Kafka): topic `support.<message-type>`, key = ticket id, JSON value, id/type/`traceparent` headers | `KafkaConsumerWorker` per handler, consumer group `<service>.<handler>`, offset committed after success | `TicketCreationOrchestrator` | N retries with backoff, then `<topic>.dlt` |
 | `RabbitMq` | implemented (the original) | MassTransit `Publish` | MassTransit consumers → same handlers | `TicketCreationStateMachine` | MassTransit retry / `_error` queues |
-| `AzureServiceBus` | placeholder — fails at startup | | | | |
+| `AzureServiceBus` | implemented | `AzureServiceBusEventPublisher` (Azure.Messaging.ServiceBus): same topic names, MessageId = event id, CorrelationId = ticket id | `AzureServiceBusProcessorWorker` per handler, subscription `<service>.<handler>`, peek-lock, Complete after success | `TicketCreationOrchestrator` | Abandon with back-off, MaxDeliveryCount, built-in `$DeadLetterQueue` |
 
-Business code depends only on `IEventPublisher`/`IEventHandler<T>` (Domain ports), so a handler is written once and runs on every provider. Each host lists its handlers with `Subscribe<TMessage, THandler>()` (Kafka and future providers) and its MassTransit registrations with `ForRabbitMq(...)`. Delivery is at-least-once everywhere, so handlers de-duplicate on `EventContext.EventId` (`AuditLogs.EventId` and `Notifications.SourceEventId` are unique). The learning guide with runnable experiments is [docs/messaging/KAFKA.md](docs/messaging/KAFKA.md).
+Business code depends only on `IEventPublisher`/`IEventHandler<T>` (Domain ports), so a handler is written once and runs on every provider. Each host lists its handlers with `Subscribe<TMessage, THandler>()` (Kafka and Azure Service Bus) and its MassTransit registrations with `ForRabbitMq(...)`. Delivery is at-least-once everywhere, so handlers de-duplicate on `EventContext.EventId` (`AuditLogs.EventId` and `Notifications.SourceEventId` are unique). The learning guides with runnable experiments are [docs/messaging/KAFKA.md](docs/messaging/KAFKA.md) and [docs/messaging/AZURE-SERVICE-BUS.md](docs/messaging/AZURE-SERVICE-BUS.md). Locally, Service Bus runs on Microsoft's emulator (`docker compose --profile servicebus`, entities in `servicebus-emulator/Config.json`); in Azure it needs a Standard-tier namespace.
 
 ## Authentication
 
@@ -319,5 +319,6 @@ builder.AddSupportSystemObservability("ss-ticket-api");   // service name = Appl
 - The in-cluster/docker-compose Redis (rate-limit counters only) has no password or TLS; use Azure Cache for Redis (`ssl=True,password=…`) or add `requirepass` + a NetworkPolicy for production. docker-compose also publishes the gateway directly on `:5145`, where a client could forge `X-Forwarded-For` to dodge the per-IP limit — only the ingress path is trustworthy.
 - RabbitMQ has no auth/TLS hardening for local dev (`guest`/`guest`, matching the broker's own defaults) — fine for `docker-compose.rabbitmq.yml` locally, not production-ready as-is.
 - Kafka runs as one broker without authentication, TLS or persistence (docker-compose and k8s/Helm) — a learning setup. `Messaging:Kafka` already takes SASL/TLS settings for a managed cluster.
+- The Service Bus emulator has no management API, so its topics/subscriptions are listed by hand in `servicebus-emulator/Config.json` and must be kept in sync with the hosts' `Subscribe` calls; the readiness check is skipped there (and with any policy lacking *Manage* rights).
 - No transactional outbox: `CreateTicketHandler` saves the ticket, then publishes. If the publish fails the ticket exists without a saga (same as before with RabbitMQ). The fix is an outbox table written in the same transaction and relayed to the broker.
 - A rare duplicate email is possible on redelivery — `SS.Email.API` has no database to de-duplicate against.

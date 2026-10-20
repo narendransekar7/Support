@@ -11,9 +11,13 @@ metadata:
   name: supportsystem-config
   namespace: supportsystem
 data:
-  # Message broker for every service: "Kafka" or "RabbitMq" (both brokers are deployed below).
+  # Message broker for every service: "Kafka" (default), "RabbitMq" or "AzureServiceBus". Kafka and RabbitMQ are
+  # deployed below; Azure Service Bus is a namespace in Azure (Standard tier or higher - Basic has no topics).
   MESSAGING_PROVIDER: "Kafka"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  # Azure Service Bus with Microsoft Entra ID (workload identity) instead of a connection string:
+  # "<namespace>.servicebus.windows.net". Leave empty when AZURE_SERVICE_BUS_CONNECTION_STRING is set.
+  AZURE_SERVICE_BUS_NAMESPACE: ""
   RABBITMQ_HOST: "rabbitmq"
   RABBITMQ_VHOST: "/"
   # The browser only talks to the ingress (same origin), so no CORS/gateway URL is needed for the UI.
@@ -52,6 +56,9 @@ stringData:
   DB_CONNECTION_STRING: "REPLACE_ME"
   RABBITMQ_USERNAME: "guest"
   RABBITMQ_PASSWORD: "guest"
+  # Azure Service Bus (MESSAGING_PROVIDER=AzureServiceBus): a shared access policy's connection string with Manage
+  # rights (the services create their topics/subscriptions). Leave it out to use AZURE_SERVICE_BUS_NAMESPACE.
+  # AZURE_SERVICE_BUS_CONNECTION_STRING: "Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=...;SharedAccessKey=..."
   # HS256 key for the email/password login's tokens (Auth Server signs, Gateway + User API validate).
   # Leave the key out entirely to use the development default in appsettings.json - an empty value would
   # override it with "". For real deployments set a long random value:
@@ -528,6 +535,17 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: KAFKA_BOOTSTRAP_SERVERS
+            - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: AZURE_SERVICE_BUS_NAMESPACE
+            - name: Messaging__AzureServiceBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: AZURE_SERVICE_BUS_CONNECTION_STRING
+                  optional: true
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -679,6 +697,17 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: KAFKA_BOOTSTRAP_SERVERS
+            - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: AZURE_SERVICE_BUS_NAMESPACE
+            - name: Messaging__AzureServiceBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: AZURE_SERVICE_BUS_CONNECTION_STRING
+                  optional: true
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -830,6 +859,17 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: KAFKA_BOOTSTRAP_SERVERS
+            - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: AZURE_SERVICE_BUS_NAMESPACE
+            - name: Messaging__AzureServiceBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: AZURE_SERVICE_BUS_CONNECTION_STRING
+                  optional: true
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -976,6 +1016,17 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: KAFKA_BOOTSTRAP_SERVERS
+            - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: AZURE_SERVICE_BUS_NAMESPACE
+            - name: Messaging__AzureServiceBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: AZURE_SERVICE_BUS_CONNECTION_STRING
+                  optional: true
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:
@@ -1123,6 +1174,17 @@ spec:
                 configMapKeyRef:
                   name: supportsystem-config
                   key: KAFKA_BOOTSTRAP_SERVERS
+            - name: Messaging__AzureServiceBus__FullyQualifiedNamespace
+              valueFrom:
+                configMapKeyRef:
+                  name: supportsystem-config
+                  key: AZURE_SERVICE_BUS_NAMESPACE
+            - name: Messaging__AzureServiceBus__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: AZURE_SERVICE_BUS_CONNECTION_STRING
+                  optional: true
             - name: RabbitMq__Host
               valueFrom:
                 configMapKeyRef:

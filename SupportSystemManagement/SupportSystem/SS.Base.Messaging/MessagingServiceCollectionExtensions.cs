@@ -15,7 +15,7 @@ public static class MessagingServiceCollectionExtensions
 
     /// <summary>
     /// Wires up <see cref="IEventPublisher"/> and this host's consumers for the broker selected by
-    /// `Messaging:Provider` (RabbitMq when unset, matching the system before Kafka was added).
+    /// `Messaging:Provider` (Kafka when unset).
     /// </summary>
     /// <param name="serviceName">Kafka client id and default consumer-group prefix, e.g. "ss-email-api".</param>
     public static MessagingProvider AddSupportSystemMessaging(
@@ -27,7 +27,7 @@ public static class MessagingServiceCollectionExtensions
         var builder = new MessagingBuilder(services, serviceName);
         configure?.Invoke(builder);
 
-        var provider = configuration.GetValue($"{SectionName}:Provider", MessagingProvider.RabbitMq);
+        var provider = configuration.GetValue($"{SectionName}:Provider", MessagingProvider.Kafka);
 
         switch (provider)
         {
@@ -38,7 +38,8 @@ public static class MessagingServiceCollectionExtensions
                 services.AddRabbitMqMessaging(configuration.GetSection("RabbitMq"), builder);
                 break;
             case MessagingProvider.AzureServiceBus:
-                services.AddAzureServiceBusMessaging(builder);
+                services.AddAzureServiceBusMessaging(configuration.GetSection($"{SectionName}:AzureServiceBus"),
+                    configuration["AzureServiceBus:ConnectionString"], builder);
                 break;
             default:
                 throw new InvalidOperationException($"Unknown {SectionName}:Provider '{provider}'.");
@@ -73,7 +74,7 @@ public static class MessagingServiceCollectionExtensions
         {
             logger.LogInformation("Messaging provider: {Provider}; {Count} subscription(s): {Subscriptions}",
                 provider, builder.Subscriptions.Count,
-                string.Join(", ", builder.Subscriptions.Select(s => $"{s.MessageType.Name} -> {KafkaTopics.ToKebabCase(s.HandlerType)}")));
+                string.Join(", ", builder.Subscriptions.Select(s => $"{s.MessageType.Name} -> {MessageNaming.ToKebabCase(s.HandlerType)}")));
             return Task.CompletedTask;
         }
 

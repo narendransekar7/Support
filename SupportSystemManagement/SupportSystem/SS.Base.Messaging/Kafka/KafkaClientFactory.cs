@@ -12,7 +12,7 @@ internal sealed class KafkaClientFactory
     private readonly KafkaOptions _options;
     private readonly string _clientId;
 
-    public KafkaClientFactory(IOptions<KafkaOptions> options, KafkaServiceName serviceName)
+    public KafkaClientFactory(IOptions<KafkaOptions> options, MessagingServiceName serviceName)
     {
         _options = options.Value;
         _clientId = serviceName.Value;
@@ -96,6 +96,3 @@ internal sealed class KafkaClientFactory
         logger.Log(level, "Kafka {Client} error {Code}: {Reason}", client, error.Code, error.Reason);
     }
 }
-
-/// <summary>The host's service name (Kafka client id, consumer-group prefix).</summary>
-internal sealed record KafkaServiceName(string Value);
