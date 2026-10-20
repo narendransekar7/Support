@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Observability", "..
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Authentication", "..\SS.Base.Authentication\SS.Base.Authentication.csproj", "{FF63C4AE-AEAA-4AF4-A643-AC0447462F69}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SS.Base.Messaging", "..\SS.Base.Messaging\SS.Base.Messaging.csproj", "{A393F450-3BF3-4C0B-90A0-BE08C593BB57}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{FF63C4AE-AEAA-4AF4-A643-AC0447462F69}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF63C4AE-AEAA-4AF4-A643-AC0447462F69}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF63C4AE-AEAA-4AF4-A643-AC0447462F69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A393F450-3BF3-4C0B-90A0-BE08C593BB57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A393F450-3BF3-4C0B-90A0-BE08C593BB57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A393F450-3BF3-4C0B-90A0-BE08C593BB57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A393F450-3BF3-4C0B-90A0-BE08C593BB57}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
