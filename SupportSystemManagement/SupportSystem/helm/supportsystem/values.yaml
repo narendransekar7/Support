@@ -335,7 +335,7 @@ apis:
     messaging: true
     rabbitmq: true
     cors: false
-    jwt: false
+    jwt: true      # validates the Support System token (/api/notification/me)
     redis: false
     configEnv: {}
     extraEnv: []

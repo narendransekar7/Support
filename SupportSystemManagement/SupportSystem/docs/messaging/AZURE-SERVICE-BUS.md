@@ -7,7 +7,7 @@ select Service Bus with `Messaging:Provider = AzureServiceBus`.
 "Messaging": {
   "Provider": "AzureServiceBus",
   "AzureServiceBus": {
-    "ConnectionString": "",          // a secret - set via env/user-secrets; empty = AzureServiceBus:ConnectionString
+    "ConnectionString": "",          // a secret - set via env/user-secrets
     "FullyQualifiedNamespace": "",   // "<ns>.servicebus.windows.net" -> Microsoft Entra ID (DefaultAzureCredential)
     "AutoCreateEntities": true       // false for the emulator / a send-listen-only policy
   }
@@ -93,6 +93,7 @@ Readiness checks the namespace through the management API, so it needs *Manage* 
 1. **Follow one ticket.** Create a ticket and watch the logs:
    - `Published TicketCreated … to Service Bus topic support.ticket-created`
    - then `… handled … (delivery 1, sequence N)` in the Ticket, Email, Notification and Audit services.
+   - Creating a user does the same on `support.user-created`: three subscriptions (welcome email, welcome notification, audit), no saga.
 2. **One copy per subscription.** In the Azure portal (real namespace) → topic → Subscriptions, each subscription's message count goes up and back to 0.
 3. **Retries and dead letters.** Make a handler fail, for example with a bad connection string for `ss-notification-api`.
    - Watch deliveries 1–4 with growing delays, then "dead-lettering it".
@@ -107,4 +108,3 @@ Readiness checks the namespace through the management API, so it needs *Manage* 
 - **Sessions**, for strict per-ticket ordering.
 - **Duplicate detection** on topics (`RequiresDuplicateDetection`), which uses our stable MessageId.
 - **Scheduled messages** (`ScheduledEnqueueTime`), useful for SLA-breach reminders.
-- The existing **user-created email queue** (`AzureServiceBusQueueSender` → `SS.Email.API`'s commented-out receiver) is separate from this provider and unchanged.

@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import Sidebar from "./Sidebar";
+import NotificationBell from "./NotificationBell";
 import { logoutUser } from "../features/authSlice";
 
 const MasterLayout = () => {
@@ -70,9 +71,12 @@ const MasterLayout = () => {
                    <h1 style={titleStyle}>
                        Support System
                    </h1>
-                   <button onClick={handleLogout} style={buttonStyle}>
-                       Logout
-                   </button>
+                   <div style={{ display: "flex", alignItems: "center" }}>
+                       <NotificationBell />
+                       <button onClick={handleLogout} style={buttonStyle}>
+                           Logout
+                       </button>
+                   </div>
                </header>
 
                {/* Page Content */}

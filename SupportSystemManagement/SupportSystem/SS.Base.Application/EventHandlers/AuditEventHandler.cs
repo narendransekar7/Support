@@ -41,6 +41,7 @@ public class AuditEventHandler<TMessage> : IEventHandler<TMessage> where TMessag
             EventId = context.EventId,
             EventType = typeof(TMessage).Name,
             TicketId = (message as ITicketMessage)?.TicketId,
+            UserId = (message as IUserMessage)?.UserId,
             ActorId = message is TicketCreated created ? created.CreatedBy : null,
             Provider = context.Provider,
             Payload = JsonSerializer.Serialize(message, Json),
@@ -50,7 +51,7 @@ public class AuditEventHandler<TMessage> : IEventHandler<TMessage> where TMessag
 
         await _auditLogRepository.AddAsync(entry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Audited {MessageType} {EventId} for ticket {TicketId} (via {Provider})",
-            entry.EventType, entry.EventId, entry.TicketId, entry.Provider);
+        _logger.LogInformation("Audited {MessageType} {EventId} for ticket {TicketId} / user {UserId} (via {Provider})",
+            entry.EventType, entry.EventId, entry.TicketId, entry.UserId, entry.Provider);
     }
 }

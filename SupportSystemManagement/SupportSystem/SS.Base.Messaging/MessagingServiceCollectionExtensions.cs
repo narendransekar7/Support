@@ -38,8 +38,7 @@ public static class MessagingServiceCollectionExtensions
                 services.AddRabbitMqMessaging(configuration.GetSection("RabbitMq"), builder);
                 break;
             case MessagingProvider.AzureServiceBus:
-                services.AddAzureServiceBusMessaging(configuration.GetSection($"{SectionName}:AzureServiceBus"),
-                    configuration["AzureServiceBus:ConnectionString"], builder);
+                services.AddAzureServiceBusMessaging(configuration.GetSection($"{SectionName}:AzureServiceBus"), builder);
                 break;
             default:
                 throw new InvalidOperationException($"Unknown {SectionName}:Provider '{provider}'.");

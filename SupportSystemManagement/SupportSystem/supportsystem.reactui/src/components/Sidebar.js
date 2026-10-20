@@ -9,6 +9,7 @@ const Sidebar = () => {
         { path: "/user/list", label: "User List" },
         { path: "/user/add", label: "Add User" },
         { path: "/ticket/create", label: "Create Ticket" },
+        { path: "/notifications", label: "Notifications" },
         { path: "/profile", label: "Profile" },
     ];
 

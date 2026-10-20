@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Azure.Messaging.ServiceBus;
 using SS.Email.API;
 using SS.Email.API.Consumers;
 using SS.Email.API.Handlers;
 using SS.Base.Domain.Messages.Ticket;
+using SS.Base.Domain.Messages.User;
 using SS.Base.Messaging;
 using SS.Base.Observability;
 
@@ -17,35 +17,7 @@ builder.AddSupportSystemObservability("ss-email-api");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-/*
 var config = builder.Configuration;
-
-builder.Services.AddSingleton(new SS.Email.API.EmailService(
-    config["SmtpSettings:Server"],
-    int.Parse(config["SmtpSettings:Port"]),
-    config["SmtpSettings:Username"],
-    config["SmtpSettings:Password"],
-    config["SmtpSettings:FromEmail"]
-));
-
-
-
-string connectionString = builder.Configuration["AzureServiceBus:ConnectionString"];
-string queueName = builder.Configuration["AzureServiceBus:QueueName"];
-
-var queueReceiver = new SS.Email.API.AzureServiceBusQueueReceiver(connectionString, queueName);
-Task.Run(() => queueReceiver.ReceiveMessagesAsync());
-
-*/
-
-// Register dependencies
-var config = builder.Configuration;
-// Register ServiceBusClient as Singleton
-//hiding below for testing
-//builder.Services.AddSingleton<ServiceBusClient>(sp =>
- //   new ServiceBusClient(config["AzureServiceBus:ConnectionString"]));
-
-
 
 builder.Services.AddSingleton<SS.Email.API.EmailService>(sp =>
     new SS.Email.API.EmailService(
@@ -57,27 +29,17 @@ builder.Services.AddSingleton<SS.Email.API.EmailService>(sp =>
         sp.GetRequiredService<ILogger<SS.Email.API.EmailService>>()
     ));
 
-//hiding below for testing
-//builder.Services.AddSingleton<SS.Email.API.AzureServiceBusQueueReceiver>(sp =>
-//{
-//    var emailService = sp.GetRequiredService<SS.Email.API.EmailService>();
-//    var serviceBusClient = sp.GetRequiredService<ServiceBusClient>();
-//    string connectionString = builder.Configuration["AzureServiceBus:ConnectionString"];
-//    string queueName = builder.Configuration["AzureServiceBus:QueueName"];
-//    var logger = sp.GetRequiredService<ILogger<SS.Email.API.AzureServiceBusQueueReceiver>>();
-//    return new SS.Email.API.AzureServiceBusQueueReceiver(serviceBusClient,connectionString, queueName, emailService, logger); 
-//});
-
-// Ticket-creation emails on the broker chosen by Messaging:Provider - additive alongside the
-// Azure Service Bus receiver above (commented out), which handles the user-created email flow.
+// Welcome and ticket-creation emails, on the broker chosen by Messaging:Provider.
 builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-email-api", messaging =>
 {
     messaging
+        .Subscribe<UserCreated, UserCreatedEmailHandler>()
         .Subscribe<TicketCreated, TicketCreatedEmailHandler>()
         .Subscribe<SendTicketCreationFailedEmail, TicketCreationFailedEmailHandler>();
 
     messaging.ForRabbitMq(x =>
     {
+        x.AddConsumer<UserCreatedEmailConsumer>();
         x.AddConsumer<TicketCreatedEmailConsumer>();
         x.AddConsumer<TicketCreationFailedEmailConsumer>();
     });
@@ -88,21 +50,6 @@ builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-email-api"
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
-
-// Resolve and start queue receiver
-// hiding below for testing
-//var queueReceiver = app.Services.GetRequiredService<SS.Email.API.AzureServiceBusQueueReceiver>();
-//Task.Run(() => queueReceiver.ReceiveMessagesAsync());
-
-
-
-
-
-
-
-
-
-
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

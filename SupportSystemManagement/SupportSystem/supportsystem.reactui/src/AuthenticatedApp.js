@@ -12,6 +12,7 @@ import User from './components/User';
 import UserList from './components/UserList';
 import TicketCreateForm from './components/TicketCreateForm';
 import TicketDetails from './components/TicketDetails';
+import Notifications from './components/Notifications';
 
 const AuthenticatedApp = () => {
   const dispatch = useDispatch();
@@ -68,6 +69,7 @@ const ticketLoader = async ({ params }) => {
                 { path: "user/list", element: <UserList /> },
                 { path: "ticket/create", element: <TicketCreateForm /> },
                 { path: "ticket/:id", element: <TicketDetails />, loader: ticketLoader },
+                { path: "notifications", element: <Notifications /> },
             ],
         },
     ]);

@@ -11,7 +11,6 @@ public sealed class AzureServiceBusOptions
     /// <summary>
     /// "Endpoint=sb://&lt;ns&gt;.servicebus.windows.net/;SharedAccessKeyName=...;SharedAccessKey=..." or, for the
     /// emulator, "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;".
-    /// Empty = falls back to the top-level `AzureServiceBus:ConnectionString` (the user-created email queue's namespace).
     /// </summary>
     public string? ConnectionString { get; set; }
 

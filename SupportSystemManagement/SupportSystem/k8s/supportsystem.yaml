@@ -849,6 +849,12 @@ spec:
                 secretKeyRef:
                   name: supportsystem-secrets
                   key: DB_CONNECTION_STRING
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: supportsystem-secrets
+                  key: JWT_SIGNING_KEY
+                  optional: true   # absent = the development default in appsettings.json
             - name: Messaging__Provider
               valueFrom:
                 configMapKeyRef:

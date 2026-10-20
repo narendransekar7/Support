@@ -10,7 +10,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SS.Base.Application.Behaviors;
-using SS.Base.Application.Events;
 namespace SS.Base.Application
 {
     public static class ApplicationStartup
@@ -20,15 +19,6 @@ namespace SS.Base.Application
             services.AddMediatR(typeof(SS.Base.Application.AssemblyReference).Assembly);
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
             services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-           // services.AddTransient<AzureServiceBusQueueSender, AzureServiceBusQueueSender>();
-            
-            services.AddTransient<AzureServiceBusQueueSender>(provider =>
-            {
-                
-                string connectionString = configuration["AzureServiceBus:ConnectionString"];
-                string queueName = configuration["AzureServiceBus:QueueName"];
-                return new AzureServiceBusQueueSender(connectionString, queueName);
-            });
             return services;
         }
 
