@@ -30,7 +30,16 @@ echo "== Strimzi CRDs ($STRIMZI_VERSION)"
 helm show crds "$OPERATOR_CHART" --version "$STRIMZI_VERSION" | kubectl apply --server-side --force-conflicts -f -
 
 echo "== Strimzi operator -> namespace $STRIMZI_NAMESPACE, watching $STRIMZI_WATCH_NAMESPACES"
-kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+# The operator chart creates RoleBindings in every watched namespace, so they must all exist first
+# (on a new cluster e.g. "supportsystem" when only staging is being deployed).
+for ns in $(echo "$NAMESPACE,$STRIMZI_WATCH_NAMESPACES" | tr ',' ' ' | xargs -n1 | sort -u); do
+  kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+done
+# A first install that failed leaves a release Helm can't upgrade ("has no deployed releases") - clear it.
+if helm -n "$STRIMZI_NAMESPACE" status strimzi-kafka-operator 2>/dev/null | grep -q "^STATUS: failed"; then
+  echo "Removing the previous failed operator install"
+  helm -n "$STRIMZI_NAMESPACE" uninstall strimzi-kafka-operator --wait
+fi
 # --skip-crds: the CRDs were applied above (and must stay managed in one place, or the two field managers conflict).
 helm upgrade --install strimzi-kafka-operator "$OPERATOR_CHART" \
   --version "$STRIMZI_VERSION" --skip-crds \
