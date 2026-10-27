@@ -6,7 +6,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import ErrorBoundary from './components/ErrorBoundary';
-import { initializeAuth, isAuthConfigured, forgetMicrosoftAccount } from './auth/authConfig';
+import { initializeAuth, isAuthConfigured, forgetMicrosoftAccount, rememberMicrosoftSignOut, clearMicrosoftSignOut } from './auth/authConfig';
 import store from './app/store';
 import { completeMicrosoftSignIn, restoreSession } from './features/authSlice';
 
@@ -32,17 +32,22 @@ async function startSession() {
   try {
     const microsoftSignIn = await initializeAuth();
     if (microsoftSignIn) {
-      await store.dispatch(completeMicrosoftSignIn(microsoftSignIn.accessToken));
+      const exchanged = await store.dispatch(completeMicrosoftSignIn(microsoftSignIn.accessToken));
+      if (completeMicrosoftSignIn.fulfilled.match(exchanged)) {
+        rememberMicrosoftSignOut(microsoftSignIn.account);
+      }
     }
   } catch (error) {
     logger.error("Microsoft Entra ID sign-in failed", error);
   }
+  // The Entra tokens have done their job (or the exchange failed): don't leave them in sessionStorage. This also
+  // drops MSAL accounts left over from older versions of the app.
+  await forgetMicrosoftAccount().catch((error) => logger.warn("Clearing the Microsoft account failed", error));
 
   const restored = await store.dispatch(restoreSession());
   if (restoreSession.rejected.match(restored)) {
-    // No session (e.g. the Microsoft account isn't registered): MSAL's account is of no use, and keeping it
-    // would make a later sign-out also sign out of Microsoft.
-    await forgetMicrosoftAccount().catch((error) => logger.warn("Clearing the Microsoft account failed", error));
+    // No session (e.g. the Microsoft account isn't registered): nothing to sign out of Microsoft for later.
+    clearMicrosoftSignOut();
   }
 }
 
