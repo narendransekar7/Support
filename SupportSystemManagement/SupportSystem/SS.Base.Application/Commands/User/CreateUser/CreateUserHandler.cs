@@ -25,6 +25,7 @@ namespace SS.Base.Application.Commands
             _logger = logger;
             _userRepository = userRepository;
             _unitOfWork = unitOfWork;
+            _passwordHasher = passwordHasher;
             _publisher = publisher;
         }
 
@@ -42,8 +43,7 @@ namespace SS.Base.Application.Commands
             var userProfile = new UserProfile
             {
                 UserId = user.UserId,
-                Password = request.Password
-               // Password = _passwordHasher.HashPassword(user, request.Password)
+                Password = _passwordHasher.HashPassword(user, request.Password)
             };
 
             // Link User to UserProfile

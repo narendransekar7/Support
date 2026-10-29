@@ -53,7 +53,9 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 new UserProfile
                 {
                     UserId = adminId,
-                    Password = "Admin@123", // Make sure this is a hashed password in production
+                    // PasswordHasher<User> hash of "Admin@123". A fixed string, not HashPassword() here: the hash is
+                    // salted, so computing it would change the model on every build (same reason as adminId).
+                    Password = "AQAAAAIAAYagAAAAEMJPNHTzUk1r2SPrM/l6v6WFpr53bKysIvUodtPpm/HBPiV/Mbwl8Tkbw1AVnVGetw==",
                     Country = "US",
                     Gender = "Male",
                     PrimaryNumber = "1234567890"
