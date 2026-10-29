@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchUser, sessionEnded } from "./features/authSlice";
 import useSignedIn from "./auth/useSignedIn";
 import { onSessionEnded } from "./auth/session";
+import { clearMicrosoftSignOut } from "./auth/authConfig";
 import API from "./api/axios";
 import MasterLayout from "./components/MasterLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -28,7 +29,10 @@ const AuthenticatedApp = () => {
   }, [dispatch, signedIn, profileStatus]);
 
   // A session that can no longer be refreshed ends here; ProtectedRoute then shows the login page.
-  useEffect(() => onSessionEnded(() => dispatch(sessionEnded())), [dispatch]);
+  useEffect(() => onSessionEnded(() => {
+    clearMicrosoftSignOut();
+    dispatch(sessionEnded());
+  }), [dispatch]);
 /*
   const router = createBrowserRouter([
     { path: "/login", element: <Login /> },

@@ -22,7 +22,7 @@ export const msalInstance = new PublicClientApplication({
     postLogoutRedirectUri: `${window.location.origin}/`,
   },
   cache: {
-    // Kept only so sign-out can end the Entra session too; cleared whenever there is no Support System session.
+    // Only holds the tokens of a sign-in redirect until index.js has exchanged them; cleared right after.
     cacheLocation: "sessionStorage",
   },
 });
@@ -46,8 +46,45 @@ export async function initializeAuth() {
   return result;
 }
 
-// Drops MSAL's accounts and tokens from this tab (it doesn't sign out of Entra ID).
+// Drops MSAL's accounts and tokens (ID, access and the unused refresh token) from this tab - called right after
+// the access token has been exchanged, so no Entra token stays in sessionStorage where scripts could read it.
+// It doesn't sign out of Entra ID.
 export async function forgetMicrosoftAccount() {
   if (!isAuthConfigured) return;
   await msalInstance.clearCache();
+}
+
+// With MSAL's account gone, signing out of Entra ID too needs to know which account to end: only its sign-in name
+// is kept, as the logout hint (it lets Entra skip its "pick an account to sign out" page). Not a credential.
+const LOGOUT_HINT_KEY = "ss.microsoftLogoutHint";
+
+export function rememberMicrosoftSignOut(account) {
+  try {
+    if (account?.username) sessionStorage.setItem(LOGOUT_HINT_KEY, account.username);
+  } catch {
+    // Storage unavailable: sign-out then just ends the Support System session.
+  }
+}
+
+export function clearMicrosoftSignOut() {
+  try {
+    sessionStorage.removeItem(LOGOUT_HINT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+// Ends the Entra ID session if the current Support System session came from "Sign in with Microsoft";
+// Entra then redirects back to postLogoutRedirectUri. Does nothing for a password session.
+export async function signOutOfMicrosoft() {
+  let logoutHint = null;
+  try {
+    logoutHint = sessionStorage.getItem(LOGOUT_HINT_KEY);
+  } catch {
+    // ignore
+  }
+  clearMicrosoftSignOut();
+  if (isAuthConfigured && logoutHint) {
+    await msalInstance.logoutRedirect({ logoutHint });
+  }
 }

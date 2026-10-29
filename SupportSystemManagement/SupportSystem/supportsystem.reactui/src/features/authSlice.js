@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import API from "../api/axios";
-import { msalInstance, loginRequest } from "../auth/authConfig";
+import { msalInstance, loginRequest, signOutOfMicrosoft, clearMicrosoftSignOut } from "../auth/authConfig";
 import { clearLegacyTokens, exchangeMicrosoftToken, signInWithPassword, signOut } from "../auth/session";
 import logger from "../telemetry/logger";
 
@@ -27,6 +27,7 @@ export const restoreSession = createAsyncThunk("auth/restoreSession", async (_, 
 export const loginUser = createAsyncThunk("auth/login", async (credentials, thunkAPI) => {
   try {
     await signInWithPassword(credentials.email, credentials.password);
+    clearMicrosoftSignOut(); // a password session: sign-out must not end a Microsoft session from earlier
     logger.info("Login succeeded", { method: "password" });
     return true;
   } catch (error) {
@@ -79,13 +80,10 @@ export const logoutUser = createAsyncThunk("auth/logout", async () => {
     // The app signs out regardless; the cookies stay until they expire and the refresh token stays valid.
     logger.warn("Logout: revoking the refresh token failed", { status: error.response?.status });
   }
-  const account = msalInstance.getActiveAccount();
-  if (account) {
-    try {
-      await msalInstance.logoutRedirect({ account });
-    } catch (error) {
-      logger.warn("Logout: Microsoft sign-out failed", error);
-    }
+  try {
+    await signOutOfMicrosoft(); // only if this session came from "Sign in with Microsoft"
+  } catch (error) {
+    logger.warn("Logout: Microsoft sign-out failed", error);
   }
 });
 
