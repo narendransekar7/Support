@@ -390,7 +390,7 @@ namespace SS.Base.Infrastructure.Migrations
                             UserId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f"),
                             Country = "US",
                             Gender = "Male",
-                            Password = "Admin@123",
+                            Password = "AQAAAAIAAYagAAAAEMJPNHTzUk1r2SPrM/l6v6WFpr53bKysIvUodtPpm/HBPiV/Mbwl8Tkbw1AVnVGetw==",
                             PrimaryNumber = "1234567890"
                         });
                 });

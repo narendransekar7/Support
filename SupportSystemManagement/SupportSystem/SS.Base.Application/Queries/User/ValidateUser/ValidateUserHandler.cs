@@ -35,8 +35,8 @@ namespace SS.Base.Application.Queries
                 _logger.LogWarning("Login failed: unknown user");
                 return null;
             }
-            if (user.Profile.Password==request.Password)
-            //if (_passwordHasher.VerifyHashedPassword(user, user.Profile.Password, request.Password) == PasswordVerificationResult.Success)
+            // Success or SuccessRehashNeeded (hashed with older PasswordHasher settings) both mean the password matched.
+            if (_passwordHasher.VerifyHashedPassword(user, user.Profile.Password, request.Password) != PasswordVerificationResult.Failed)
                 return user;
             else
             {
