@@ -9,16 +9,16 @@ namespace SS.Base.Domain.Entities
 {
     public class Ticket
     {
-        public Guid TicketId { get; set; }
+        public int TicketId { get; set; }
         public string Title { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? ResolutionDueDate { get; set; }
         public DateTime? ResponseDueDate { get; set; }
-        public Guid CreatedBy { get; set; }
+        public int CreatedBy { get; set; }
         public TicketStatus Status { get; set; }
         public string Priority { get; set; }
-        public Guid? AssignedTo { get; set; }
+        public int? AssignedTo { get; set; }
         public string Visibility { get; set; }
 
 

@@ -8,7 +8,7 @@ namespace SS.Base.Domain.Messages.User;
 /// </summary>
 public record UserCreated : IUserMessage
 {
-    public Guid UserId { get; init; }
+    public int UserId { get; init; }
     public string Email { get; init; }
     public string DisplayName { get; init; }
     public string Role { get; init; }

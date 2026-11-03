@@ -4,7 +4,7 @@ namespace SS.Base.Domain.Messages.Ticket;
 
 public record SendTicketCreationFailedEmail : ITicketMessage
 {
-    public Guid TicketId { get; init; }
+    public int TicketId { get; init; }
     public string Title { get; init; }
     public string CreatedByEmail { get; init; }
     public string CreatedByName { get; init; }

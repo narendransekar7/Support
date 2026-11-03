@@ -55,6 +55,6 @@ namespace SS.Notification.API.Controllers
         }
 
         // SS.Auth.Server.API writes the account's UserId into every Support System token.
-        private bool TryGetUserId(out Guid userId) => Guid.TryParse(User.FindFirst("UserId")?.Value, out userId);
+        private bool TryGetUserId(out int userId) => int.TryParse(User.FindFirst("UserId")?.Value, out userId);
     }
 }

@@ -54,7 +54,7 @@ namespace SS.Base.Application.Commands.User.TokenRefresh
                 return new TokenRefreshResult { Success = false, ErrorMessage = "Refresh token has expired." };
             }
 
-            var user = await _userRepository.GetByIdAsync(Guid.Parse(existingToken.UserId));
+            var user = await _userRepository.GetByIdAsync(int.Parse(existingToken.UserId));
             if (user == null)
             {
                 _logger.LogWarning("Token refresh rejected: user {UserId} not found", existingToken.UserId);

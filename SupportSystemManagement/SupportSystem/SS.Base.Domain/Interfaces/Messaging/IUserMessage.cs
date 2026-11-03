@@ -6,5 +6,5 @@ namespace SS.Base.Domain.Interfaces.Messaging;
 /// </summary>
 public interface IUserMessage
 {
-    Guid UserId { get; }
+    int UserId { get; }
 }

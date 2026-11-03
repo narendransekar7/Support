@@ -3,9 +3,9 @@ using MediatR;
 using SS.Base.Domain.Entities;
 public class GetTicketByIdQuery : IRequest<Ticket>
 {
-    public Guid TicketId { get; set; }
+    public int TicketId { get; set; }
 
-    public GetTicketByIdQuery(Guid ticketId)
+    public GetTicketByIdQuery(int ticketId)
     {
         TicketId = ticketId;
     }

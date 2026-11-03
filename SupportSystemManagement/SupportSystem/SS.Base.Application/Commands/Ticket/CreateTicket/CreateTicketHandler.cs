@@ -34,7 +34,6 @@ namespace SS.Base.Application.Commands
         {
             var ticket = new Ticket
             {
-                TicketId = Guid.NewGuid(),
                 Title = request.Title,
                 // ResponseDueDate/ResolutionDueDate/AssignedTo are set later by the
                 // ticket-creation saga (Assign Engineer -> Reserve SLA steps).
@@ -47,7 +46,6 @@ namespace SS.Base.Application.Commands
 
             var ticketUpdate = new List<TicketUpdate>() {   new TicketUpdate
             {
-                TicketId = ticket.TicketId,
                 UpdatedBy = request.CreatedBy,
                 Content = request.Content
             }};
@@ -57,7 +55,8 @@ namespace SS.Base.Application.Commands
             // Use the repository to add the ticket
             await _ticketRepository.AddAsync(ticket);
 
-            // Commit changes using Unit of Work
+            // Commit changes using Unit of Work. TicketId is an identity column: the database assigns it here,
+            // and EF fills it in on ticket (and on the linked first update) before the event below uses it.
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Created ticket {TicketId} ({Priority}) for user {UserId}", ticket.TicketId, ticket.Priority, ticket.CreatedBy);
 

@@ -33,7 +33,6 @@ namespace SS.Base.Application.Commands
         {
             var user = new SS.Base.Domain.Entities.User
             {
-                UserId = Guid.NewGuid(),
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 Role = request.Role,
@@ -42,7 +41,6 @@ namespace SS.Base.Application.Commands
             };
             var userProfile = new UserProfile
             {
-                UserId = user.UserId,
                 Password = _passwordHasher.HashPassword(user, request.Password)
             };
 
@@ -52,7 +50,8 @@ namespace SS.Base.Application.Commands
             // Use the repository to add the user
             await _userRepository.AddAsync(user);
 
-            // Commit changes using Unit of Work
+            // Commit changes using Unit of Work. UserId is an identity column: the database assigns it here,
+            // and EF copies it to the linked profile.
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Created user {UserId} with role {Role}", user.UserId, user.Role);
             

@@ -18,7 +18,7 @@ public class AuditLogRepository : GenericRepository<AuditLog>, IAuditLogReposito
         return _context.AuditLogs.AnyAsync(a => a.EventId == eventId, cancellationToken);
     }
 
-    public async Task<IEnumerable<AuditLog>> GetRecentAsync(Guid? ticketId, Guid? userId, int take, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AuditLog>> GetRecentAsync(int? ticketId, int? userId, int take, CancellationToken cancellationToken = default)
     {
         var query = _context.AuditLogs.AsNoTracking();
         if (ticketId.HasValue)

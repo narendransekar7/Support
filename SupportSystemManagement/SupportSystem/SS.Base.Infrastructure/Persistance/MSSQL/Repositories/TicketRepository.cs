@@ -18,12 +18,12 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Ticket>> GetTicketsByUserAsync(Guid userId)
+        public async Task<IEnumerable<Ticket>> GetTicketsByUserAsync(int userId)
         {
             return await _context.Tickets.Where(t => t.AssignedTo == userId).ToListAsync();
         }
         
-        public async Task<Ticket?> GetByIdWithUpdatesAsync(Guid ticketId)
+        public async Task<Ticket?> GetByIdWithUpdatesAsync(int ticketId)
         {
             return await _context.Tickets
                 .Include(t => t.TicketUpdates) // Load TicketUpdates

@@ -10,5 +10,5 @@ public class RoundRobinCursor
 {
     [Key]
     public int Id { get; set; }
-    public Guid? LastAssignedUserId { get; set; }
+    public int? LastAssignedUserId { get; set; }
 }

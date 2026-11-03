@@ -9,7 +9,7 @@ namespace SS.Base.Domain.Entities
     public class UserPermission
     {
         public Guid UserPermissionId { get; set; }
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         public Guid PermissionId { get; set; }
     }
 }

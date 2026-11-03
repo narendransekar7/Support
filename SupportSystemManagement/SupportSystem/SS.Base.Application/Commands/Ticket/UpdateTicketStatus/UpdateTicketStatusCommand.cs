@@ -8,7 +8,7 @@ namespace SS.Base.Application.Commands
 {
     public class UpdateTicketStatusCommand
     {
-        public Guid TicketId { get; set; }
+        public int TicketId { get; set; }
         public string Status { get; set; }
     }
 }
