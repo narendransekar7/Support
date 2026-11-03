@@ -18,9 +18,13 @@ function User() {
 	  Role:0
   });
   
+  // Outcome of the last submit, shown above the button: { ok, text } or null.
+  const [result, setResult] = useState(null);
+
   const handleSubmit = async (e) => {
 
 	e.preventDefault(); // Prevent the default form submission
+	setResult(null);
 
     // Send POST request to .NET Core Web API using Axios
     try {
@@ -29,12 +33,21 @@ function User() {
 
       if (response.status === 200) {
         logger.info("User added");
-        // Handle success, clear form, display message, etc.
+        setResult({ ok: true, text: "User created." });
       } else {
         logger.warn("Adding user returned an unexpected status", { status: response.status });
+        setResult({ ok: false, text: "The user couldn't be created." });
       }
     } catch (error) {
-      logger.error("Adding user failed", error);
+      const status = error.response?.status;
+      // 403: createuser is Admin-only (SS.User.API checks the role in the session token).
+      if (status === 403) {
+        logger.warn("Adding user refused: not an administrator");
+        setResult({ ok: false, text: "Only administrators can add users." });
+      } else {
+        logger.error("Adding user failed", error);
+        setResult({ ok: false, text: "The user couldn't be created. Please try again." });
+      }
     }
 	  
   };
@@ -146,6 +159,11 @@ function User() {
         />
       </div>
 
+      {result && (
+        <p role={result.ok ? "status" : "alert"} style={{ ...styles.result, color: result.ok ? "#15803d" : "#dc2626" }}>
+          {result.text}
+        </p>
+      )}
       <button type="submit" style={styles.button}>Submit</button>
     </form>
   );
@@ -167,6 +185,10 @@ const styles = {
   inputContainer: {
     marginBottom: '15px',
     width: '100%',
+  },
+  result: {
+    marginTop: 0,
+    marginBottom: '15px',
   },
   label: {
     display: 'block',

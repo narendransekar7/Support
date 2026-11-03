@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import API from '../api/axios';
 import logger from "../telemetry/logger";
+import { ROLE_NAMES } from "../auth/roles";
 
-// SS.User.API sends Role as the enum's number (SS.Base.Domain.Entities.Role).
-const ROLE_NAMES = { 0: 'Admin', 1: 'Agent', 2: 'Customer' };
 
 const UserList = () => {
   // State to store user data

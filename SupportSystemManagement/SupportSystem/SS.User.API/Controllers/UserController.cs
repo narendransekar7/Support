@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,9 @@ namespace SS.User.API.Controllers
             _logger = logger;
         }
 
+        // Admin screen (React /user/add). Checked here, not only at the Gateway: the token's role decides,
+        // and a caller reaching this service directly still needs a valid Admin token.
+        [Authorize(Roles = "Admin")]
         [HttpPost("createuser")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserCommand command)
         {
@@ -38,6 +42,7 @@ namespace SS.User.API.Controllers
         public async Task<IActionResult> Me()
         {
             // SS.Auth.Server.API writes the account's email into every Support System token.
+            // My Note services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(JwtBearerDefaults.AuthenticationScheme will enable User.Claims
             var email = User.FindFirstValue("email");
             if (string.IsNullOrEmpty(email))
             {
@@ -72,26 +77,6 @@ namespace SS.User.API.Controllers
             var users = await _mediator.Send(new GetAllUsersQuery());
             return Ok(users);
         }
-
-        [HttpGet("fetchuser/{id}")]
-        public async Task<IActionResult> FetchUserByEmail(string id)
-        {
-            var user = await _mediator.Send(new GetUserByEmailQuery(id));
-
-            if (user is null)
-            {
-                return NotFound();
-            }
-
-            var userDto = new UserDto
-            {
-                UserId = user.UserId,
-                Role = user.Role,
-                Name = user.DisplayName
-            };
-            return Ok(userDto);
-        }
-
 
     }
 }

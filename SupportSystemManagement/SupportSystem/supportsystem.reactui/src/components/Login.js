@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser, loginWithMicrosoft } from "../features/authSlice";
 import useSignedIn from "../auth/useSignedIn";
 import { isAuthConfigured } from "../auth/authConfig";
+import { homePathFor } from "../auth/roles";
 
 // Two ways in: email/password (SS.Auth.Server.API) or Microsoft Entra ID (OpenID Connect,
 // authorization code + PKCE - the button redirects to the Microsoft sign-in page and back here, where index.js
@@ -13,11 +14,15 @@ function Login() {
   const [password, setPassword] = useState('');
 
   const dispatch = useDispatch();
-  const { isLoading, redirectingToMicrosoft, error } = useSelector((state) => state.auth);
+  const { isLoading, redirectingToMicrosoft, error, userrole, profileStatus } = useSelector((state) => state.auth);
   const { signedIn } = useSignedIn();
 
   if (signedIn) {
-    return <Navigate to="/user/add" replace />;
+    // The landing page depends on the role, which arrives with the profile (/api/user/me) just after login.
+    if (profileStatus === "idle" || profileStatus === "loading") {
+      return <p style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>Signing in...</p>;
+    }
+    return <Navigate to={homePathFor(userrole)} replace />;
   }
 
   const handleSubmit = (e) => {
