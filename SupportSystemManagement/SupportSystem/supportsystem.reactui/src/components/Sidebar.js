@@ -1,13 +1,17 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { isAdmin } from "../auth/roles";
 
 const Sidebar = () => {
     const [open, setOpen] = useState(true);
     const location = useLocation();
+    const userrole = useSelector((state) => state.auth.userrole);
 
+    // adminOnly: the page's API requires the Admin role, so other users don't see the link.
     const menuItems = [
-        { path: "/user/list", label: "User List" },
-        { path: "/user/add", label: "Add User" },
+        { path: "/user/list", label: "User List", adminOnly: true },
+        { path: "/user/add", label: "Add User", adminOnly: true },
         { path: "/ticket/create", label: "Create Ticket" },
         { path: "/notifications", label: "Notifications" },
         { path: "/profile", label: "Profile" },
@@ -63,7 +67,7 @@ const Sidebar = () => {
 
             {/* Menu Items */}
             <nav style={{ marginTop: "10px", flex: 1 }}>
-                {menuItems.map((item) => (
+                {menuItems.filter((item) => !item.adminOnly || isAdmin(userrole)).map((item) => (
                     <Link
                         key={item.path}
                         to={item.path}

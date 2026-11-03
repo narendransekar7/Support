@@ -8,6 +8,7 @@ import { clearMicrosoftSignOut } from "./auth/authConfig";
 import API from "./api/axios";
 import MasterLayout from "./components/MasterLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import Login from './components/Login';
 import User from './components/User';
 import UserList from './components/UserList';
@@ -69,8 +70,9 @@ const ticketLoader = async ({ params }) => {
             path: "/",
             element: <ProtectedRoute><MasterLayout /></ProtectedRoute>,
             children: [
-                { path: "user/add", element: <User /> },
-                { path: "user/list", element: <UserList /> },
+                // Admin-only pages: their APIs (createuser, getallusers) require the Admin role.
+                { path: "user/add", element: <AdminRoute><User /></AdminRoute> },
+                { path: "user/list", element: <AdminRoute><UserList /></AdminRoute> },
                 { path: "ticket/create", element: <TicketCreateForm /> },
                 { path: "ticket/:id", element: <TicketDetails />, loader: ticketLoader },
                 { path: "notifications", element: <Notifications /> },
