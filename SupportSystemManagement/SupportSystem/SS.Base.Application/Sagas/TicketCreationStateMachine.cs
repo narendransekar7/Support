@@ -25,10 +25,11 @@ public class TicketCreationStateMachine : MassTransitStateMachine<TicketCreation
     {
         InstanceState(x => x.CurrentState);
 
-        Event(() => TicketCreatedEvent, x => x.CorrelateById(m => m.Message.TicketId));
-        Event(() => EngineerAssignedEvent, x => x.CorrelateById(m => m.Message.TicketId));
-        Event(() => AssignEngineerFailedEvent, x => x.CorrelateById(m => m.Message.TicketId));
-        Event(() => SlaReservedEvent, x => x.CorrelateById(m => m.Message.TicketId));
+        Event(() => TicketCreatedEvent, x => x.CorrelateBy((saga, m) => saga.TicketId == m.Message.TicketId)
+            .SelectId(_ => NewId.NextGuid()));
+        Event(() => EngineerAssignedEvent, x => x.CorrelateBy((saga, m) => saga.TicketId == m.Message.TicketId));
+        Event(() => AssignEngineerFailedEvent, x => x.CorrelateBy((saga, m) => saga.TicketId == m.Message.TicketId));
+        Event(() => SlaReservedEvent, x => x.CorrelateBy((saga, m) => saga.TicketId == m.Message.TicketId));
 
         Initially(
             When(TicketCreatedEvent)

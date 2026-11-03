@@ -9,8 +9,8 @@ namespace SS.Base.Application.Commands
 {
     public class AddTicketUpdateCommand : IRequest
     {
-        public Guid TicketId { get; set; }
-        public Guid UpdatedBy { get; set; }
+        public int TicketId { get; set; }
+        public int UpdatedBy { get; set; }
         public string Content { get; set; }
         
     }

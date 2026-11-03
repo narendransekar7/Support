@@ -11,7 +11,7 @@ namespace SS.Base.Domain.Entities
     public class User
     {
         [Key]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         [Required]
         public string FirstName { get; set; }
         [Required]

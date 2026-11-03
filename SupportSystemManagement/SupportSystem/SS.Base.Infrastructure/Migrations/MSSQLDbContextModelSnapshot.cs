@@ -28,8 +28,8 @@ namespace SS.Base.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ActorId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("ActorId")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("EventId")
                         .HasColumnType("uniqueidentifier");
@@ -54,11 +54,11 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<DateTime>("RecordedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("TicketId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("TicketId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("AuditLogId");
 
@@ -94,8 +94,8 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<Guid?>("SourceEventId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("TicketId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("TicketId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -104,8 +104,8 @@ namespace SS.Base.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasDefaultValue("TicketCreated");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("NotificationId");
 
@@ -150,8 +150,8 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("LastAssignedUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("LastAssignedUserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -160,20 +160,22 @@ namespace SS.Base.Infrastructure.Migrations
 
             modelBuilder.Entity("SS.Base.Domain.Entities.Ticket", b =>
                 {
-                    b.Property<Guid>("TicketId")
+                    b.Property<int>("TicketId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
 
-                    b.Property<Guid?>("AssignedTo")
-                        .HasColumnType("uniqueidentifier");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TicketId"));
+
+                    b.Property<int?>("AssignedTo")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("int");
 
                     b.Property<string>("Priority")
                         .IsRequired()
@@ -242,14 +244,17 @@ namespace SS.Base.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("CorrelationId");
+
+                    b.HasIndex("TicketId")
+                        .IsUnique();
 
                     b.ToTable("TicketCreationSagaStates");
                 });
@@ -275,11 +280,11 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<DateTime>("PerformedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("PerformedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("PerformedBy")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
 
                     b.HasKey("LogId");
 
@@ -297,16 +302,16 @@ namespace SS.Base.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("TicketId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<Guid>("UpdatedBy")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UpdatedBy")
+                        .HasColumnType("int");
 
                     b.HasKey("UpdateId");
 
@@ -319,9 +324,11 @@ namespace SS.Base.Infrastructure.Migrations
 
             modelBuilder.Entity("SS.Base.Domain.Entities.User", b =>
                 {
-                    b.Property<Guid>("UserId")
+                    b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -353,7 +360,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f"),
+                            UserId = 1,
                             DisplayName = "Admin User",
                             FirstName = "Admin",
                             LastName = "User",
@@ -364,8 +371,8 @@ namespace SS.Base.Infrastructure.Migrations
 
             modelBuilder.Entity("SS.Base.Domain.Entities.UserProfile", b =>
                 {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Country")
                         .HasColumnType("nvarchar(max)");
@@ -387,7 +394,7 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f"),
+                            UserId = 1,
                             Country = "US",
                             Gender = "Male",
                             Password = "AQAAAAIAAYagAAAAEMJPNHTzUk1r2SPrM/l6v6WFpr53bKysIvUodtPpm/HBPiV/Mbwl8Tkbw1AVnVGetw==",

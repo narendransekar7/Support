@@ -6,5 +6,5 @@ namespace SS.Base.Domain.Interfaces.Messaging;
 /// </summary>
 public interface ITicketMessage
 {
-    Guid TicketId { get; }
+    int TicketId { get; }
 }

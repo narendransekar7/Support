@@ -17,7 +17,7 @@ namespace SS.Base.Application.Sagas;
 ///   AssignEngineerFailed AssigningEngineer   -> send DeleteTicketCommand + SendTicketCreationFailedEmail, finish
 ///   SlaReserved          ReservingSla        -> finish
 ///
-/// State lives in the same TicketCreationSagaStates table (CorrelationId = TicketId, same state
+/// State lives in the same TicketCreationSagaStates table (one row per TicketId, same state
 /// names); a finished saga's row is deleted, like MassTransit's SetCompletedWhenFinalized.
 ///
 /// At-least-once delivery means any of these can arrive twice, and a crash can happen between
@@ -50,12 +50,12 @@ public class TicketCreationOrchestrator :
 
     public async Task HandleAsync(TicketCreated message, EventContext context, CancellationToken cancellationToken)
     {
-        var saga = await _sagaRepository.GetByIdAsync(message.TicketId);
+        var saga = await _sagaRepository.GetByTicketIdAsync(message.TicketId);
         if (saga == null)
         {
             saga = new TicketCreationSagaState
             {
-                CorrelationId = message.TicketId,
+                CorrelationId = Guid.NewGuid(),
                 TicketId = message.TicketId,
                 Title = message.Title,
                 Priority = message.Priority,
@@ -78,7 +78,7 @@ public class TicketCreationOrchestrator :
 
     public async Task HandleAsync(EngineerAssigned message, EventContext context, CancellationToken cancellationToken)
     {
-        var saga = await _sagaRepository.GetByIdAsync(message.TicketId);
+        var saga = await _sagaRepository.GetByTicketIdAsync(message.TicketId);
         if (saga == null || (saga.CurrentState != AssigningEngineer && saga.CurrentState != ReservingSla))
         {
             _logger.LogInformation("No saga waiting for an engineer on ticket {TicketId} ({State}); ignoring EngineerAssigned",
@@ -98,7 +98,7 @@ public class TicketCreationOrchestrator :
 
     public async Task HandleAsync(AssignEngineerFailed message, EventContext context, CancellationToken cancellationToken)
     {
-        var saga = await _sagaRepository.GetByIdAsync(message.TicketId);
+        var saga = await _sagaRepository.GetByTicketIdAsync(message.TicketId);
         if (saga == null || saga.CurrentState != AssigningEngineer)
         {
             _logger.LogInformation("No saga waiting for an engineer on ticket {TicketId} ({State}); ignoring AssignEngineerFailed",
@@ -126,7 +126,7 @@ public class TicketCreationOrchestrator :
 
     public async Task HandleAsync(SlaReserved message, EventContext context, CancellationToken cancellationToken)
     {
-        var saga = await _sagaRepository.GetByIdAsync(message.TicketId);
+        var saga = await _sagaRepository.GetByTicketIdAsync(message.TicketId);
         if (saga == null || saga.CurrentState != ReservingSla)
         {
             _logger.LogInformation("No saga reserving an SLA for ticket {TicketId} ({State}); ignoring SlaReserved",

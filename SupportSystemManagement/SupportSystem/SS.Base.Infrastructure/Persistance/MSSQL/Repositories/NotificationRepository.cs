@@ -13,7 +13,7 @@ public class NotificationRepository : GenericRepository<Notification>, INotifica
         _context = context;
     }
 
-    public async Task<IEnumerable<Notification>> GetByUserAsync(Guid userId, int take, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Notification>> GetByUserAsync(int userId, int take, CancellationToken cancellationToken = default)
     {
         return await _context.Notifications
             .AsNoTracking()
@@ -23,12 +23,12 @@ public class NotificationRepository : GenericRepository<Notification>, INotifica
             .ToListAsync(cancellationToken);
     }
 
-    public Task<int> CountUnreadAsync(Guid userId, CancellationToken cancellationToken = default)
+    public Task<int> CountUnreadAsync(int userId, CancellationToken cancellationToken = default)
     {
         return _context.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
     }
 
-    public async Task<IEnumerable<Notification>> GetUnreadByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Notification>> GetUnreadByUserAsync(int userId, CancellationToken cancellationToken = default)
     {
         return await _context.Notifications
             .Where(n => n.UserId == userId && !n.IsRead)

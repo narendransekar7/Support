@@ -10,7 +10,7 @@ namespace SS.Base.Application.Commands
 {
     public class UpdateUserRoleCommand
     {
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         public Role Role { get; set; }
     }
 }

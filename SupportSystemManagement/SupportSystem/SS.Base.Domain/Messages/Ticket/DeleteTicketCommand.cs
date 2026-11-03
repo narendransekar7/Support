@@ -4,5 +4,5 @@ namespace SS.Base.Domain.Messages.Ticket;
 
 public record DeleteTicketCommand : ITicketMessage
 {
-    public Guid TicketId { get; init; }
+    public int TicketId { get; init; }
 }

@@ -11,7 +11,7 @@ namespace SS.Base.Domain.Entities
     public class UserProfile
     {
         [Key]
-        public Guid UserId { get; set; }
+        public int UserId { get; set; }
         [Required]
         public string Password { get; set; }
         public string? Country { get; set; }

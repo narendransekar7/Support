@@ -31,10 +31,8 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
         // Seeding method
         public static void Seed(ModelBuilder modelBuilder)
         {
-            // Fixed (not random) so the EF model is deterministic across builds —
-            // a random value here made every `dotnet ef migrations add` scaffold a
-            // spurious delete+reinsert of the seeded admin user.
-            Guid adminId = new Guid("6437f734-63ef-421e-9a48-4fd33978671f");
+            // UserId is an identity column; the seeded admin is always user 1.
+            int adminId = 1;
             // Add initial data for User table
             modelBuilder.Entity<User>().HasData(
                 new User
@@ -153,6 +151,8 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
             modelBuilder.Entity<TicketCreationSagaState>(entity =>
             {
                 entity.HasKey(s => s.CorrelationId);
+                // Sagas are looked up by TicketId (see TicketCreationStateMachine/Orchestrator); one per ticket.
+                entity.HasIndex(s => s.TicketId).IsUnique();
                 entity.Property(s => s.CurrentState).IsRequired().HasMaxLength(64);
                 entity.Property(s => s.Title).HasMaxLength(200);
                 entity.Property(s => s.Priority).HasMaxLength(20);

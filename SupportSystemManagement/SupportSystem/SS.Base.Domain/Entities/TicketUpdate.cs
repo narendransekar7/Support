@@ -10,8 +10,8 @@ namespace SS.Base.Domain.Entities
     public class TicketUpdate
     {
         public Guid UpdateId { get; set; }
-        public Guid TicketId { get; set; }
-        public Guid UpdatedBy { get; set; }
+        public int TicketId { get; set; }
+        public int UpdatedBy { get; set; }
         public string Content { get; set; }
         public DateTime UpdatedAt { get; set; }
 

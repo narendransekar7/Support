@@ -38,7 +38,7 @@ public class AssignEngineerHandler : IEventHandler<AssignEngineerCommand>
 
         // Redelivered command (at-least-once): the engineer was already assigned, so just report it
         // again instead of moving the round-robin cursor a second time.
-        if (ticket.AssignedTo is Guid alreadyAssigned)
+        if (ticket.AssignedTo is int alreadyAssigned)
         {
             _logger.LogInformation("Ticket {TicketId} already has engineer {EngineerId}; re-publishing EngineerAssigned", ticket.TicketId, alreadyAssigned);
             await _publisher.PublishAsync(new EngineerAssigned { TicketId = ticket.TicketId, EngineerId = alreadyAssigned },

@@ -25,8 +25,8 @@ namespace SS.Ticket.API.Controllers
             return Ok("Ticket created successfully");
         }
         
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTicketById(Guid id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetTicketById(int id)
         {
             var ticket = await _mediator.Send(new GetTicketByIdQuery(id));
 

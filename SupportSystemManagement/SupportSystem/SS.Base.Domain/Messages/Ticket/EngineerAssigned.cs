@@ -4,6 +4,6 @@ namespace SS.Base.Domain.Messages.Ticket;
 
 public record EngineerAssigned : ITicketMessage
 {
-    public Guid TicketId { get; init; }
-    public Guid EngineerId { get; init; }
+    public int TicketId { get; init; }
+    public int EngineerId { get; init; }
 }

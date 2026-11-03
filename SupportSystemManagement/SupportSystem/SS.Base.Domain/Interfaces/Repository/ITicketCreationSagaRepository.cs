@@ -8,4 +8,6 @@ namespace SS.Base.Domain.Interfaces.Repository;
 /// </summary>
 public interface ITicketCreationSagaRepository : IGenericRepository<TicketCreationSagaState>
 {
+    // The saga's key is a Guid CorrelationId; messages carry the (int) TicketId, which is unique per saga.
+    Task<TicketCreationSagaState?> GetByTicketIdAsync(int ticketId);
 }

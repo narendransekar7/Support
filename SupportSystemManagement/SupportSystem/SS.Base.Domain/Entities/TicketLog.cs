@@ -11,9 +11,9 @@ namespace SS.Base.Domain.Entities
     {
         [Key]
         public Guid LogId { get; set; }
-        public Guid TicketId { get; set; }
+        public int TicketId { get; set; }
         public string Action { get; set; }
-        public Guid PerformedBy { get; set; }
+        public int PerformedBy { get; set; }
         public DateTime PerformedAt { get; set; }
         public string OldValue { get; set; }
         public string NewValue { get; set; }

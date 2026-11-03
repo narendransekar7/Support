@@ -10,7 +10,7 @@ namespace SS.Base.Domain.Interfaces.Repository
     public interface ITicketRepository : IGenericRepository<Ticket>
     {
         // Add methods specific to Tickets
-        Task<IEnumerable<Ticket>> GetTicketsByUserAsync(Guid userId);
-        Task<Ticket?> GetByIdWithUpdatesAsync(Guid ticketId);
+        Task<IEnumerable<Ticket>> GetTicketsByUserAsync(int userId);
+        Task<Ticket?> GetByIdWithUpdatesAsync(int ticketId);
     }
 }
