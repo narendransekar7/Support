@@ -1,11 +1,11 @@
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SS.Base.Domain.Interfaces.Messaging;
 
 namespace SS.Base.Messaging.Kafka;
@@ -28,8 +28,19 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
 {
     private static readonly TimeSpan RestartDelay = TimeSpan.FromSeconds(5);
 
+    // A topic's dead letters go to "<topic>.dlt", e.g. "support.ticket-created.dlt".
+    private const string DeadLetterSuffix = ".dlt";
+
+    // Headers added when a message is moved to a dead-letter topic.
+    private const string DeadLetterReason = "dlt-reason";
+    private const string DeadLetterConsumerGroup = "dlt-consumer-group";
+    private const string DeadLetterOriginalTopic = "dlt-original-topic";
+    private const string DeadLetterOriginalPartition = "dlt-original-partition";
+    private const string DeadLetterOriginalOffset = "dlt-original-offset";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly KafkaClientFactory _factory;
+    private readonly KafkaOptions _options;
     private readonly KafkaTopicManager _topics;
     private readonly IProducer<string, byte[]> _producer;
     private readonly ILogger _logger;
@@ -38,18 +49,19 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
     private readonly string _deadLetterTopic;
     private readonly string _handlerName;
 
-    public KafkaConsumerWorker(IServiceScopeFactory scopeFactory, KafkaClientFactory factory, KafkaTopicManager topics,
-        IProducer<string, byte[]> producer, ILoggerFactory loggerFactory, string groupId)
+    public KafkaConsumerWorker(IServiceScopeFactory scopeFactory, KafkaClientFactory factory, IOptions<KafkaOptions> options,
+        KafkaTopicManager topics, IProducer<string, byte[]> producer, ILoggerFactory loggerFactory, string groupId)
     {
         _scopeFactory = scopeFactory;
         _factory = factory;
+        _options = options.Value;
         _topics = topics;
         _producer = producer;
         _groupId = groupId;
         _handlerName = MessageNaming.ToKebabCase(typeof(THandler));
         _logger = loggerFactory.CreateLogger($"SS.Base.Messaging.Kafka.Consumer.{_handlerName}");
-        _topic = MessageNaming.Topic(typeof(TMessage), factory.Options.TopicPrefix);
-        _deadLetterTopic = KafkaTopics.DeadLetterFor(_topic);
+        _topic = MessageNaming.Topic(typeof(TMessage), _options.TopicPrefix);
+        _deadLetterTopic = _topic + DeadLetterSuffix;
     }
 
     // Consume() blocks, so run the loop on its own thread instead of holding up host startup.
@@ -108,20 +120,12 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
     {
         var headers = result.Message.Headers;
         var context = new EventContext(
-            EventId: Guid.TryParse(GetHeader(headers, KafkaHeaders.MessageId), out var id) ? id : FallbackEventId(result),
-            OccurredAtUtc: DateTime.TryParse(GetHeader(headers, KafkaHeaders.OccurredAt), null, System.Globalization.DateTimeStyles.RoundtripKind, out var at)
-                ? at : result.Message.Timestamp.UtcDateTime,
+            EventId: MessageEnvelope.ParseEventId(GetHeader(headers, MessageHeaders.MessageId), $"{result.Topic}/{result.Partition.Value}/{result.Offset.Value}"),
+            OccurredAtUtc: MessageEnvelope.ParseOccurredAt(GetHeader(headers, MessageHeaders.OccurredAt), result.Message.Timestamp.UtcDateTime),
             Provider: nameof(MessagingProvider.Kafka),
             CorrelationId: result.Message.Key);
 
-        ActivityContext.TryParse(GetHeader(headers, KafkaHeaders.TraceParent), null, out var parent);
-        using var activity = MessagingTelemetry.Source.StartActivity($"{_topic} process", ActivityKind.Consumer, parent)
-            // Not sampled (e.g. no exporter configured, so the HTTP request upstream wasn't recorded): still
-            // continue the publisher's trace id, so log lines across services share one TraceId and any
-            // message this handler publishes carries it on.
-            ?? (parent != default
-                ? new Activity($"{_topic} process").SetParentId(parent.TraceId, parent.SpanId, parent.TraceFlags).Start()
-                : null);
+        using var activity = MessagingTelemetry.StartProcessActivity(_topic, GetHeader(headers, MessageHeaders.TraceParent));
         activity?.SetTag("messaging.system", "kafka");
         activity?.SetTag("messaging.destination.name", _topic);
         activity?.SetTag("messaging.consumer.group.name", _groupId);
@@ -140,7 +144,7 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
         TMessage? message;
         try
         {
-            message = JsonSerializer.Deserialize<TMessage>(result.Message.Value, MessageNaming.Json);
+            message = JsonSerializer.Deserialize<TMessage>(result.Message.Value, MessageEnvelope.Json);
             if (message == null)
                 throw new JsonException("Message value was null.");
         }
@@ -151,7 +155,7 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
             return;
         }
 
-        var maxRetries = _factory.Options.MaxRetries;
+        var maxRetries = _options.MaxRetries;
         for (var attempt = 1; ; attempt++)
         {
             try
@@ -175,7 +179,7 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
                     return;
                 }
 
-                var delay = TimeSpan.FromMilliseconds(_factory.Options.RetryBackoffMs * attempt);
+                var delay = TimeSpan.FromMilliseconds(_options.RetryBackoffMs * attempt);
                 _logger.LogWarning(ex, "{Handler} failed on {MessageType} {MessageId} (attempt {Attempt} of {MaxAttempts}); retrying in {Delay}ms",
                     _handlerName, typeof(TMessage).Name, context.EventId, attempt, maxRetries + 1, delay.TotalMilliseconds);
                 await Task.Delay(delay, stoppingToken);
@@ -189,11 +193,11 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
         foreach (var header in result.Message.Headers)
             headers.Add(header.Key, header.GetValueBytes());
 
-        headers.Add(KafkaHeaders.DeadLetterReason, Encoding.UTF8.GetBytes(reason.Length > 4000 ? reason[..4000] : reason));
-        headers.Add(KafkaHeaders.DeadLetterConsumerGroup, Encoding.UTF8.GetBytes(_groupId));
-        headers.Add(KafkaHeaders.DeadLetterOriginalTopic, Encoding.UTF8.GetBytes(_topic));
-        headers.Add(KafkaHeaders.DeadLetterOriginalPartition, Encoding.UTF8.GetBytes(result.Partition.Value.ToString()));
-        headers.Add(KafkaHeaders.DeadLetterOriginalOffset, Encoding.UTF8.GetBytes(result.Offset.Value.ToString()));
+        headers.Add(DeadLetterReason, Encoding.UTF8.GetBytes(reason.Length > 4000 ? reason[..4000] : reason));
+        headers.Add(DeadLetterConsumerGroup, Encoding.UTF8.GetBytes(_groupId));
+        headers.Add(DeadLetterOriginalTopic, Encoding.UTF8.GetBytes(_topic));
+        headers.Add(DeadLetterOriginalPartition, Encoding.UTF8.GetBytes(result.Partition.Value.ToString()));
+        headers.Add(DeadLetterOriginalOffset, Encoding.UTF8.GetBytes(result.Offset.Value.ToString()));
 
         // If this throws, the offset isn't committed and the message is read again after reconnecting.
         await _producer.ProduceAsync(_deadLetterTopic, new Message<string, byte[]>
@@ -206,11 +210,6 @@ internal sealed class KafkaConsumerWorker<TMessage, THandler> : BackgroundServic
 
     private static string? GetHeader(Headers? headers, string name) =>
         headers != null && headers.TryGetLastBytes(name, out var bytes) ? Encoding.UTF8.GetString(bytes) : null;
-
-    // Messages published without our headers still get a stable id: the same topic/partition/offset
-    // always produces the same Guid, so de-duplication keeps working.
-    private static Guid FallbackEventId(ConsumeResult<string, byte[]> result) =>
-        new(MD5.HashData(Encoding.UTF8.GetBytes($"{result.Topic}/{result.Partition.Value}/{result.Offset.Value}")));
 
     private static async Task DelayIgnoringCancellation(TimeSpan delay, CancellationToken token)
     {

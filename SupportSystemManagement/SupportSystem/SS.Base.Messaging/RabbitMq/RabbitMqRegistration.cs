@@ -34,31 +34,3 @@ internal static class RabbitMqRegistration
         services.AddScoped<IEventPublisher, MassTransitEventPublisher>();
     }
 }
-
-/// <summary>
-/// RabbitMQ implementation of <see cref="IEventPublisher"/>: a MassTransit Publish (fan-out exchange
-/// per message type). Inside a consumer, the scoped IPublishEndpoint is that consumer's context, so
-/// follow-up messages keep the conversation/correlation ids. The key is a Kafka concept and is ignored.
-/// </summary>
-internal sealed class MassTransitEventPublisher : IEventPublisher
-{
-    private readonly IPublishEndpoint _publishEndpoint;
-
-    public MassTransitEventPublisher(IPublishEndpoint publishEndpoint) => _publishEndpoint = publishEndpoint;
-
-    public Task PublishAsync<T>(T message, string? key = null, CancellationToken cancellationToken = default) where T : class =>
-        _publishEndpoint.Publish(message, cancellationToken);
-}
-
-public static class ConsumeContextExtensions
-{
-    /// <summary>
-    /// The broker-neutral <see cref="EventContext"/> for a MassTransit delivery, so a MassTransit
-    /// consumer can hand its message to an <see cref="IEventHandler{T}"/>.
-    /// </summary>
-    public static EventContext ToEventContext(this ConsumeContext context) => new(
-        context.MessageId ?? Guid.NewGuid(),
-        context.SentTime ?? DateTime.UtcNow,
-        nameof(MessagingProvider.RabbitMq),
-        context.CorrelationId?.ToString());
-}

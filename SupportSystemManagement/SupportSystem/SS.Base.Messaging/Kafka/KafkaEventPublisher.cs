@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SS.Base.Domain.Interfaces.Messaging;
 
 namespace SS.Base.Messaging.Kafka;
@@ -15,16 +16,16 @@ internal sealed class KafkaEventPublisher : IEventPublisher
 {
     private readonly IProducer<string, byte[]> _producer;
     private readonly KafkaTopicManager _topics;
-    private readonly KafkaClientFactory _factory;
+    private readonly KafkaOptions _options;
     private readonly MessagingServiceName _serviceName;
     private readonly ILogger<KafkaEventPublisher> _logger;
 
-    public KafkaEventPublisher(IProducer<string, byte[]> producer, KafkaTopicManager topics, KafkaClientFactory factory,
+    public KafkaEventPublisher(IProducer<string, byte[]> producer, KafkaTopicManager topics, IOptions<KafkaOptions> options,
         MessagingServiceName serviceName, ILogger<KafkaEventPublisher> logger)
     {
         _producer = producer;
         _topics = topics;
-        _factory = factory;
+        _options = options.Value;
         _serviceName = serviceName;
         _logger = logger;
     }
@@ -32,12 +33,11 @@ internal sealed class KafkaEventPublisher : IEventPublisher
     public async Task PublishAsync<T>(T message, string? key = null, CancellationToken cancellationToken = default) where T : class
     {
         var messageType = message.GetType();
-        var topic = MessageNaming.Topic(messageType, _factory.Options.TopicPrefix);
+        var topic = MessageNaming.Topic(messageType, _options.TopicPrefix);
         await _topics.EnsureTopicAsync(topic);
 
-        // Same key -> same partition -> consumed in order. Ticket messages default to their ticket id (so
-        // every step of one ticket's saga stays ordered within its topic), user messages to their user id.
-        key ??= (message as ITicketMessage)?.TicketId.ToString() ?? (message as IUserMessage)?.UserId.ToString();
+        // Same key -> same partition -> consumed in order.
+        key ??= MessageEnvelope.DefaultKey(message);
 
         using var activity = MessagingTelemetry.Source.StartActivity($"{topic} publish", ActivityKind.Producer);
         activity?.SetTag("messaging.system", "kafka");
@@ -47,19 +47,19 @@ internal sealed class KafkaEventPublisher : IEventPublisher
         var messageId = Guid.NewGuid();
         var headers = new Headers
         {
-            { KafkaHeaders.MessageId, Encoding.UTF8.GetBytes(messageId.ToString()) },
-            { KafkaHeaders.MessageType, Encoding.UTF8.GetBytes(messageType.FullName ?? messageType.Name) },
-            { KafkaHeaders.OccurredAt, Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("O")) },
-            { KafkaHeaders.Source, Encoding.UTF8.GetBytes(_serviceName.Value) },
+            { MessageHeaders.MessageId, Encoding.UTF8.GetBytes(messageId.ToString()) },
+            { MessageHeaders.MessageType, Encoding.UTF8.GetBytes(messageType.FullName ?? messageType.Name) },
+            { MessageHeaders.OccurredAt, Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("O")) },
+            { MessageHeaders.Source, Encoding.UTF8.GetBytes(_serviceName.Value) },
         };
         var traceParent = Activity.Current?.Id;
         if (traceParent != null)
-            headers.Add(KafkaHeaders.TraceParent, Encoding.UTF8.GetBytes(traceParent));
+            headers.Add(MessageHeaders.TraceParent, Encoding.UTF8.GetBytes(traceParent));
 
         var result = await _producer.ProduceAsync(topic, new Message<string, byte[]>
         {
             Key = key!,
-            Value = JsonSerializer.SerializeToUtf8Bytes(message, messageType, MessageNaming.Json),
+            Value = JsonSerializer.SerializeToUtf8Bytes(message, messageType, MessageEnvelope.Json),
             Headers = headers,
         }, cancellationToken);
 

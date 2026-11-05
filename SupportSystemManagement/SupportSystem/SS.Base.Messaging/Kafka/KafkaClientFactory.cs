@@ -18,8 +18,6 @@ internal sealed class KafkaClientFactory
         _clientId = serviceName.Value;
     }
 
-    public KafkaOptions Options => _options;
-
     public IProducer<string, byte[]> CreateProducer(ILogger logger)
     {
         var config = Apply(new ProducerConfig

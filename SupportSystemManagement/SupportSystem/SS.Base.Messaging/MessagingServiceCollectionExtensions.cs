@@ -11,14 +11,14 @@ namespace SS.Base.Messaging;
 
 public static class MessagingServiceCollectionExtensions
 {
-    public const string SectionName = "Messaging";
+    private const string SectionName = "Messaging";
 
     /// <summary>
     /// Wires up <see cref="IEventPublisher"/> and this host's consumers for the broker selected by
     /// `Messaging:Provider` (Kafka when unset).
     /// </summary>
     /// <param name="serviceName">Kafka client id and default consumer-group prefix, e.g. "ss-email-api".</param>
-    public static MessagingProvider AddSupportSystemMessaging(
+    public static IServiceCollection AddSupportSystemMessaging(
         this IServiceCollection services,
         IConfiguration configuration,
         string serviceName,
@@ -28,6 +28,8 @@ public static class MessagingServiceCollectionExtensions
         configure?.Invoke(builder);
 
         var provider = configuration.GetValue($"{SectionName}:Provider", MessagingProvider.Kafka);
+
+        services.AddSingleton(new MessagingServiceName(serviceName));
 
         switch (provider)
         {
@@ -47,7 +49,7 @@ public static class MessagingServiceCollectionExtensions
         services.AddSingleton<IHostedService>(sp => new MessagingStartupLog(
             provider, builder, sp.GetRequiredService<ILogger<MessagingStartupLog>>()));
 
-        return provider;
+        return services;
     }
 
     /// <summary>
