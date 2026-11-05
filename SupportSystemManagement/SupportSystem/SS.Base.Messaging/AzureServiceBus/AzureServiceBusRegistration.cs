@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -30,7 +29,6 @@ internal static class AzureServiceBusRegistration
                 "nor Messaging:AzureServiceBus:FullyQualifiedNamespace is set.");
 
         services.AddSingleton(Options.Create(options));
-        services.AddSingleton(new MessagingServiceName(builder.ServiceName));
         services.AddSingleton<AzureServiceBusClientFactory>();
         services.AddSingleton<AzureServiceBusEntityManager>();
         // One client (one AMQP connection) per process, shared by every sender and processor.
@@ -43,9 +41,8 @@ internal static class AzureServiceBusRegistration
             // "<prefix>.<handler>", e.g. "ss-email-api.ticket-created-email-handler". The topic already
             // tells messages apart, so a handler of several messages (the saga orchestrator) or a generic
             // one (AuditEventHandler<T>) uses the same subscription name on each of its topics.
-            var name = subscription.ConsumerGroup
-                       ?? $"{prefix}.{MessageNaming.ToKebabCaseWithoutGenericArguments(subscription.HandlerType)}";
-            subscription.AddServiceBusProcessor(services, FitSubscriptionName(name));
+            var name = $"{prefix}.{MessageNaming.ToKebabCaseWithoutGenericArguments(subscription.HandlerType)}";
+            subscription.AddWorker(services, typeof(AzureServiceBusProcessorWorker<,>), FitSubscriptionName(name));
         }
 
         // Degraded, not Unhealthy, on an outage - the same reasoning as the Kafka check.
@@ -58,35 +55,5 @@ internal static class AzureServiceBusRegistration
             return name;
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(name)))[..8].ToLowerInvariant();
         return $"{name[..(MaxSubscriptionNameLength - 9)]}-{hash}";
-    }
-}
-
-/// <summary>
-/// Readiness: with management rights (AutoCreateEntities) reads the namespace properties, which needs a
-/// working connection and credentials. Without them (emulator, send/listen-only policy) there's no
-/// cheap call to make, so it only reports that the check was skipped.
-/// </summary>
-internal sealed class AzureServiceBusHealthCheck : IHealthCheck
-{
-    private readonly AzureServiceBusEntityManager _entities;
-
-    public AzureServiceBusHealthCheck(AzureServiceBusEntityManager entities) => _entities = entities;
-
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-    {
-        if (!_entities.CanManage)
-            return HealthCheckResult.Healthy("Not checked: AutoCreateEntities is off (no management access)");
-
-        try
-        {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(5));
-            var properties = await _entities.Admin.GetNamespacePropertiesAsync(timeout.Token);
-            return HealthCheckResult.Healthy($"Service Bus namespace {properties.Value.Name} reachable");
-        }
-        catch (Exception ex) when (ex is ServiceBusException or OperationCanceledException or Azure.RequestFailedException or UnauthorizedAccessException)
-        {
-            return new HealthCheckResult(context.Registration.FailureStatus, "Service Bus unreachable", ex);
-        }
     }
 }

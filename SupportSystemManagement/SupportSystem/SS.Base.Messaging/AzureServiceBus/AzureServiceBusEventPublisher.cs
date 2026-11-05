@@ -40,14 +40,14 @@ internal sealed class AzureServiceBusEventPublisher : IEventPublisher, IAsyncDis
         var topic = MessageNaming.Topic(messageType, _options.TopicPrefix);
         await _entities.EnsureTopicAsync(topic, cancellationToken);
 
-        key ??= (message as ITicketMessage)?.TicketId.ToString() ?? (message as IUserMessage)?.UserId.ToString();
+        key ??= MessageEnvelope.DefaultKey(message);
 
         using var activity = MessagingTelemetry.Source.StartActivity($"{topic} publish", ActivityKind.Producer);
         activity?.SetTag("messaging.system", "servicebus");
         activity?.SetTag("messaging.destination.name", topic);
 
         var messageId = Guid.NewGuid();
-        var serviceBusMessage = new ServiceBusMessage(JsonSerializer.SerializeToUtf8Bytes(message, messageType, MessageNaming.Json))
+        var serviceBusMessage = new ServiceBusMessage(JsonSerializer.SerializeToUtf8Bytes(message, messageType, MessageEnvelope.Json))
         {
             // Stable across redeliveries -> the handlers' de-duplication key (and the broker's, if duplicate detection is on).
             MessageId = messageId.ToString(),

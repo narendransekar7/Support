@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 
 namespace SS.Base.Messaging;
 
@@ -10,23 +9,17 @@ namespace SS.Base.Messaging;
 /// </summary>
 internal static class MessageNaming
 {
-    public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
     public static string Topic(Type messageType, string prefix) => $"{prefix}.{ToKebabCase(messageType)}";
 
     /// <summary>Kebab-case type name; a generic type adds its arguments: AuditEventHandler&lt;TicketCreated&gt; -> "audit-event-handler.ticket-created".</summary>
-    public static string ToKebabCase(Type type)
-    {
-        if (!type.IsGenericType)
-            return ToKebabCase(type.Name);
-        return string.Join(".", new[] { ToKebabCase(GenericName(type)) }.Concat(type.GetGenericArguments().Select(t => ToKebabCase(t))));
-    }
+    public static string ToKebabCase(Type type) =>
+        string.Join(".", type.GetGenericArguments().Select(ToKebabCase).Prepend(ToKebabCaseWithoutGenericArguments(type)));
 
     /// <summary>Kebab-case type name without generic arguments: AuditEventHandler&lt;TicketCreated&gt; -> "audit-event-handler".</summary>
     public static string ToKebabCaseWithoutGenericArguments(Type type) =>
-        ToKebabCase(type.IsGenericType ? GenericName(type) : type.Name);
+        ToKebabCase(type.IsGenericType ? type.Name[..type.Name.IndexOf('`')] : type.Name);
 
-    public static string ToKebabCase(string name)
+    private static string ToKebabCase(string name)
     {
         var sb = new StringBuilder(name.Length + 8);
         for (var i = 0; i < name.Length; i++)
@@ -37,22 +30,4 @@ internal static class MessageNaming
         }
         return sb.ToString();
     }
-
-    private static string GenericName(Type type) => type.Name[..type.Name.IndexOf('`')];
-}
-
-/// <summary>The host's service name (Kafka client id / consumer-group prefix, Service Bus subscription prefix).</summary>
-internal sealed record MessagingServiceName(string Value);
-
-/// <summary>
-/// Message property / header names every topic-based provider writes. The broker only knows the body
-/// (and, for Service Bus, MessageId/Subject/CorrelationId); the rest is our convention.
-/// </summary>
-internal static class MessageHeaders
-{
-    public const string MessageId = "message-id";
-    public const string MessageType = "message-type";
-    public const string OccurredAt = "occurred-at";
-    public const string Source = "source";
-    public const string TraceParent = "traceparent";
 }

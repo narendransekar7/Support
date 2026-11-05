@@ -2,8 +2,6 @@ using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SS.Base.Domain.Interfaces.Messaging;
-using SS.Base.Messaging.AzureServiceBus;
-using SS.Base.Messaging.Kafka;
 
 namespace SS.Base.Messaging;
 
@@ -29,23 +27,16 @@ public sealed class MessagingBuilder
     internal List<Action<IBusRegistrationConfigurator>> RabbitMqRegistrations { get; } = new();
 
     /// <summary>
-    /// Handle <typeparamref name="TMessage"/> with <typeparamref name="THandler"/>.
+    /// Handle <typeparamref name="TMessage"/> with <typeparamref name="THandler"/>. Every handler gets
+    /// its own copy of every message (its own Kafka consumer group / Service Bus subscription).
     /// </summary>
-    /// <param name="consumerGroup">
-    /// Kafka consumer group / Service Bus subscription name. Defaults to "&lt;prefix&gt;.&lt;handler name&gt;"
-    /// (prefix = the service name), so every handler gets its own copy of every message.
-    /// </param>
-    public MessagingBuilder Subscribe<TMessage, THandler>(string? consumerGroup = null)
+    public MessagingBuilder Subscribe<TMessage, THandler>()
         where TMessage : class
         where THandler : class, IEventHandler<TMessage>
     {
         // Registered for every provider: the RabbitMQ consumers resolve the same handlers from DI.
         Services.AddScoped<THandler>();
-        Subscriptions.Add(new Subscription(typeof(TMessage), typeof(THandler), consumerGroup,
-            AddKafkaWorker: (services, group) => services.AddSingleton<IHostedService>(sp =>
-                ActivatorUtilities.CreateInstance<KafkaConsumerWorker<TMessage, THandler>>(sp, group)),
-            AddServiceBusProcessor: (services, subscription) => services.AddSingleton<IHostedService>(sp =>
-                ActivatorUtilities.CreateInstance<AzureServiceBusProcessorWorker<TMessage, THandler>>(sp, subscription))));
+        Subscriptions.Add(new Subscription(typeof(TMessage), typeof(THandler)));
         return this;
     }
 
@@ -59,9 +50,15 @@ public sealed class MessagingBuilder
     }
 }
 
-internal sealed record Subscription(
-    Type MessageType,
-    Type HandlerType,
-    string? ConsumerGroup,
-    Action<IServiceCollection, string> AddKafkaWorker,
-    Action<IServiceCollection, string> AddServiceBusProcessor);
+internal sealed record Subscription(Type MessageType, Type HandlerType)
+{
+    /// <summary>
+    /// Runs this subscription as a hosted <paramref name="openWorkerType"/> (a Worker&lt;TMessage, THandler&gt;
+    /// whose constructor takes <paramref name="name"/>, the consumer group or subscription name).
+    /// </summary>
+    public void AddWorker(IServiceCollection services, Type openWorkerType, string name)
+    {
+        var workerType = openWorkerType.MakeGenericType(MessageType, HandlerType);
+        services.AddSingleton<IHostedService>(sp => (IHostedService)ActivatorUtilities.CreateInstance(sp, workerType, name));
+    }
+}

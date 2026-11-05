@@ -1,4 +1,3 @@
-using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -12,7 +11,6 @@ internal static class KafkaRegistration
     public static void AddKafkaMessaging(this IServiceCollection services, IConfigurationSection section, MessagingBuilder builder)
     {
         services.Configure<KafkaOptions>(section);
-        services.AddSingleton(new MessagingServiceName(builder.ServiceName));
         services.AddSingleton<KafkaClientFactory>();
         services.AddSingleton<KafkaTopicManager>();
 
@@ -33,36 +31,14 @@ internal static class KafkaRegistration
 
         foreach (var subscription in builder.Subscriptions)
         {
-            var groupId = subscription.ConsumerGroup ?? $"{groupPrefix}.{MessageNaming.ToKebabCase(subscription.HandlerType)}";
-            if (subscription.ConsumerGroup == null && handlersWithSeveralMessages.Contains(subscription.HandlerType))
+            var groupId = $"{groupPrefix}.{MessageNaming.ToKebabCase(subscription.HandlerType)}";
+            if (handlersWithSeveralMessages.Contains(subscription.HandlerType))
                 groupId += "." + MessageNaming.ToKebabCase(subscription.MessageType);
-            subscription.AddKafkaWorker(services, groupId);
+            subscription.AddWorker(services, typeof(KafkaConsumerWorker<,>), groupId);
         }
 
         // A broker outage reports Degraded, not Unhealthy: /health/ready still answers 200, so the APIs keep serving
         // HTTP (reads, sign-in, ...) while consumers reconnect; only publishing fails until the brokers are back.
         services.AddHealthChecks().AddCheck<KafkaHealthCheck>("kafka", failureStatus: HealthStatus.Degraded, tags: new[] { "ready", "messaging" });
-    }
-}
-
-internal sealed class KafkaHealthCheck : IHealthCheck
-{
-    private readonly KafkaTopicManager _topics;
-
-    public KafkaHealthCheck(KafkaTopicManager topics) => _topics = topics;
-
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var metadata = await Task.Run(() => _topics.Admin.GetMetadata(TimeSpan.FromSeconds(3)), cancellationToken);
-            return metadata.Brokers.Count > 0
-                ? HealthCheckResult.Healthy($"{metadata.Brokers.Count} Kafka broker(s) reachable")
-                : new HealthCheckResult(context.Registration.FailureStatus, "No Kafka brokers in metadata");
-        }
-        catch (KafkaException ex)
-        {
-            return new HealthCheckResult(context.Registration.FailureStatus, "Kafka unreachable", ex);
-        }
     }
 }

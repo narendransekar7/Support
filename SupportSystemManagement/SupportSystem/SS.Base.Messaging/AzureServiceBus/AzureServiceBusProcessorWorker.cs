@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
@@ -103,20 +101,12 @@ internal sealed class AzureServiceBusProcessorWorker<TMessage, THandler> : Backg
     {
         var received = args.Message;
         var context = new EventContext(
-            EventId: Guid.TryParse(received.MessageId, out var id) ? id : FallbackEventId(received.MessageId),
-            OccurredAtUtc: received.ApplicationProperties.TryGetValue(MessageHeaders.OccurredAt, out var at)
-                           && DateTime.TryParse(at?.ToString(), null, System.Globalization.DateTimeStyles.RoundtripKind, out var occurred)
-                ? occurred : received.EnqueuedTime.UtcDateTime,
+            EventId: MessageEnvelope.ParseEventId(received.MessageId, received.MessageId),
+            OccurredAtUtc: MessageEnvelope.ParseOccurredAt(GetProperty(received, MessageHeaders.OccurredAt), received.EnqueuedTime.UtcDateTime),
             Provider: nameof(MessagingProvider.AzureServiceBus),
             CorrelationId: received.CorrelationId);
 
-        var traceParent = received.ApplicationProperties.TryGetValue(MessageHeaders.TraceParent, out var tp) ? tp?.ToString() : null;
-        ActivityContext.TryParse(traceParent, null, out var parent);
-        using var activity = MessagingTelemetry.Source.StartActivity($"{_topic} process", ActivityKind.Consumer, parent)
-            // Not sampled: still continue the publisher's trace id for log correlation (see KafkaConsumerWorker).
-            ?? (parent != default
-                ? new Activity($"{_topic} process").SetParentId(parent.TraceId, parent.SpanId, parent.TraceFlags).Start()
-                : null);
+        using var activity = MessagingTelemetry.StartProcessActivity(_topic, GetProperty(received, MessageHeaders.TraceParent));
         activity?.SetTag("messaging.system", "servicebus");
         activity?.SetTag("messaging.destination.name", _topic);
         activity?.SetTag("messaging.servicebus.subscription", _subscription);
@@ -134,7 +124,7 @@ internal sealed class AzureServiceBusProcessorWorker<TMessage, THandler> : Backg
         TMessage? message;
         try
         {
-            message = JsonSerializer.Deserialize<TMessage>(received.Body.ToMemory().Span, MessageNaming.Json)
+            message = JsonSerializer.Deserialize<TMessage>(received.Body.ToMemory().Span, MessageEnvelope.Json)
                       ?? throw new JsonException("Message body was null.");
         }
         catch (JsonException ex)
@@ -187,5 +177,6 @@ internal sealed class AzureServiceBusProcessorWorker<TMessage, THandler> : Backg
     // Dead-letter descriptions are limited to 4096 characters.
     private static string Truncate(string value) => value.Length > 4000 ? value[..4000] : value;
 
-    private static Guid FallbackEventId(string messageId) => new(MD5.HashData(Encoding.UTF8.GetBytes(messageId)));
+    private static string? GetProperty(ServiceBusReceivedMessage message, string name) =>
+        message.ApplicationProperties.TryGetValue(name, out var value) ? value?.ToString() : null;
 }
