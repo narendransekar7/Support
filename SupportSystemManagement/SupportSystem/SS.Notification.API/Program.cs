@@ -32,12 +32,14 @@ builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-notificati
 {
     messaging
         .Subscribe<TicketCreated, CreateNotificationHandler>()
-        .Subscribe<UserCreated, WelcomeNotificationHandler>();
+        .Subscribe<UserCreated, WelcomeNotificationHandler>()
+        .Subscribe<TicketSlaBreached, SlaBreachedNotificationHandler>(); // published by SS.Functions' SLA breach checker
 
     messaging.ForRabbitMq(x =>
     {
         x.AddConsumer<CreateNotificationConsumer>();
         x.AddConsumer<WelcomeNotificationConsumer>();
+        x.AddConsumer<SlaBreachedNotificationConsumer>();
     });
 });
 

@@ -187,6 +187,9 @@ namespace SS.Base.Infrastructure.Migrations
                     b.Property<DateTime?>("ResponseDueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("SlaBreachedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -207,6 +210,10 @@ namespace SS.Base.Infrastructure.Migrations
                     b.HasKey("TicketId");
 
                     b.HasIndex("AssignedTo");
+
+                    b.HasIndex("ResolutionDueDate")
+                        .HasDatabaseName("IX_Tickets_ResolutionDueDate_Unreported")
+                        .HasFilter("[SlaBreachedAt] IS NULL");
 
                     b.ToTable("Tickets");
                 });

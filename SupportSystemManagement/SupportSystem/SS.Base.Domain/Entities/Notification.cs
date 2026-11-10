@@ -27,4 +27,5 @@ public static class NotificationType
 {
     public const string TicketCreated = "TicketCreated";
     public const string Welcome = "Welcome";
+    public const string SlaBreached = "SlaBreached";
 }

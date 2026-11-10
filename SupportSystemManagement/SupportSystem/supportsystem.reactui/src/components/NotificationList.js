@@ -7,6 +7,7 @@ import { markNotificationRead } from "../features/notificationsSlice";
 const typeIcons = {
   TicketCreated: "🎫",
   Welcome: "👋",
+  SlaBreached: "⏰",
 };
 
 // "5m ago", "3h ago", "2d ago" - falls back to the date after a week.

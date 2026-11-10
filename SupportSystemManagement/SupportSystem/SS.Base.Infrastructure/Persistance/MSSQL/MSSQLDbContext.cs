@@ -96,6 +96,12 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL
                 entity.Property(t => t.CreatedAt).HasDefaultValueSql("GETDATE()");
                 entity.Property(t => t.UpdatedAt).HasDefaultValueSql("GETDATE()");
 
+                // The SLA breach checker (SS.Functions) asks every few minutes for unreported tickets
+                // past their due date; this filtered index keeps that a seek over only those rows.
+                entity.HasIndex(t => t.ResolutionDueDate)
+                    .HasDatabaseName("IX_Tickets_ResolutionDueDate_Unreported")
+                    .HasFilter("[SlaBreachedAt] IS NULL");
+
                 entity.HasMany(tu => tu.TicketUpdates)
                 .WithOne(t => t.Ticket)
                 .HasForeignKey(tu => tu.TicketId)

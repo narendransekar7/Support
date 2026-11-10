@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "logging": {
+    "logLevel": {
+      "default": "Information",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    },
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      }
+    }
+  },
+  // A run that hangs is cancelled after this long (the timer then fires again on schedule).
+  "functionTimeout": "00:05:00"
+}

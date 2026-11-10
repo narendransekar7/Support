@@ -28,8 +28,20 @@ namespace SS.Base.Infrastructure.Persistance.MSSQL.Repositories
             return await _context.Tickets
                 .Include(t => t.TicketUpdates) // Load TicketUpdates
                 .FirstOrDefaultAsync(t => t.TicketId == ticketId);
-             
-            
+
+
+        }
+
+        public Task<List<Ticket>> GetUnreportedSlaBreachesAsync(DateTime now, int take, CancellationToken cancellationToken)
+        {
+            return _context.Tickets
+                .Where(t => t.Status != TicketStatus.Closed
+                            && t.SlaBreachedAt == null
+                            && t.ResolutionDueDate != null
+                            && t.ResolutionDueDate < now)
+                .OrderBy(t => t.ResolutionDueDate)
+                .Take(take)
+                .ToListAsync(cancellationToken);
         }
     }
 }

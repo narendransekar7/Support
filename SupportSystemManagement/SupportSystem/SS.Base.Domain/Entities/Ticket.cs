@@ -15,6 +15,10 @@ namespace SS.Base.Domain.Entities
         public DateTime UpdatedAt { get; set; }
         public DateTime? ResolutionDueDate { get; set; }
         public DateTime? ResponseDueDate { get; set; }
+
+        // When the SLA breach checker (SS.Functions) found this ticket past ResolutionDueDate and
+        // published TicketSlaBreached; null until then. Stops the checker reporting the same ticket twice.
+        public DateTime? SlaBreachedAt { get; set; }
         public int CreatedBy { get; set; }
         public TicketStatus Status { get; set; }
         public string Priority { get; set; }
