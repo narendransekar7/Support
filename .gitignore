@@ -19,3 +19,6 @@ values.*.secret.yaml
 
 # React production build output
 build/
+
+# Azure Functions local settings hold secrets; SS.Functions/local.settings.example.json is the template.
+local.settings.json

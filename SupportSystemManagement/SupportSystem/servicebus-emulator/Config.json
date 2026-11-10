@@ -315,6 +315,42 @@
                 "Rules": []
               }
             ]
+          },
+          {
+            "Name": "support.ticket-sla-breached",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "DuplicateDetectionHistoryTimeWindow": "PT20S",
+              "RequiresDuplicateDetection": false
+            },
+            "Subscriptions": [
+              {
+                "Name": "ss-notification-api.sla-breached-notification-handler",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": true,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 4,
+                  "ForwardDeadLetteredMessagesTo": "",
+                  "ForwardTo": "",
+                  "RequiresSession": false
+                },
+                "Rules": []
+              },
+              {
+                "Name": "ss-audit-api.audit-event-handler",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": true,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 4,
+                  "ForwardDeadLetteredMessagesTo": "",
+                  "ForwardTo": "",
+                  "RequiresSession": false
+                },
+                "Rules": []
+              }
+            ]
           }
         ]
       }

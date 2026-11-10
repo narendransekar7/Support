@@ -35,7 +35,8 @@ builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-audit-api"
         .Subscribe<EngineerAssigned, AuditEventHandler<EngineerAssigned>>()
         .Subscribe<AssignEngineerFailed, AuditEventHandler<AssignEngineerFailed>>()
         .Subscribe<SlaReserved, AuditEventHandler<SlaReserved>>()
-        .Subscribe<UserCreated, AuditEventHandler<UserCreated>>();
+        .Subscribe<UserCreated, AuditEventHandler<UserCreated>>()
+        .Subscribe<TicketSlaBreached, AuditEventHandler<TicketSlaBreached>>();
 
     // RabbitMQ: one queue per audited message type, bound to that type's exchange.
     messaging.ForRabbitMq(x =>
@@ -45,6 +46,7 @@ builder.Services.AddSupportSystemMessaging(builder.Configuration, "ss-audit-api"
         x.AddConsumer<AuditConsumer<AssignEngineerFailed>>().Endpoint(e => e.Name = "audit-assign-engineer-failed");
         x.AddConsumer<AuditConsumer<SlaReserved>>().Endpoint(e => e.Name = "audit-sla-reserved");
         x.AddConsumer<AuditConsumer<UserCreated>>().Endpoint(e => e.Name = "audit-user-created");
+        x.AddConsumer<AuditConsumer<TicketSlaBreached>>().Endpoint(e => e.Name = "audit-ticket-sla-breached");
     });
 });
 

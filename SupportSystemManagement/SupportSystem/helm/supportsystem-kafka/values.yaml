@@ -85,6 +85,7 @@ topics:
     - delete-ticket-command
     - send-ticket-creation-failed-email
     - user-created
+    - ticket-sla-breached       # SS.Functions' SLA breach checker
 
 # One SCRAM-SHA-512 login per service, named like the app chart's Deployment, allowed only what that service does:
 #   produces: Write/Describe on those topics
@@ -104,10 +105,13 @@ users:
     consumes: [ticket-created, user-created, send-ticket-creation-failed-email]
   ss-notification-api:
     produces: []
-    consumes: [ticket-created, user-created]
+    consumes: [ticket-created, user-created, ticket-sla-breached]
   ss-audit-api:
     produces: []
-    consumes: [ticket-created, engineer-assigned, assign-engineer-failed, sla-reserved, user-created]
+    consumes: [ticket-created, engineer-assigned, assign-engineer-failed, sla-reserved, user-created, ticket-sla-breached]
+  ss-functions:                 # Azure Functions app (SLA breach checker) - publishes only
+    produces: [ticket-sla-breached]
+    consumes: []
 
 entityOperator:
   topicOperator:
