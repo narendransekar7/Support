@@ -22,3 +22,6 @@ build/
 
 # Azure Functions local settings hold secrets; SS.Functions/local.settings.example.json is the template.
 local.settings.json
+
+# Function App deploy package (scripts/deploy-function-app.sh)
+.publish/
