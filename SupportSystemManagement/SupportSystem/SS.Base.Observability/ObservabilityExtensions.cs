@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Console;
 using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace SS.Base.Observability;
 
@@ -22,7 +23,9 @@ namespace SS.Base.Observability;
 ///
 /// When an Application Insights connection string is configured, logs, traces (ASP.NET Core,
 /// HttpClient, SQL, MassTransit/RabbitMQ, Kafka) and metrics are also exported via OpenTelemetry to
-/// Azure Monitor. Without one, nothing is exported and the service runs exactly as before.
+/// Azure Monitor. Independently, when OTEL_EXPORTER_OTLP_ENDPOINT is set, traces are also exported over
+/// OTLP - locally to Jaeger (docker-compose, http://localhost:16686) to see the time spent in each service,
+/// HTTP hop, SQL query and Kafka/RabbitMQ message of a request. With neither, nothing is exported.
 ///
 /// Metrics are always exposed in Prometheus format at /metrics (see UseSupportSystemMetrics),
 /// independent of Application Insights.
@@ -34,6 +37,9 @@ public static class ObservabilityExtensions
 
     // ActivitySource SS.Base.Messaging emits its Kafka publish/process spans under (MessagingTelemetry).
     private const string KafkaMessagingSource = "SS.Base.Messaging";
+
+    // Wildcard for the services' own ActivitySources (SS.Ticket, SS.Gateway.RateLimiting, ...).
+    private const string CustomSourcePrefix = "SS.*";
 
     // Meters built into .NET 8: HTTP server request duration/active requests, Kestrel connections,
     // outgoing HttpClient requests. Registered explicitly so they reach Prometheus even when the
@@ -78,9 +84,32 @@ public static class ObservabilityExtensions
                 .AddPrometheusExporter());
 
         var connectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-        if (!string.IsNullOrWhiteSpace(connectionString))
+        var azureMonitorEnabled = !string.IsNullOrWhiteSpace(connectionString);
+        if (azureMonitorEnabled)
         {
             openTelemetry.UseAzureMonitor(o => o.ConnectionString = connectionString);
+        }
+        else
+        {
+            // The Azure Monitor distro brings its own ASP.NET Core / HttpClient / SQL instrumentation; adding it
+            // again would record every span twice. Without the distro, add it here so traces still exist
+            // (for the OTLP exporter below).
+            openTelemetry.WithTracing(t => t
+                .AddAspNetCoreInstrumentation(o => o.RecordException = true)
+                .AddHttpClientInstrumentation(o => o.RecordException = true) // also Ocelot's downstream calls
+                .AddSqlClientInstrumentation());                              // every EF Core query, with its duration
+        }
+
+        // Custom spans: any service can `new ActivitySource("SS.<Service>")` and wrap a slow-looking step in
+        // `using var activity = source.StartActivity("...")` - it then shows up nested in the trace.
+        openTelemetry.WithTracing(t => t.AddSource(CustomSourcePrefix));
+
+        // OTLP export (Jaeger, Grafana Tempo, an OpenTelemetry Collector, the .NET Aspire dashboard, ...).
+        // Set OTEL_EXPORTER_OTLP_ENDPOINT (e.g. http://jaeger:4317) to turn it on; the exporter reads it and the
+        // other standard OTEL_EXPORTER_OTLP_* settings itself. Works alongside Application Insights.
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+        {
+            openTelemetry.WithTracing(t => t.AddOtlpExporter());
         }
 
         // Kubernetes probes hit /health/* and Prometheus hits /metrics every few seconds per pod — don't trace them.

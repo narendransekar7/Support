@@ -7,6 +7,7 @@
 #   for AzureServiceBus add the emulator with --profile servicebus (or set AZURE_SERVICE_BUS_CONNECTION_STRING to a
 #   real namespace and AZURE_SERVICE_BUS_AUTO_CREATE=true). See docs/messaging/AZURE-SERVICE-BUS.md.
 #   Kafka UI: http://localhost:8085   RabbitMQ management: http://localhost:15672 (guest/guest)
+# Traces (time taken per service / query / message): Jaeger UI at http://localhost:16686.
 services:
   rabbitmq:
     image: rabbitmq:3-management  # Includes management UI
@@ -95,6 +96,19 @@ services:
     networks:
       - ss-network
 
+  # Distributed tracing UI: http://localhost:16686. Every .NET service sends its spans here over OTLP
+  # (OTEL_EXPORTER_OTLP_ENDPOINT), so one request shows as one trace across gateway -> API -> SQL / Kafka -> consumers,
+  # with the time spent in each step. In-memory only: traces are gone when the container restarts.
+  # From `dotnet run` / Visual Studio, set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 to send to the same Jaeger.
+  jaeger:
+    image: jaegertracing/jaeger:2.5.0
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - ss-network
+
   # Rate-limit counters for ss-gateway-api (shared by all its replicas). No persistence needed:
   # losing the counters on restart only resets the current window.
   redis:
@@ -125,6 +139,7 @@ services:
       - Cors__ReactUIOrigin=http://localhost:5145
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5335:8080"
     extra_hosts:
@@ -151,6 +166,7 @@ services:
       - AzureAd__ClientId=${ENTRA_API_CLIENT_ID:-}
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5223:8080"
     networks:
@@ -176,6 +192,7 @@ services:
       - Cors__ReactUIOrigin=http://localhost:5145
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5336:8080"
     extra_hosts:
@@ -206,6 +223,7 @@ services:
       - RabbitMq__Password=guest
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5337:8080"
     depends_on:
@@ -235,6 +253,7 @@ services:
       - RabbitMq__Password=guest
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5338:8080"
     depends_on:
@@ -264,6 +283,7 @@ services:
       - RabbitMq__Password=guest
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5339:8080"
     depends_on:
@@ -329,6 +349,7 @@ services:
       - Redis__ConnectionString=redis:6379,connectTimeout=2000,syncTimeout=500,asyncTimeout=500
       - Logging__Console__FormatterName=json
       - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}   # traces -> Jaeger
     ports:
       - "5145:8080"
     depends_on:

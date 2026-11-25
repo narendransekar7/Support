@@ -15,6 +15,12 @@
     <!-- Kept on the same OpenTelemetry 1.15.x line the Azure Monitor distro resolves to. -->
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.15.3-beta.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+    <!-- Tracing without Application Insights: span export over OTLP (Jaeger / any OTel collector) and the
+         HTTP + SQL instrumentation the Azure Monitor distro otherwise adds itself. -->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.15.2" />
   </ItemGroup>
 
 </Project>

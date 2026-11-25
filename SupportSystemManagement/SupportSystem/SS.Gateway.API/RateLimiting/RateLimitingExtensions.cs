@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using StackExchange.Redis;
 
 namespace SS.Gateway.API.RateLimiting;
@@ -28,6 +29,8 @@ public static class RateLimitingExtensions
             return ConnectionMultiplexer.Connect(options);
         });
         services.AddSingleton<RedisRateLimiter>();
+        // A span per Redis command, so the rate-limit check's cost is visible in each request's trace.
+        services.ConfigureOpenTelemetryTracerProvider(t => t.AddRedisInstrumentation());
         return services;
     }
 
