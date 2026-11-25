@@ -40,7 +40,60 @@ To get a breach to test with, set a ticket's `ResolutionDueDate` to a past time 
 
 `docker compose up ss-functions` also starts Azurite. The image is built on `mcr.microsoft.com/azure-functions/dotnet-isolated`, the same runtime Azure uses.
 
-## Deploying to Azure (when you're ready)
+## Azure Function App
 
-Create a Function App (Flex Consumption, .NET 8 isolated) with its own storage account. Then set the same app settings as `local.settings.json`, using `__` separators (`Messaging__Provider`, `ConnectionStrings__DefaultConnection`, ...), and publish:
-`func azure functionapp publish <app-name>`.
+In Azure it runs as a real **Function App** on the Flex Consumption plan: Linux, .NET 8 isolated worker, billed per execution. It doesn't run inside AKS. [infra/function-app/main.bicep](../infra/function-app/main.bicep) creates:
+
+| Resource | Purpose |
+|---|---|
+| Storage account | `AzureWebJobsStorage` (timer lease, host keys) and the `app-package` container the code zip is uploaded to |
+| Log Analytics + Application Insights | logs and the function's invocation history |
+| Flex Consumption plan + Function App | the app, with the settings from `local.settings.json` |
+
+[scripts/deploy-function-app.sh](../scripts/deploy-function-app.sh) runs the Bicep, publishes the project, zips it and deploys the zip. Your machine and Jenkins both use this script.
+
+> **Broker: Service Bus only.** The Function App runs outside the cluster, so it can't reach the in-cluster Kafka (Strimzi) or RabbitMQ. It always publishes to **Azure Service Bus**. The Notification and Audit services in AKS receive `TicketSlaBreached` only when the Helm release uses `config.messagingProvider: AzureServiceBus` (plus `secrets.azureServiceBusConnectionString`). With the default Kafka setup, the function still runs and marks tickets, but nobody receives the events.
+
+> **Database: allow Azure services.** The app connects to the Azure SQL server from changing outbound IPs, so the server's networking must have *Allow Azure services and resources to access this server* switched on.
+
+### Deploy from your machine
+
+From `SupportSystemManagement/SupportSystem` in Git Bash, signed in with `az login`, with Contributor on the resource group:
+
+```bash
+export DB_CONNECTION_STRING='Server=...;Database=SupportSystem;...'
+export AZURE_SERVICE_BUS_CONNECTION_STRING='Endpoint=sb://<namespace>.servicebus.windows.net/;SharedAccessKeyName=...;SharedAccessKey=...'
+bash scripts/deploy-function-app.sh rg-supportsystem-functions centralindia
+```
+
+- **Location:** it's only needed the first time, when the script creates the resource group. Pick a region that offers Flex Consumption: `az functionapp list-flexconsumption-locations -o table`.
+- **Code-only redeploy:** add `SKIP_INFRA=true FUNCTION_APP_NAME=<name>`.
+
+### Deploy from Jenkins
+
+Run the job with **ACTION = deploy** and tick **DEPLOY_FUNCTION_APP**. The *Deploy Function App* stage runs the same script and archives the zip with the build.
+
+One-time setup:
+- **Placeholder:** in the Jenkinsfile, replace `FUNCTION_APP_RESOURCE_GROUP = '<function-app-resource-group>'` with your resource group.
+- **Credentials:** add two *Secret text* Jenkins credentials, `supportsystem-db-connection-string` and `supportsystem-servicebus-connection-string`.
+- **Permissions:** the `azure-credentials-id` service principal needs Contributor on that resource group.
+- **Agent:** it needs `az`, plus either the .NET 8 SDK or Docker; without `dotnet` the build runs in the `dotnet/sdk` container.
+
+Jenkins checks out `master`, so the code must be merged before it can deploy it.
+
+### Test it in Azure
+
+1. **Make one ticket overdue**, as in local testing:
+   ```sql
+   UPDATE Tickets SET ResolutionDueDate = DATEADD(hour,-1,GETDATE()), SlaBreachedAt = NULL WHERE TicketId = <id>;
+   ```
+   This database is shared: every overdue, unreported ticket gets reported on the first run.
+2. **Run it now** instead of waiting for the schedule: **Azure portal → Function App → Functions → SlaBreachChecker → Code + Test → Test/Run**. Or from the CLI:
+   ```bash
+   KEY=$(az functionapp keys list -g <rg> -n <app> --query masterKey -o tsv)
+   curl -X POST "https://<app>.azurewebsites.net/admin/functions/SlaBreachChecker" -H "x-functions-key: $KEY" -H "Content-Type: application/json" -d "{}"
+   ```
+3. **Watch it run:** *Log stream* on the function page in the portal, or *Invocations* for past runs. You can also query Application Insights: `traces | where message has "SLA"`.
+4. **Check the results:** `Tickets.SlaBreachedAt` is set, the Service Bus topic `support.ticket-sla-breached` has a message, and, when the APIs use Service Bus, the ⏰ notification and the audit-log row appear.
+
+To speed up the schedule while testing, change the `SlaBreachCheckerSchedule` app setting in the portal (*Settings → Environment variables*). Changing it restarts the app, and the next deploy puts the Bicep value back.

@@ -15,6 +15,9 @@
 //   docker-hub-credentials-id     Username/password  - Docker Hub
 //   azure-credentials-id          Azure Service Principal - needs access to the AKS cluster
 //   supportsystem-values-secret   Secret file - the filled-in helm/supportsystem/values.secret.yaml
+//   Only with DEPLOY_FUNCTION_APP (the SS.Functions Azure Function App - see SS.Functions/README.md):
+//   supportsystem-db-connection-string          Secret text - the SupportSystem Azure SQL connection string
+//   supportsystem-servicebus-connection-string  Secret text - Azure Service Bus connection string (Manage rights)
 
 pipeline {
     agent { label 'Jenkins-Agent' }
@@ -24,6 +27,8 @@ pipeline {
                description: 'deploy = build & release this commit; rollback = return to an earlier Helm revision; status = show history only')
         string(name: 'ROLLBACK_REVISION', defaultValue: '', trim: true,
                description: 'Only for rollback: Helm revision to restore (run ACTION=status to see them). Empty = the previous revision')
+        booleanParam(name: 'DEPLOY_FUNCTION_APP', defaultValue: false,
+               description: 'deploy only: also provision/deploy the SS.Functions Azure Function App (SLA breach checker). It publishes to Azure Service Bus, so the AKS services only receive its events when the release uses config.messagingProvider=AzureServiceBus')
     }
 
     environment {
@@ -50,6 +55,10 @@ pipeline {
         KAFKA_CHART           = 'helm/supportsystem-kafka'
         // Helm revisions kept in the cluster = how far back you can roll back
         HELM_HISTORY_MAX      = '20'
+        // SS.Functions Azure Function App (DEPLOY_FUNCTION_APP); the app is named ss-functions-<unique suffix>.
+        FUNCTION_APP_RESOURCE_GROUP = '<function-app-resource-group>'
+        DB_CONNECTION_CREDENTIALS   = 'supportsystem-db-connection-string'
+        ASB_CONNECTION_CREDENTIALS  = 'supportsystem-servicebus-connection-string'
     }
 
     options {
@@ -200,6 +209,29 @@ pipeline {
                     }
                 }
                 script { currentBuild.description = "deploy · image tag ${IMAGE_TAG} · commit ${env.GIT_SHORT}" }
+            }
+        }
+
+        // Outside AKS: the timer-triggered SLA breach checker runs as an Azure Function App (Flex Consumption).
+        // Bicep provisions/updates the app, then this build's code is zip-deployed to it (zip archived per build,
+        // so an older build's package can be redeployed with `az functionapp deployment source config-zip`).
+        stage('Deploy Function App') {
+            when { expression { params.ACTION == 'deploy' && params.DEPLOY_FUNCTION_APP } }
+            steps {
+                dir('SupportSystemManagement/SupportSystem') {
+                    withCredentials([
+                        azureServicePrincipal(credentialsId: AZURE_CREDENTIALS),
+                        string(credentialsId: DB_CONNECTION_CREDENTIALS, variable: 'DB_CONNECTION_STRING'),
+                        string(credentialsId: ASB_CONNECTION_CREDENTIALS, variable: 'AZURE_SERVICE_BUS_CONNECTION_STRING')
+                    ]) {
+                        sh '''
+                            az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" >/dev/null
+                            az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+                            bash scripts/deploy-function-app.sh "$FUNCTION_APP_RESOURCE_GROUP"
+                        '''
+                    }
+                    archiveArtifacts artifacts: '.publish/ss-functions.zip'
+                }
             }
         }
 
